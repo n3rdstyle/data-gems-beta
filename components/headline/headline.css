@@ -1,0 +1,23 @@
+/**
+ * Headline Component
+ * Section headline/title text
+ * Font: Instrument Sans Medium, 20px
+ */
+
+.headline {
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--color-neutral-90);
+  font-variation-settings: 'wdth' 100;
+  white-space: nowrap;
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 400px) {
+  .headline {
+    font-size: 18px;
+  }
+}

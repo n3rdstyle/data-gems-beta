@@ -1,0 +1,28 @@
+/**
+ * Calibration Component
+ * Progress bar showing calibration status
+ */
+
+.calibration {
+  width: 400px;
+  height: 2px;
+  position: relative;
+  background-color: var(--color-neutral-30);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.calibration__progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: var(--gradient-sundown);
+  transition: width 0.3s ease;
+  border-radius: 1px;
+}
+
+/* Variant: with percentage display */
+.calibration--with-label {
+  margin-bottom: 8px;
+}

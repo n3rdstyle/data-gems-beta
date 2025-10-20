@@ -1,0 +1,50 @@
+/**
+ * Search Component
+ * Search input field for filtering preferences
+ * States: inactive (placeholder), active (has text)
+ */
+
+.search {
+  width: 100%;
+  position: relative;
+}
+
+.search__input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--color-neutral-50);
+  border-radius: 1000px;
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--color-neutral-80);
+  background-color: white;
+  transition: all 0.2s ease-in-out;
+  outline: none;
+  font-variation-settings: 'wdth' 100;
+}
+
+.search__input::placeholder {
+  color: var(--color-neutral-50);
+  font-weight: 500;
+  font-variation-settings: 'wdth' 100;
+}
+
+/* Focus state */
+.search__input:focus {
+  border-color: var(--color-neutral-80);
+}
+
+/* Hover state */
+.search__input:hover:not(:focus) {
+  border-color: var(--color-neutral-70);
+}
+
+/* Responsive */
+@media (max-width: 400px) {
+  .search__input {
+    font-size: 14px;
+    padding: 10px 14px;
+  }
+}

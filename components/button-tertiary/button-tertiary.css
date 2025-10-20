@@ -1,0 +1,64 @@
+/**
+ * Tertiary Button Component
+ * Minimal 40x40px icon button for tertiary actions
+ * Used for expand/collapse, add, close, etc.
+ */
+
+.button-tertiary {
+  width: 40px;
+  height: 40px;
+  border-radius: 1000px;
+  border: none;
+  background-color: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  transition: background-color 0.2s ease-in-out;
+  flex-shrink: 0;
+  color: var(--color-neutral-80);
+}
+
+.button-tertiary:hover {
+  background-color: var(--color-neutral-20);
+}
+
+.button-tertiary:active {
+  background-color: var(--color-neutral-30);
+}
+
+.button-tertiary__icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.button-tertiary__icon svg {
+  width: 100%;
+  height: 100%;
+  stroke: currentColor;
+  fill: none;
+}
+
+/* Rotate icon for expand button states */
+.button-tertiary.collapsed .button-tertiary__icon svg {
+  transform: rotate(180deg);
+  transition: transform 0.2s ease-in-out;
+}
+
+.button-tertiary:not(.collapsed) .button-tertiary__icon svg {
+  transition: transform 0.2s ease-in-out;
+}
+
+/* Disabled state */
+.button-tertiary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.button-tertiary:disabled:hover {
+  background-color: transparent;
+}

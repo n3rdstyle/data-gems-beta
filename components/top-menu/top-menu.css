@@ -1,0 +1,15 @@
+/**
+ * Top Menu Component
+ * Horizontal menu bar with action buttons
+ */
+
+.top-menu {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.top-menu__button {
+  /* Buttons use the tertiary button component styles */
+}

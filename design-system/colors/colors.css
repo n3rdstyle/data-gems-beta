@@ -1,0 +1,113 @@
+/**
+ * Color Palette - Data Gems Chrome Extension
+ * Design System Colors extracted from Figma
+ */
+
+:root {
+  /* Primary Scale - Blue Brand Colors */
+  --color-primary-10: #f5fcff;
+  --color-primary-20: #e6f8ff;
+  --color-primary-30: #cff1ff;
+  --color-primary-40: #afe9ff;
+  --color-primary-50: #7fdeff;
+  --color-primary-60: #4accf9;
+  --color-primary-70: #13b3eb;
+  --color-primary-80: #0e93c4;
+  --color-primary-90: #0a7096;
+
+  /* Secondary Scale - Warm Tan/Beige Colors */
+  --color-secondary-10: #fefbf6;
+  --color-secondary-20: #fcf4e8;
+  --color-secondary-30: #faeacf;
+  --color-secondary-40: #f9ddb5;
+  --color-secondary-50: #f9d8a3;
+  --color-secondary-60: #f3be76;
+  --color-secondary-70: #c77f28;
+  --color-secondary-80: #c77f28;
+  --color-secondary-90: #a5661f;
+
+  /* Neutral Scale - Gray Colors */
+  --color-neutral-10: #ffffff;
+  --color-neutral-20: #f8fafb;
+  --color-neutral-30: #e6eaec;
+  --color-neutral-40: #ccd2d6;
+  --color-neutral-50: #98a0a6;
+  --color-neutral-60: #6c757c;
+  --color-neutral-70: #50585e;
+  --color-neutral-80: #343a3f;
+  --color-neutral-90: #1e2225;
+
+  /* Semantic Colors */
+  --color-success: #6fe6a8;
+  --color-warning: #f8e87a;
+  --color-error: #f57464;
+  --color-info: #a8e1ff;
+
+  /* Gradients - Aurora, Mist, Sundown */
+  --gradient-aurora: linear-gradient(45deg, #C9A2FF 42.75%, #7FDEFF 100%);
+  --gradient-mist: linear-gradient(to bottom, #f5fcff, #f3e8ff);
+  --gradient-sundown: linear-gradient(133deg, #F9D8A3 16.05%, #F57464 76.12%);
+
+  /* Semantic Color Mappings */
+  --color-primary: var(--color-primary-60);
+  --color-primary-light: var(--color-primary-40);
+  --color-primary-dark: var(--color-primary-80);
+
+  --color-background: var(--color-neutral-10);
+  --color-background-secondary: var(--color-neutral-20);
+  --color-background-tertiary: var(--color-secondary-10);
+
+  --color-text-primary: var(--color-neutral-80);
+  --color-text-secondary: var(--color-neutral-60);
+  --color-text-tertiary: var(--color-neutral-50);
+  --color-text-inverse: var(--color-neutral-10);
+
+  --color-border: var(--color-neutral-40);
+  --color-border-light: var(--color-neutral-30);
+  --color-border-dark: var(--color-neutral-50);
+
+  --color-surface: var(--color-neutral-10);
+  --color-surface-hover: var(--color-neutral-20);
+  --color-surface-active: var(--color-primary-20);
+}
+
+/* Dark Mode Support (optional) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: var(--color-neutral-90);
+    --color-background-secondary: var(--color-neutral-80);
+    --color-background-tertiary: var(--color-neutral-70);
+
+    --color-text-primary: var(--color-neutral-10);
+    --color-text-secondary: var(--color-neutral-30);
+    --color-text-tertiary: var(--color-neutral-40);
+
+    --color-border: var(--color-neutral-70);
+    --color-border-light: var(--color-neutral-80);
+    --color-border-dark: var(--color-neutral-60);
+
+    --color-surface: var(--color-neutral-80);
+    --color-surface-hover: var(--color-neutral-70);
+    --color-surface-active: var(--color-primary-80);
+  }
+}
+
+/* Utility Classes for Quick Application */
+.bg-primary { background-color: var(--color-primary); }
+.bg-success { background-color: var(--color-success); }
+.bg-warning { background-color: var(--color-warning); }
+.bg-error { background-color: var(--color-error); }
+.bg-info { background-color: var(--color-info); }
+
+.text-primary { color: var(--color-text-primary); }
+.text-secondary { color: var(--color-text-secondary); }
+.text-tertiary { color: var(--color-text-tertiary); }
+.text-inverse { color: var(--color-text-inverse); }
+
+.border-default { border-color: var(--color-border); }
+.border-light { border-color: var(--color-border-light); }
+.border-dark { border-color: var(--color-border-dark); }
+
+.gradient-aurora { background: var(--gradient-aurora); }
+.gradient-mist { background: var(--gradient-mist); }
+.gradient-sundown { background: var(--gradient-sundown); }

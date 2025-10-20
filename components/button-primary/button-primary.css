@@ -1,0 +1,57 @@
+/**
+ * Primary Button Component
+ * Main action button with gradient background
+ */
+
+.button-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 32px;
+  background: var(--gradient-sundown);
+  border: none;
+  color: var(--color-neutral-10);
+  font-size: 16px;
+  font-weight: 500;
+  font-family: 'Instrument Sans', sans-serif;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.button-primary:hover {
+  opacity: 0.9;
+}
+
+.button-primary:active {
+  transform: scale(0.98);
+}
+
+.button-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.button-primary:disabled:active {
+  transform: none;
+}
+
+/* Neutral variant - dark background for use on gradient backgrounds */
+.button-primary--neutral {
+  background: var(--color-neutral-80);
+  transition: background 0.2s, transform 0.1s;
+}
+
+.button-primary--neutral:hover {
+  background: var(--color-neutral-70);
+  opacity: 1;
+}
+
+.button-primary--neutral:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

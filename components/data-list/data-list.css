@@ -1,0 +1,16 @@
+/**
+ * Data List Component
+ * A vertical stack of data cards with consistent spacing
+ */
+
+.data-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+/* Ensure child cards fill the width */
+.data-list > .data-card {
+  width: 100%;
+}

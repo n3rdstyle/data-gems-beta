@@ -1,0 +1,95 @@
+/**
+ * Data Card Component
+ * States: default, favorited, hidden
+ * Each state has hover effects
+ */
+
+.data-card {
+  /* Base styles */
+  position: relative;
+  width: 368px;
+  height: 56px;
+  border-radius: 16px;
+  border: 1px solid;
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+.data-card__content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  height: 100%;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.data-card__text {
+  font-family: 'Instrument Sans', sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 1.5;
+  margin: 0;
+  flex: 1;
+  font-variation-settings: 'wdth' 100;
+  white-space: pre-wrap;
+}
+
+/* Default State */
+.data-card[data-state="default"] {
+  background-color: var(--color-neutral-10);
+  border-color: var(--color-neutral-30);
+}
+
+.data-card[data-state="default"] .data-card__text {
+  color: var(--color-neutral-80);
+}
+
+.data-card[data-state="default"]:hover {
+  border-color: var(--color-neutral-80);
+}
+
+/* Favorited State */
+.data-card[data-state="favorited"] {
+  background:
+    linear-gradient(var(--color-neutral-10), var(--color-neutral-10)) padding-box,
+    var(--gradient-aurora) border-box;
+  border: 1px solid transparent;
+  position: relative;
+}
+
+.data-card[data-state="favorited"] .data-card__text {
+  color: var(--color-neutral-80);
+}
+
+.data-card[data-state="favorited"]:hover {
+  background: var(--color-neutral-10);
+  border: 1px solid var(--color-primary-70);
+}
+
+/* Hidden State */
+.data-card[data-state="hidden"] {
+  background-color: var(--color-neutral-20);
+  border-color: var(--color-neutral-30);
+}
+
+.data-card[data-state="hidden"] .data-card__text {
+  color: var(--color-neutral-50);
+}
+
+.data-card[data-state="hidden"]:hover {
+  border-color: var(--color-neutral-80);
+}
+
+.data-card[data-state="hidden"]:hover .data-card__text {
+  color: var(--color-neutral-80);
+}
+
+/* Responsive: Full width on smaller screens */
+@media (max-width: 400px) {
+  .data-card {
+    width: 100%;
+    max-width: 368px;
+  }
+}

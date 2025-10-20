@@ -1,0 +1,21 @@
+/**
+ * Header Component
+ * Main header with profile and menu
+ * Composed of profile-teaser and top-menu components
+ */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px 24px;
+  box-sizing: border-box;
+}
+
+.header__profile {
+  /* Profile teaser styles are in profile-teaser.css */
+}
+
+.header__menu {
+  /* Top menu styles are in top-menu.css */
+}

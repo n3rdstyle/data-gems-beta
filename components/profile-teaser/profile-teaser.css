@@ -1,0 +1,75 @@
+/**
+ * Profile Teaser Component
+ * Displays user profile with avatar and info
+ */
+
+.profile-teaser {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Avatar */
+.profile-teaser__avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--color-neutral-30);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.profile-teaser__avatar-initial {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-neutral-80);
+  line-height: 1;
+}
+
+/* Info */
+.profile-teaser__info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0; /* Allow text truncation */
+}
+
+.profile-teaser__name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-neutral-80);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-teaser__subtitle {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-neutral-60);
+  line-height: 1.33;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Avatar with image */
+.profile-teaser__avatar-image {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* Clickable variant */
+.profile-teaser--clickable {
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.profile-teaser--clickable:hover {
+  opacity: 0.8;
+}

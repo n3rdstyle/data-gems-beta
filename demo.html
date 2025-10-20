@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Design System - Demo</title>
+
+  <!-- Design System -->
+  <link rel="stylesheet" href="design-system/colors/colors.css">
+
+  <!-- Components -->
+  <link rel="stylesheet" href="components/data-card/data-card.css">
+  <link rel="stylesheet" href="components/data-list/data-list.css">
+  <link rel="stylesheet" href="components/tag/tag.css">
+  <link rel="stylesheet" href="components/tag-list/tag-list.css">
+  <link rel="stylesheet" href="components/search/search.css">
+  <link rel="stylesheet" href="components/button-primary/button-primary.css">
+  <link rel="stylesheet" href="components/button-tertiary/button-tertiary.css">
+  <link rel="stylesheet" href="components/headline/headline.css">
+  <link rel="stylesheet" href="components/data-search/data-search.css">
+  <link rel="stylesheet" href="components/content-preferences/content-preferences.css">
+  <link rel="stylesheet" href="components/top-menu/top-menu.css">
+  <link rel="stylesheet" href="components/profile-teaser/profile-teaser.css">
+  <link rel="stylesheet" href="components/header/header.css">
+  <link rel="stylesheet" href="components/calibration/calibration.css">
+  <link rel="stylesheet" href="components/preference-options/preference-options.css">
+
+  <!-- Screens -->
+  <link rel="stylesheet" href="screens/main-screen/main-screen.css">
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Instrument Sans', sans-serif;
+      background-color: var(--color-background-secondary);
+      color: var(--color-text-primary);
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    .demo-layout {
+      display: flex;
+      height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      background: white;
+      border-right: 1px solid var(--color-neutral-30);
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .sidebar-header {
+      padding: 24px;
+      border-bottom: 1px solid var(--color-neutral-30);
+    }
+
+    .sidebar-header h1 {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--color-neutral-90);
+    }
+
+    .sidebar-nav {
+      padding: 16px;
+    }
+
+    .nav-section {
+      margin-bottom: 24px;
+    }
+
+    .nav-section-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--color-neutral-70);
+      padding: 8px 12px;
+      letter-spacing: 0.5px;
+    }
+
+    .nav-item {
+      display: block;
+      padding: 10px 12px;
+      color: var(--color-neutral-80);
+      text-decoration: none;
+      border-radius: 8px;
+      margin-bottom: 2px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .nav-item:hover {
+      background-color: var(--color-neutral-20);
+    }
+
+    .nav-item.active {
+      background-color: var(--color-primary-70);
+      color: white;
+    }
+
+    /* Main Content */
+    .main-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 40px;
+    }
+
+    .demo-section {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .demo-section h2 {
+      font-size: 32px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--color-neutral-90);
+    }
+
+    .demo-section .description {
+      font-size: 16px;
+      color: var(--color-neutral-70);
+      margin-bottom: 32px;
+    }
+
+    .demo-subsection {
+      margin-top: 40px;
+    }
+
+    .demo-subsection h3 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--color-neutral-80);
+    }
+
+    .demo-example {
+      padding: 24px;
+      background: var(--color-neutral-10);
+      border-radius: 12px;
+      border: 1px solid var(--color-neutral-30);
+      margin-bottom: 16px;
+    }
+
+    /* Icon Grid */
+    .icon-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .icon-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 16px;
+      border: 1px solid var(--color-neutral-30);
+      border-radius: 8px;
+      background: white;
+    }
+
+    .icon-box-icon {
+      width: 24px;
+      height: 24px;
+      color: var(--color-neutral-80);
+    }
+
+    .icon-box-label {
+      font-size: 12px;
+      color: var(--color-neutral-70);
+      text-align: center;
+    }
+
+    /* Color Grid */
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .color-box {
+      display: flex;
+      flex-direction: column;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--color-neutral-30);
+    }
+
+    .color-box-swatch {
+      height: 80px;
+    }
+
+    .color-box-info {
+      padding: 12px;
+      background: white;
+    }
+
+    .color-box-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-neutral-80);
+      margin-bottom: 4px;
+    }
+
+    .color-box-value {
+      font-size: 11px;
+      color: var(--color-neutral-70);
+      font-family: monospace;
+    }
+
+    /* Gradient Boxes */
+    .gradient-showcase {
+      display: flex;
+      gap: 16px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .gradient-box {
+      width: 200px;
+      height: 120px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .gradient-box.aurora {
+      background: var(--gradient-aurora);
+    }
+
+    .gradient-box.mist {
+      background: var(--gradient-mist);
+    }
+
+    .gradient-box.sundown {
+      background: var(--gradient-sundown);
+    }
+
+    /* Utility */
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="demo-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h1>Design System</h1>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Foundations</div>
+          <a class="nav-item" data-section="colors">Colors</a>
+          <a class="nav-item" data-section="icons">Icons</a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Elements</div>
+          <a class="nav-item" data-section="button-primary">Primary Button</a>
+          <a class="nav-item" data-section="button-tertiary">Tertiary Button</a>
+          <a class="nav-item" data-section="calibration">Calibration</a>
+          <a class="nav-item" data-section="data-card">Data Card</a>
+          <a class="nav-item" data-section="headline">Headline</a>
+          <a class="nav-item" data-section="profile-teaser">Profile Teaser</a>
+          <a class="nav-item" data-section="search">Search</a>
+          <a class="nav-item" data-section="tag">Tag</a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Components</div>
+          <a class="nav-item" data-section="content-preferences">Content Preferences</a>
+          <a class="nav-item" data-section="data-list">Data List</a>
+          <a class="nav-item" data-section="data-search">Data Search</a>
+          <a class="nav-item" data-section="header">Header</a>
+          <a class="nav-item" data-section="preference-options">Preference Options</a>
+          <a class="nav-item" data-section="tag-list">Tag List</a>
+          <a class="nav-item" data-section="top-menu">Top Menu</a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Screens</div>
+          <a class="nav-item" data-section="main-screen">Main Screen</a>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Colors Section -->
+      <section id="section-colors" class="demo-section hidden">
+        <h2>Colors</h2>
+        <p class="description">Our color system includes primary, secondary, neutral palettes and gradients.</p>
+
+        <div class="demo-subsection">
+          <h3>Primary Colors (Blue)</h3>
+          <div class="color-grid" id="primary-colors"></div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Neutral Colors (Gray)</h3>
+          <div class="color-grid" id="neutral-colors"></div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Gradients</h3>
+          <div class="gradient-showcase">
+            <div class="gradient-box aurora">Aurora</div>
+            <div class="gradient-box mist">Mist</div>
+            <div class="gradient-box sundown">Sundown</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Icons Section -->
+      <section id="section-icons" class="demo-section hidden">
+        <h2>Icons</h2>
+        <p class="description">24x24px SVG icons with 2px stroke.</p>
+
+        <div class="demo-subsection">
+          <div class="icon-grid" id="icon-showcase"></div>
+        </div>
+      </section>
+
+      <!-- Main Screen Section -->
+      <section id="section-main-screen" class="demo-section hidden">
+        <h2>Main Screen</h2>
+        <p class="description">Complete main screen with header, calibration, preferences, and bottom button.</p>
+
+        <div class="demo-example" style="display: flex; justify-content: center; background-color: var(--color-neutral-10); padding: 0;">
+          <div id="main-screen-demo"></div>
+        </div>
+      </section>
+
+      <!-- Headline Section -->
+      <section id="section-headline" class="demo-section hidden">
+        <h2>Headline</h2>
+        <p class="description">Section headline component (20px, medium weight).</p>
+
+        <div class="demo-example">
+          <div class="headline">My Preferences</div>
+          <div class="headline" style="margin-top: 16px;">Travel Data</div>
+        </div>
+      </section>
+
+      <!-- Primary Button Section -->
+      <section id="section-button-primary" class="demo-section hidden">
+        <h2>Primary Button</h2>
+        <p class="description">Main action button with sundown gradient.</p>
+
+        <div class="demo-example">
+          <div style="display: flex; gap: 16px; flex-wrap: wrap;" id="button-primary-demo"></div>
+        </div>
+      </section>
+
+      <!-- Button Tertiary Section -->
+      <section id="section-button-tertiary" class="demo-section hidden">
+        <h2>Tertiary Button</h2>
+        <p class="description">40x40px icon buttons for tertiary actions.</p>
+
+        <div class="demo-example">
+          <div style="display: flex; gap: 16px;" id="button-demo"></div>
+        </div>
+      </section>
+
+      <!-- Top Menu Section -->
+      <section id="section-top-menu" class="demo-section hidden">
+        <h2>Top Menu</h2>
+        <p class="description">Horizontal menu bar with tertiary action buttons.</p>
+
+        <div class="demo-example">
+          <div id="top-menu-demo"></div>
+        </div>
+      </section>
+
+      <!-- Profile Teaser Section -->
+      <section id="section-profile-teaser" class="demo-section hidden">
+        <h2>Profile Teaser</h2>
+        <p class="description">Clickable user profile display with avatar and info.</p>
+
+        <div class="demo-example">
+          <div id="profile-teaser-demo"></div>
+        </div>
+      </section>
+
+      <!-- Header Section -->
+      <section id="section-header" class="demo-section hidden">
+        <h2>Header</h2>
+        <p class="description">Main header combining profile teaser and top menu.</p>
+
+        <div class="demo-example">
+          <div id="header-demo"></div>
+        </div>
+      </section>
+
+      <!-- Calibration Section -->
+      <section id="section-calibration" class="demo-section hidden">
+        <h2>Calibration</h2>
+        <p class="description">Animated progress bar with sundown gradient.</p>
+
+        <div class="demo-example">
+          <div id="calibration-demo"></div>
+          <div style="margin-top: 16px; display: flex; gap: 8px;">
+            <button id="calibration-btn-25" style="padding: 8px 16px; cursor: pointer;">25%</button>
+            <button id="calibration-btn-50" style="padding: 8px 16px; cursor: pointer;">50%</button>
+            <button id="calibration-btn-75" style="padding: 8px 16px; cursor: pointer;">75%</button>
+            <button id="calibration-btn-100" style="padding: 8px 16px; cursor: pointer;">100%</button>
+            <button id="calibration-btn-reset" style="padding: 8px 16px; cursor: pointer;">Reset</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Preference Options Section -->
+      <section id="section-preference-options" class="demo-section hidden">
+        <h2>Preference Options</h2>
+        <p class="description">Overlay with blur effect and action buttons triggered by plus button.</p>
+
+        <div class="demo-example" style="position: relative; height: 400px; background-color: var(--color-secondary-10); display: flex; align-items: center; justify-content: center;">
+          <p style="color: var(--color-neutral-60);">Click the + button in the bottom right to see the overlay</p>
+          <div id="preference-options-demo"></div>
+        </div>
+      </section>
+
+      <!-- Search Section -->
+      <section id="section-search" class="demo-section hidden">
+        <h2>Search</h2>
+        <p class="description">Search input field with placeholder text.</p>
+
+        <div class="demo-example">
+          <div class="search">
+            <input type="text" class="search__input" placeholder="Search your preferences">
+          </div>
+        </div>
+      </section>
+
+      <!-- Tag Section -->
+      <section id="section-tag" class="demo-section hidden">
+        <h2>Tag</h2>
+        <p class="description">Pill-shaped filter tags with 3 types and multiple states.</p>
+
+        <div class="demo-subsection">
+          <h3>Tag Types</h3>
+          <div class="demo-example">
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+              <div class="tag" data-type="collection" data-state="active">
+                <span class="tag__icon"></span>
+                <span class="tag__label">Collection</span>
+                <span class="tag__count">15</span>
+              </div>
+              <div class="tag" data-type="favorites" data-state="active">
+                <span class="tag__icon"></span>
+                <span class="tag__label">Favorites</span>
+                <span class="tag__count">12</span>
+              </div>
+              <div class="tag" data-type="hidden" data-state="active">
+                <span class="tag__icon"></span>
+                <span class="tag__label">Hidden</span>
+                <span class="tag__count">5</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tag List Section -->
+      <section id="section-tag-list" class="demo-section hidden">
+        <h2>Tag List</h2>
+        <p class="description">Horizontal container of tags with 8px gap.</p>
+
+        <div class="demo-example">
+          <div class="tag-list" id="tag-list-demo"></div>
+        </div>
+      </section>
+
+      <!-- Data Card Section -->
+      <section id="section-data-card" class="demo-section hidden">
+        <h2>Data Card</h2>
+        <p class="description">Card component with default, favorited, and hidden states.</p>
+
+        <div class="demo-subsection">
+          <h3>States</h3>
+          <div class="demo-example">
+            <div style="display: flex; flex-direction: column; gap: 12px; max-width: 368px;">
+              <div class="data-card" data-state="default">
+                <div class="data-card__content">
+                  <p class="data-card__text">Default State</p>
+                </div>
+              </div>
+              <div class="data-card" data-state="favorited">
+                <div class="data-card__content">
+                  <p class="data-card__text">Favorited State</p>
+                </div>
+              </div>
+              <div class="data-card" data-state="hidden">
+                <div class="data-card__content">
+                  <p class="data-card__text">Hidden State</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Data List Section -->
+      <section id="section-data-list" class="demo-section hidden">
+        <h2>Data List</h2>
+        <p class="description">Vertical stack of data cards with 12px gap.</p>
+
+        <div class="demo-example">
+          <div id="data-list-demo" style="max-width: 368px;"></div>
+        </div>
+      </section>
+
+      <!-- Data Search Section -->
+      <section id="section-data-search" class="demo-section hidden">
+        <h2>Data Search</h2>
+        <p class="description">Search field with tag filters and action buttons.</p>
+
+        <div class="demo-example">
+          <div id="data-search-demo"></div>
+        </div>
+      </section>
+
+      <!-- Content Preferences Section -->
+      <section id="section-content-preferences" class="demo-section hidden">
+        <h2>Content Preferences</h2>
+        <p class="description">Complete preferences management interface.</p>
+
+        <div class="demo-example">
+          <div id="content-preferences-demo"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- JavaScript - Load in dependency order -->
+  <script src="design-system/icons/icons.js"></script>
+
+  <!-- Base components (no dependencies) -->
+  <script src="components/headline/headline.js"></script>
+  <script src="components/button-primary/button-primary.js"></script>
+  <script src="components/button-tertiary/button-tertiary.js"></script>
+  <script src="components/search/search.js"></script>
+  <script src="components/tag/tag.js"></script>
+  <script src="components/data-card/data-card.js"></script>
+  <script src="components/calibration/calibration.js"></script>
+  <script src="components/preference-options/preference-options.js"></script>
+
+  <!-- Composite components (depend on base) -->
+  <script src="components/tag-list/tag-list.js"></script>
+  <script src="components/data-list/data-list.js"></script>
+  <script src="components/top-menu/top-menu.js"></script>
+  <script src="components/profile-teaser/profile-teaser.js"></script>
+  <script src="components/header/header.js"></script>
+  <script src="components/data-search/data-search.js"></script>
+  <script src="components/content-preferences/content-preferences.js"></script>
+
+  <!-- Screens (depend on composite components) -->
+  <script src="screens/main-screen/main-screen.js"></script>
+  <script>
+    // Navigation functionality
+    const navItems = document.querySelectorAll('.nav-item');
+    const sections = document.querySelectorAll('.demo-section');
+
+    function showSection(sectionName) {
+      // Hide all sections
+      sections.forEach(section => section.classList.add('hidden'));
+
+      // Remove active class from all nav items
+      navItems.forEach(item => item.classList.remove('active'));
+
+      // Show selected section
+      const targetSection = document.getElementById(`section-${sectionName}`);
+      if (targetSection) {
+        targetSection.classList.remove('hidden');
+      }
+
+      // Add active class to clicked nav item
+      const activeNav = document.querySelector(`[data-section="${sectionName}"]`);
+      if (activeNav) {
+        activeNav.classList.add('active');
+      }
+    }
+
+    // Add click handlers to nav items
+    navItems.forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.preventDefault();
+        const section = item.getAttribute('data-section');
+        showSection(section);
+      });
+    });
+
+    // Initialize demos
+    function initColorDemo() {
+      const primaryColors = ['10', '20', '30', '40', '50', '60', '70', '80', '90'];
+      const primaryContainer = document.getElementById('primary-colors');
+
+      primaryColors.forEach(shade => {
+        const box = document.createElement('div');
+        box.className = 'color-box';
+        box.innerHTML = `
+          <div class="color-box-swatch" style="background-color: var(--color-primary-${shade})"></div>
+          <div class="color-box-info">
+            <div class="color-box-name">Primary ${shade}</div>
+            <div class="color-box-value">--color-primary-${shade}</div>
+          </div>
+        `;
+        primaryContainer.appendChild(box);
+      });
+
+      const neutralColors = ['10', '20', '30', '40', '50', '60', '70', '80', '90'];
+      const neutralContainer = document.getElementById('neutral-colors');
+
+      neutralColors.forEach(shade => {
+        const box = document.createElement('div');
+        box.className = 'color-box';
+        box.innerHTML = `
+          <div class="color-box-swatch" style="background-color: var(--color-neutral-${shade})"></div>
+          <div class="color-box-info">
+            <div class="color-box-name">Neutral ${shade}</div>
+            <div class="color-box-value">--color-neutral-${shade}</div>
+          </div>
+        `;
+        neutralContainer.appendChild(box);
+      });
+    }
+
+    function initIconDemo() {
+      const container = document.getElementById('icon-showcase');
+      const iconNames = getIconNames();
+
+      iconNames.forEach(iconName => {
+        const box = document.createElement('div');
+        box.className = 'icon-box';
+        box.innerHTML = `
+          <div class="icon-box-icon">${getIcon(iconName)}</div>
+          <div class="icon-box-label">${iconName}</div>
+        `;
+        container.appendChild(box);
+      });
+    }
+
+    function initPrimaryButtonDemo() {
+      const container = document.getElementById('button-primary-demo');
+
+      const btn1 = createPrimaryButton({
+        label: 'Random Question',
+        onClick: () => console.log('Random Question clicked')
+      });
+
+      const btn2 = createPrimaryButton({
+        label: 'Disabled',
+        disabled: true
+      });
+
+      container.appendChild(btn1.element);
+      container.appendChild(btn2.element);
+    }
+
+    function initButtonDemo() {
+      const container = document.getElementById('button-demo');
+
+      const plusBtn = createTertiaryButton({
+        icon: 'plus',
+        ariaLabel: 'Add',
+        onClick: () => alert('Add clicked')
+      });
+
+      container.appendChild(plusBtn.element);
+    }
+
+    function initTopMenuDemo() {
+      const container = document.getElementById('top-menu-demo');
+      const topMenu = createTopMenu({
+        buttons: [
+          {
+            icon: 'message',
+            ariaLabel: 'Messages',
+            onClick: () => console.log('Messages clicked')
+          },
+          {
+            icon: 'settings',
+            ariaLabel: 'Settings',
+            onClick: () => console.log('Settings clicked')
+          },
+          {
+            icon: 'arrowUpRight',
+            ariaLabel: 'Share',
+            onClick: () => console.log('Share clicked')
+          }
+        ]
+      });
+      container.appendChild(topMenu.element);
+    }
+
+    function initProfileTeaserDemo() {
+      const container = document.getElementById('profile-teaser-demo');
+      const profile = createProfileTeaser({
+        name: 'Dennis',
+        subtitle: 'Founder',
+        onClick: () => console.log('Profile clicked'),
+        ariaLabel: 'View profile'
+      });
+      container.appendChild(profile.element);
+    }
+
+    function initHeaderDemo() {
+      const container = document.getElementById('header-demo');
+      const header = createHeader({
+        profile: {
+          name: 'Dennis',
+          subtitle: 'Founder',
+          onClick: () => console.log('Profile clicked'),
+          ariaLabel: 'View profile'
+        },
+        menuButtons: [
+          {
+            icon: 'message',
+            ariaLabel: 'Messages',
+            onClick: () => console.log('Messages clicked')
+          },
+          {
+            icon: 'settings',
+            ariaLabel: 'Settings',
+            onClick: () => console.log('Settings clicked')
+          },
+          {
+            icon: 'arrowUpRight',
+            ariaLabel: 'Share',
+            onClick: () => console.log('Share clicked')
+          }
+        ]
+      });
+      container.appendChild(header.element);
+    }
+
+    function initCalibrationDemo() {
+      const container = document.getElementById('calibration-demo');
+      const calibration = createCalibration({ progress: 0 });
+      container.appendChild(calibration.element);
+
+      // Button handlers
+      document.getElementById('calibration-btn-25').addEventListener('click', () => {
+        calibration.animateTo(25);
+      });
+      document.getElementById('calibration-btn-50').addEventListener('click', () => {
+        calibration.animateTo(50);
+      });
+      document.getElementById('calibration-btn-75').addEventListener('click', () => {
+        calibration.animateTo(75);
+      });
+      document.getElementById('calibration-btn-100').addEventListener('click', () => {
+        calibration.animateTo(100);
+      });
+      document.getElementById('calibration-btn-reset').addEventListener('click', () => {
+        calibration.animateTo(0);
+      });
+    }
+
+    function initPreferenceOptionsDemo() {
+      const container = document.getElementById('preference-options-demo');
+      const preferenceOptions = createPreferenceOptions({
+        buttons: [
+          { label: 'Add new preference', onClick: (label) => console.log('Clicked:', label) },
+          { label: 'Play \'the Answer\' game', onClick: (label) => console.log('Clicked:', label) },
+          { label: 'Finish onboarding questions', onClick: (label) => console.log('Clicked:', label) }
+        ],
+        onToggle: (isOpen) => console.log('Preference Options overlay is', isOpen ? 'open' : 'closed')
+      });
+      container.appendChild(preferenceOptions.element);
+    }
+
+    function initTagListDemo() {
+      const container = document.getElementById('tag-list-demo');
+      const tagList = createTagList({
+        tags: [
+          { type: 'collection', label: 'All', count: 50, state: 'active' },
+          { type: 'favorites', label: 'Favorites', count: 12, state: 'active' },
+          { type: 'hidden', label: 'Hidden', count: 5, state: 'inactive' },
+          { type: 'collection', label: 'Travel', count: 15, state: 'inactive' }
+        ]
+      });
+      container.appendChild(tagList.element);
+    }
+
+    function initDataListDemo() {
+      const container = document.getElementById('data-list-demo');
+      const dataList = new DataList(container, {
+        data: [
+          { name: 'Travel Preferences', state: 'default' },
+          { name: 'Shopping Habits', state: 'default' },
+          { name: 'Food & Dining', state: 'favorited' },
+          { name: 'Entertainment', state: 'hidden' },
+          { name: 'Health & Fitness', state: 'default' }
+        ]
+      });
+    }
+
+    function initDataSearchDemo() {
+      const container = document.getElementById('data-search-demo');
+      const dataSearch = createDataSearch({
+        placeholder: 'Search your preferences',
+        tags: [
+          { type: 'collection', label: 'All', count: 50, state: 'active' },
+          { type: 'favorites', label: 'Favorites', count: 12, state: 'active' },
+          { type: 'hidden', label: 'Hidden', count: 5, state: 'inactive' },
+          { type: 'collection', label: 'Travel', count: 15, state: 'inactive' }
+        ]
+      });
+      container.appendChild(dataSearch.element);
+    }
+
+    function initContentPreferencesDemo() {
+      const container = document.getElementById('content-preferences-demo');
+      const contentPreferences = createContentPreferences({
+        title: 'My Preferences',
+        data: [
+          { name: 'Travel Preferences', state: 'default' },
+          { name: 'Shopping Habits', state: 'default' },
+          { name: 'Food & Dining', state: 'favorited' },
+          { name: 'Entertainment', state: 'hidden' },
+          { name: 'Health & Fitness', state: 'default' }
+        ]
+      });
+      container.appendChild(contentPreferences.element);
+    }
+
+    function initMainScreenDemo() {
+      const container = document.getElementById('main-screen-demo');
+      const mainScreen = createMainScreen({
+        profileName: 'Dennis',
+        profileSubtitle: 'Founder',
+        preferencesTitle: 'My Preferences'
+      });
+      container.appendChild(mainScreen.element);
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      initColorDemo();
+      initIconDemo();
+      initMainScreenDemo();
+      initPrimaryButtonDemo();
+      initButtonDemo();
+      initTopMenuDemo();
+      initProfileTeaserDemo();
+      initHeaderDemo();
+      initCalibrationDemo();
+      initPreferenceOptionsDemo();
+      initTagListDemo();
+      initDataListDemo();
+      initDataSearchDemo();
+      initContentPreferencesDemo();
+
+      // Show colors section by default
+      showSection('colors');
+    });
+  </script>
+</body>
+</html>

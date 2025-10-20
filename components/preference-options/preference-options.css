@@ -1,0 +1,233 @@
+/**
+ * Preference Options Component
+ * Overlay with blur effect and action buttons
+ */
+
+.preference-options {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 600px;
+  pointer-events: none;
+}
+
+.preference-options__overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 600px;
+  background-color: rgba(2, 8, 19, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.preference-options.active .preference-options__overlay,
+.preference-options.modal-active .preference-options__overlay {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.preference-options__content {
+  position: absolute;
+  bottom: 0;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.preference-options__gradient-frame {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 72px;
+  background: linear-gradient(180deg, rgba(254, 251, 246, 0) 0%, #fefbf6 20%, #fefbf6 100%);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.preference-options.active .preference-options__gradient-frame {
+  opacity: 0;
+}
+
+.preference-options__buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-end;
+  width: 100%;
+  max-width: 368px;
+  padding-bottom: 12px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.preference-options.active .preference-options__buttons {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.preference-options__button {
+  /* Highlight button - variant of primary button */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  height: 40px;
+  border-radius: 32px;
+  background: var(--gradient-sundown);
+  border: none;
+  color: var(--color-neutral-10);
+  font-size: 16px;
+  font-weight: 500;
+  font-family: 'Instrument Sans', sans-serif;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.preference-options__button:hover {
+  opacity: 0.9;
+}
+
+.preference-options__button:active {
+  transform: scale(0.98);
+}
+
+.preference-options__bottom-bar {
+  height: 72px;
+  width: 100%;
+  max-width: 368px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 0;
+  position: relative;
+  z-index: 1;
+}
+
+.preference-options__random-button {
+  flex: 1;
+  max-width: 320px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 32px;
+  background: var(--gradient-sundown);
+  border: none;
+  color: var(--color-neutral-10);
+  font-size: 16px;
+  font-weight: 500;
+  font-family: 'Instrument Sans', sans-serif;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  white-space: nowrap;
+  user-select: none;
+  pointer-events: auto;
+}
+
+.preference-options__random-button:hover {
+  opacity: 0.9;
+}
+
+.preference-options__random-button:active {
+  transform: scale(0.98);
+}
+
+.preference-options__trigger {
+  pointer-events: auto;
+}
+
+/* Question Modal */
+.preference-options__modal {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  z-index: 2;
+}
+
+.preference-options.modal-active .preference-options__modal {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.preference-options.modal-active .preference-options__buttons,
+.preference-options.modal-active .preference-options__bottom-bar {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.preference-options__modal-card {
+  background: var(--gradient-sundown);
+  border: none;
+  border-radius: 32px 32px 0 0;
+  padding: 16px 16px 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: center;
+}
+
+.preference-options__modal-answer {
+  width: 100%;
+  background: var(--color-neutral-10);
+  border: 1px solid rgba(2, 8, 19, 0.1);
+  border-radius: 32px;
+  padding: 8px 8px 8px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.preference-options__modal-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--color-neutral-70);
+}
+
+.preference-options__modal-input::placeholder {
+  color: var(--color-neutral-50);
+}
+
+.preference-options__modal-question {
+  width: 100%;
+  text-align: center;
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--color-neutral-10);
+  white-space: pre-wrap;
+}
