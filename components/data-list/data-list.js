@@ -12,6 +12,8 @@ class DataList {
     this.data = options.data || [];
     this.onCardStateChange = options.onCardStateChange || null;
     this.onListChange = options.onListChange || null;
+    this.onCardClick = options.onCardClick || null;
+    this.modalContainer = options.modalContainer || null;
 
     this.init();
   }
@@ -33,7 +35,8 @@ class DataList {
     const cardElements = this.element.querySelectorAll('.data-card');
     cardElements.forEach(cardElement => {
       const card = new DataCard(cardElement, {
-        onStateChange: (state) => this.handleCardStateChange(card, state)
+        onStateChange: (state) => this.handleCardStateChange(card, state),
+        onClick: this.onCardClick ? (card) => this.onCardClick(card, this.modalContainer) : null
       });
       this.cards.push(card);
     });
@@ -63,7 +66,8 @@ class DataList {
     // Create card without callback first
     const card = createDataCard({
       state: state,
-      data: name
+      data: name,
+      onClick: this.onCardClick ? (card) => this.onCardClick(card, this.modalContainer) : null
     });
 
     // Now set the callback after card is created
@@ -178,6 +182,17 @@ class DataList {
 
       // Show/hide based on match
       card.element.style.display = matches ? '' : 'none';
+    });
+  }
+
+  /**
+   * Filter cards by state
+   * @param {string} state - State to filter by ('favorited', 'hidden', 'default')
+   */
+  filterByState(state) {
+    this.cards.forEach(card => {
+      const cardState = card.getState();
+      card.element.style.display = cardState === state ? '' : 'none';
     });
   }
 

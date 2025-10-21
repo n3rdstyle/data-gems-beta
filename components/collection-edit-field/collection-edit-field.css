@@ -1,0 +1,13 @@
+/**
+ * Collection Edit Field Component
+ * Tag list with compact header and tags
+ * Uses design system color palette and header component
+ */
+
+.collection-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 24px;
+  box-sizing: border-box;
+}

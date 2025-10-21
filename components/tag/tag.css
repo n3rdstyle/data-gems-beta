@@ -3,6 +3,7 @@
  * Pill-shaped tags for filtering and categorization
  * Types: collection, favorites, hidden
  * States: active, inactive, hover
+ * Sizes: default, small
  */
 
 .tag {
@@ -20,6 +21,24 @@
   white-space: nowrap;
   user-select: none;
   border: 1px solid transparent;
+}
+
+/* Small size variant */
+.tag[data-size="small"] {
+  padding: 4px 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  background-color: var(--color-primary-90);
+  color: var(--color-neutral-10);
+  border-color: transparent;
+}
+
+.tag[data-size="small"]:hover {
+  background-color: var(--color-primary-80);
+}
+
+.tag[data-size="small"] .tag__label {
+  font-weight: 500;
 }
 
 .tag__icon {

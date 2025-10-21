@@ -59,7 +59,39 @@ function createMainScreen(options = {}) {
       { name: 'Preference Data', state: 'default' },
       { name: 'Preference Data', state: 'default' },
       { name: 'Preference Data', state: 'default' }
-    ]
+    ],
+    modalContainer: screenElement,
+    onCardClick: (card, container) => {
+      // Create and show modal when card is clicked
+      const modal = createDataEditorModal({
+        title: 'Edit Preference',
+        preferenceTitle: 'Preference',
+        preferenceText: card.getData(),
+        preferenceHidden: card.getState() === 'hidden',
+        preferenceFavorited: card.getState() === 'favorited',
+        collections: ['Example', 'Demo'],
+        onSave: (data) => {
+          card.setData(data.text);
+          modal.hide();
+        },
+        onDelete: () => {
+          modal.hide();
+        },
+        onToggleHidden: (hidden) => {
+          card.setState(hidden ? 'hidden' : 'default');
+        },
+        onToggleFavorite: (favorited) => {
+          card.setState(favorited ? 'favorited' : 'default');
+        },
+        onAddCollection: () => {
+          const newCollection = prompt('Enter collection name:');
+          if (newCollection) {
+            modal.addCollection(newCollection);
+          }
+        }
+      });
+      modal.show(container);
+    }
   });
   contentWrapper.appendChild(contentPreferences.element);
 

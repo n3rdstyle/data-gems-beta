@@ -1,6 +1,11 @@
 /**
  * Primary Button Component
  * Main action button with gradient background
+ * Variants:
+ * - default: Sundown gradient, 32px border radius
+ * - neutral: Dark gray for use on gradient backgrounds
+ * - dark: Primary dark blue
+ * - v2: Compact version with 8px border radius, dark blue background (for modals)
  */
 
 function createPrimaryButton(options = {}) {
@@ -9,7 +14,7 @@ function createPrimaryButton(options = {}) {
     onClick = null,
     disabled = false,
     ariaLabel = '',
-    variant = 'default' // 'default' or 'neutral'
+    variant = 'default' // 'default', 'neutral', 'dark', or 'v2'
   } = options;
 
   // Create button element
@@ -22,6 +27,10 @@ function createPrimaryButton(options = {}) {
   // Apply variant
   if (variant === 'neutral') {
     button.classList.add('button-primary--neutral');
+  } else if (variant === 'dark') {
+    button.classList.add('button-primary--dark');
+  } else if (variant === 'v2') {
+    button.classList.add('button-primary--v2');
   }
 
   if (ariaLabel) {

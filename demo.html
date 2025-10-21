@@ -24,6 +24,9 @@
   <link rel="stylesheet" href="components/header/header.css">
   <link rel="stylesheet" href="components/calibration/calibration.css">
   <link rel="stylesheet" href="components/preference-options/preference-options.css">
+  <link rel="stylesheet" href="components/text-edit-field/text-edit-field.css">
+  <link rel="stylesheet" href="components/collection-edit-field/collection-edit-field.css">
+  <link rel="stylesheet" href="components/data-editor-modal/data-editor-modal.css">
 
   <!-- Screens -->
   <link rel="stylesheet" href="screens/main-screen/main-screen.css">
@@ -38,17 +41,35 @@
       box-sizing: border-box;
     }
 
+    html {
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
       font-family: 'Instrument Sans', sans-serif;
       background-color: var(--color-background-secondary);
       color: var(--color-text-primary);
       overflow: hidden;
       height: 100vh;
+      width: 100vw;
+      margin: 0;
+      padding: 0;
+      position: relative;
     }
 
     .demo-layout {
       display: flex;
       height: 100vh;
+      width: 100vw;
+      margin: 0;
+      padding: 0;
+      position: absolute;
+      top: 0;
+      left: 0;
     }
 
     /* Sidebar */
@@ -288,12 +309,15 @@
         </div>
         <div class="nav-section">
           <div class="nav-section-title">Components</div>
+          <a class="nav-item" data-section="collection-edit-field">Collection Edit Field</a>
           <a class="nav-item" data-section="content-preferences">Content Preferences</a>
+          <a class="nav-item" data-section="data-editor-modal">Data Editor Modal</a>
           <a class="nav-item" data-section="data-list">Data List</a>
           <a class="nav-item" data-section="data-search">Data Search</a>
           <a class="nav-item" data-section="header">Header</a>
           <a class="nav-item" data-section="preference-options">Preference Options</a>
           <a class="nav-item" data-section="tag-list">Tag List</a>
+          <a class="nav-item" data-section="text-edit-field">Text Edit Field</a>
           <a class="nav-item" data-section="top-menu">Top Menu</a>
         </div>
         <div class="nav-section">
@@ -364,20 +388,51 @@
       <!-- Primary Button Section -->
       <section id="section-button-primary" class="demo-section hidden">
         <h2>Primary Button</h2>
-        <p class="description">Main action button with sundown gradient.</p>
+        <p class="description">Main action button with multiple variants.</p>
 
-        <div class="demo-example">
-          <div style="display: flex; gap: 16px; flex-wrap: wrap;" id="button-primary-demo"></div>
+        <div class="demo-subsection">
+          <h3>Default Variant</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Sundown gradient with 32px border radius</p>
+          <div class="demo-example">
+            <div style="display: flex; gap: 16px; flex-wrap: wrap;" id="button-primary-demo"></div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Version 2 (Compact)</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Dark blue background with 8px border radius (for modals)</p>
+          <div class="demo-example">
+            <div style="display: flex; gap: 16px; flex-wrap: wrap;" id="button-primary-v2-demo"></div>
+          </div>
         </div>
       </section>
 
       <!-- Button Tertiary Section -->
       <section id="section-button-tertiary" class="demo-section hidden">
         <h2>Tertiary Button</h2>
-        <p class="description">40x40px icon buttons for tertiary actions.</p>
+        <p class="description">Minimal buttons for tertiary actions - supports icon and text variants.</p>
 
-        <div class="demo-example">
-          <div style="display: flex; gap: 16px;" id="button-demo"></div>
+        <div class="demo-subsection">
+          <h3>Icon Variant - Default Size</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">40x40px with 24px icon</p>
+          <div class="demo-example">
+            <div style="display: flex; gap: 16px; align-items: center;" id="button-demo"></div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Icon Variant - Small Size</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">24x24px with 16px icon</p>
+          <div class="demo-example">
+            <div style="display: flex; gap: 16px; align-items: center;" id="button-small-demo"></div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Text Variant</h3>
+          <div class="demo-example">
+            <div style="display: flex; gap: 16px; flex-wrap: wrap;" id="button-text-demo"></div>
+          </div>
         </div>
       </section>
 
@@ -404,10 +459,30 @@
       <!-- Header Section -->
       <section id="section-header" class="demo-section hidden">
         <h2>Header</h2>
-        <p class="description">Main header combining profile teaser and top menu.</p>
+        <p class="description">Header component with three variants: default, simple, and compact.</p>
 
-        <div class="demo-example">
-          <div id="header-demo"></div>
+        <div class="demo-subsection">
+          <h3>Default Variant</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Profile teaser + top menu</p>
+          <div class="demo-example">
+            <div id="header-demo"></div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Simple Variant</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Title + close button (for settings/modals)</p>
+          <div class="demo-example">
+            <div id="header-simple-demo"></div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Compact Variant</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Small title + action icons (for preference cards)</p>
+          <div class="demo-example">
+            <div id="header-compact-demo"></div>
+          </div>
         </div>
       </section>
 
@@ -490,6 +565,26 @@
         </div>
       </section>
 
+      <!-- Text Edit Field Section -->
+      <section id="section-text-edit-field" class="demo-section hidden">
+        <h2>Text Edit Field</h2>
+        <p class="description">Editable text field with compact header and action icons.</p>
+
+        <div class="demo-example" style="max-width: 600px;">
+          <div id="text-edit-field-demo"></div>
+        </div>
+      </section>
+
+      <!-- Collection Edit Field Section -->
+      <section id="section-collection-edit-field" class="demo-section hidden">
+        <h2>Collection Edit Field</h2>
+        <p class="description">Tag list with compact header and add button.</p>
+
+        <div class="demo-example" style="max-width: 600px;">
+          <div id="collection-edit-field-demo"></div>
+        </div>
+      </section>
+
       <!-- Data Card Section -->
       <section id="section-data-card" class="demo-section hidden">
         <h2>Data Card</h2>
@@ -539,6 +634,16 @@
         </div>
       </section>
 
+      <!-- Data Editor Modal Section -->
+      <section id="section-data-editor-modal" class="demo-section hidden">
+        <h2>Data Editor Modal</h2>
+        <p class="description">Modal for editing preference data with simple header, compact headers, text editor, and small tags.</p>
+
+        <div class="demo-example" style="display: flex; justify-content: center; background-color: var(--color-neutral-20); padding: 40px;">
+          <div id="data-editor-modal-demo"></div>
+        </div>
+      </section>
+
       <!-- Content Preferences Section -->
       <section id="section-content-preferences" class="demo-section hidden">
         <h2>Content Preferences</h2>
@@ -570,7 +675,10 @@
   <script src="components/top-menu/top-menu.js"></script>
   <script src="components/profile-teaser/profile-teaser.js"></script>
   <script src="components/header/header.js"></script>
+  <script src="components/text-edit-field/text-edit-field.js"></script>
+  <script src="components/collection-edit-field/collection-edit-field.js"></script>
   <script src="components/data-search/data-search.js"></script>
+  <script src="components/data-editor-modal/data-editor-modal.js"></script>
   <script src="components/content-preferences/content-preferences.js"></script>
 
   <!-- Screens (depend on composite components) -->
@@ -674,6 +782,31 @@
 
       container.appendChild(btn1.element);
       container.appendChild(btn2.element);
+
+      // V2 variant demo
+      const v2Container = document.getElementById('button-primary-v2-demo');
+
+      const v2btn1 = createPrimaryButton({
+        label: 'Save',
+        variant: 'v2',
+        onClick: () => console.log('Save clicked')
+      });
+
+      const v2btn2 = createPrimaryButton({
+        label: 'Continue',
+        variant: 'v2',
+        onClick: () => console.log('Continue clicked')
+      });
+
+      const v2btn3 = createPrimaryButton({
+        label: 'Disabled',
+        variant: 'v2',
+        disabled: true
+      });
+
+      v2Container.appendChild(v2btn1.element);
+      v2Container.appendChild(v2btn2.element);
+      v2Container.appendChild(v2btn3.element);
     }
 
     function initButtonDemo() {
@@ -685,7 +818,77 @@
         onClick: () => alert('Add clicked')
       });
 
+      const closeBtn = createTertiaryButton({
+        icon: 'close',
+        ariaLabel: 'Close',
+        onClick: () => alert('Close clicked')
+      });
+
+      const settingsBtn = createTertiaryButton({
+        icon: 'settings',
+        ariaLabel: 'Settings',
+        onClick: () => alert('Settings clicked')
+      });
+
       container.appendChild(plusBtn.element);
+      container.appendChild(closeBtn.element);
+      container.appendChild(settingsBtn.element);
+
+      // Small variant demo
+      const smallContainer = document.getElementById('button-small-demo');
+
+      const smallPlusBtn = createTertiaryButton({
+        icon: 'plus',
+        size: 'small',
+        ariaLabel: 'Add',
+        onClick: () => alert('Add clicked (small)')
+      });
+
+      const smallCloseBtn = createTertiaryButton({
+        icon: 'close',
+        size: 'small',
+        ariaLabel: 'Close',
+        onClick: () => alert('Close clicked (small)')
+      });
+
+      const smallSettingsBtn = createTertiaryButton({
+        icon: 'settings',
+        size: 'small',
+        ariaLabel: 'Settings',
+        onClick: () => alert('Settings clicked (small)')
+      });
+
+      smallContainer.appendChild(smallPlusBtn.element);
+      smallContainer.appendChild(smallCloseBtn.element);
+      smallContainer.appendChild(smallSettingsBtn.element);
+
+      // Text variant demo
+      const textContainer = document.getElementById('button-text-demo');
+
+      const removeBtn = createTertiaryButton({
+        text: 'Remove',
+        onClick: () => alert('Remove clicked')
+      });
+
+      const cancelBtn = createTertiaryButton({
+        text: 'Cancel',
+        onClick: () => alert('Cancel clicked')
+      });
+
+      const editBtn = createTertiaryButton({
+        text: 'Edit',
+        onClick: () => alert('Edit clicked')
+      });
+
+      const deleteBtn = createTertiaryButton({
+        text: 'Delete',
+        onClick: () => alert('Delete clicked')
+      });
+
+      textContainer.appendChild(removeBtn.element);
+      textContainer.appendChild(cancelBtn.element);
+      textContainer.appendChild(editBtn.element);
+      textContainer.appendChild(deleteBtn.element);
     }
 
     function initTopMenuDemo() {
@@ -751,6 +954,38 @@
         ]
       });
       container.appendChild(header.element);
+
+      // Simple variant demo
+      const simpleContainer = document.getElementById('header-simple-demo');
+      const simpleHeader = createHeader({
+        variant: 'simple',
+        title: 'Settings',
+        onClose: () => console.log('Close clicked')
+      });
+      simpleContainer.appendChild(simpleHeader.element);
+
+      // Compact variant demo
+      const compactContainer = document.getElementById('header-compact-demo');
+      const compactHeader = createHeader({
+        variant: 'compact',
+        title: 'Preference',
+        actionIcons: [
+          {
+            icon: 'eye',
+            ariaLabel: 'View',
+            onClick: () => console.log('View clicked')
+          },
+          {
+            icon: 'heart',
+            ariaLabel: 'Favorite',
+            onClick: () => console.log('Favorite clicked')
+          }
+        ],
+        onIconClick: (iconConfig, index) => {
+          console.log('Icon clicked:', iconConfig.icon, 'at index', index);
+        }
+      });
+      compactContainer.appendChild(compactHeader.element);
     }
 
     function initCalibrationDemo() {
@@ -802,6 +1037,86 @@
       container.appendChild(tagList.element);
     }
 
+    function initDataCardDemo() {
+      // Initialize only data cards in the data-card demo section (not in main-screen)
+      const dataCardSection = document.getElementById('section-data-card');
+      if (!dataCardSection) return;
+
+      const dataCards = dataCardSection.querySelectorAll('.data-card');
+      dataCards.forEach(cardElement => {
+        const cardInstance = new DataCard(cardElement, {
+          onClick: (card) => {
+            // Create and show modal
+            const modal = createDataEditorModal({
+              title: 'Edit Preference',
+              preferenceTitle: 'Preference',
+              preferenceText: card.getData(),
+              preferenceHidden: card.getState() === 'hidden',
+              preferenceFavorited: card.getState() === 'favorited',
+              collections: ['Example', 'Demo'],
+              onSave: (data) => {
+                console.log('Saved:', data);
+                card.setData(data.text);
+                modal.hide();
+              },
+              onDelete: () => {
+                console.log('Delete clicked');
+                modal.hide();
+              },
+              onClose: () => {
+                console.log('Modal closed');
+              },
+              onToggleHidden: (hidden) => {
+                card.setState(hidden ? 'hidden' : 'default');
+              },
+              onToggleFavorite: (favorited) => {
+                card.setState(favorited ? 'favorited' : 'default');
+              },
+              onAddCollection: () => {
+                const newCollection = prompt('Enter collection name:');
+                if (newCollection) {
+                  modal.addCollection(newCollection);
+                }
+              }
+            });
+            modal.show();
+          }
+        });
+      });
+    }
+
+    function initTextEditFieldDemo() {
+      const container = document.getElementById('text-edit-field-demo');
+      const textEditField = createTextEditField({
+        title: 'Preference',
+        text: 'Current running shoes: On CloudSurfer Max',
+        placeholder: 'Enter your preference details...',
+        hidden: false,
+        favorited: true,
+        onToggleHidden: (hidden) => console.log('Toggle hidden:', hidden),
+        onToggleFavorite: (favorited) => console.log('Toggle favorite:', favorited),
+        onTextChange: (text) => console.log('Text changed:', text)
+      });
+      container.appendChild(textEditField.element);
+    }
+
+    function initCollectionEditFieldDemo() {
+      const container = document.getElementById('collection-edit-field-demo');
+      const collectionEditField = createCollectionEditField({
+        title: 'Collections',
+        collections: ['On', 'Sports', 'Running'],
+        onAddCollection: () => {
+          const newCollection = prompt('Enter collection name:');
+          if (newCollection) {
+            collectionEditField.addCollection(newCollection);
+            console.log('Added collection:', newCollection);
+          }
+        },
+        onTagClick: (tag) => console.log('Tag clicked:', tag.getLabel())
+      });
+      container.appendChild(collectionEditField.element);
+    }
+
     function initDataListDemo() {
       const container = document.getElementById('data-list-demo');
       const dataList = new DataList(container, {
@@ -811,7 +1126,38 @@
           { name: 'Food & Dining', state: 'favorited' },
           { name: 'Entertainment', state: 'hidden' },
           { name: 'Health & Fitness', state: 'default' }
-        ]
+        ],
+        onCardClick: (card) => {
+          // Create and show modal
+          const modal = createDataEditorModal({
+            title: 'Edit Preference',
+            preferenceTitle: 'Preference',
+            preferenceText: card.getData(),
+            preferenceHidden: card.getState() === 'hidden',
+            preferenceFavorited: card.getState() === 'favorited',
+            collections: ['Example', 'Demo'],
+            onSave: (data) => {
+              card.setData(data.text);
+              modal.hide();
+            },
+            onDelete: () => {
+              modal.hide();
+            },
+            onToggleHidden: (hidden) => {
+              card.setState(hidden ? 'hidden' : 'default');
+            },
+            onToggleFavorite: (favorited) => {
+              card.setState(favorited ? 'favorited' : 'default');
+            },
+            onAddCollection: () => {
+              const newCollection = prompt('Enter collection name:');
+              if (newCollection) {
+                modal.addCollection(newCollection);
+              }
+            }
+          });
+          modal.show();
+        }
       });
     }
 
@@ -829,6 +1175,50 @@
       container.appendChild(dataSearch.element);
     }
 
+    function initDataEditorModalDemo() {
+      const container = document.getElementById('data-editor-modal-demo');
+
+      // Create a button to show the modal
+      const showButton = document.createElement('button');
+      showButton.textContent = 'Show Modal';
+      showButton.className = 'button-primary';
+      showButton.style.margin = '16px';
+
+      // Create modal instance
+      const modal = createDataEditorModal({
+        title: 'Settings',
+        onClose: () => console.log('Modal closed'),
+        preferenceTitle: 'Preference',
+        preferenceText: 'Current running shoes: On CloudSurfer Max',
+        preferenceHidden: false,
+        preferenceFavorited: true,
+        collections: ['On', 'Sports'],
+        onSave: (data) => {
+          console.log('Save clicked:', data);
+          modal.hide();
+        },
+        onDelete: () => {
+          console.log('Delete clicked');
+          modal.hide();
+        },
+        onToggleHidden: (hidden) => console.log('Toggle hidden:', hidden),
+        onToggleFavorite: (favorited) => console.log('Toggle favorite:', favorited),
+        onAddCollection: () => {
+          const newCollection = prompt('Enter collection name:');
+          if (newCollection) {
+            modal.addCollection(newCollection);
+          }
+        }
+      });
+
+      // Show modal when button is clicked
+      showButton.addEventListener('click', () => {
+        modal.show(container);
+      });
+
+      container.appendChild(showButton);
+    }
+
     function initContentPreferencesDemo() {
       const container = document.getElementById('content-preferences-demo');
       const contentPreferences = createContentPreferences({
@@ -839,7 +1229,30 @@
           { name: 'Food & Dining', state: 'favorited' },
           { name: 'Entertainment', state: 'hidden' },
           { name: 'Health & Fitness', state: 'default' }
-        ]
+        ],
+        modalContainer: container,
+        onCardClick: (card, modalContainer) => {
+          const modal = createDataEditorModal({
+            title: 'Edit Preference',
+            preferenceTitle: 'Preference',
+            preferenceText: card.getData(),
+            preferenceHidden: card.getState() === 'hidden',
+            preferenceFavorited: card.getState() === 'favorited',
+            collections: ['Example', 'Demo'],
+            onSave: (data) => {
+              card.setData(data.text);
+              modal.hide();
+            },
+            onDelete: () => modal.hide(),
+            onToggleHidden: (hidden) => card.setState(hidden ? 'hidden' : 'default'),
+            onToggleFavorite: (favorited) => card.setState(favorited ? 'favorited' : 'default'),
+            onAddCollection: () => {
+              const newCollection = prompt('Enter collection name:');
+              if (newCollection) modal.addCollection(newCollection);
+            }
+          });
+          modal.show(modalContainer);
+        }
       });
       container.appendChild(contentPreferences.element);
     }
@@ -867,8 +1280,12 @@
       initCalibrationDemo();
       initPreferenceOptionsDemo();
       initTagListDemo();
+      initDataCardDemo();
+      initTextEditFieldDemo();
+      initCollectionEditFieldDemo();
       initDataListDemo();
       initDataSearchDemo();
+      initDataEditorModalDemo();
       initContentPreferencesDemo();
 
       // Show colors section by default

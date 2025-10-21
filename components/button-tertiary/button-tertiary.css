@@ -1,7 +1,11 @@
 /**
  * Tertiary Button Component
- * Minimal 40x40px icon button for tertiary actions
- * Used for expand/collapse, add, close, etc.
+ * Minimal button for tertiary actions
+ * Supports both icon and text variants
+ * Icon variant sizes:
+ *  - Default: 40x40px circular button with 24px icon
+ *  - Small: 24x24px circular button with 16px icon
+ * Text variant: Auto-width button with 16px horizontal padding
  */
 
 .button-tertiary {
@@ -18,6 +22,21 @@
   transition: background-color 0.2s ease-in-out;
   flex-shrink: 0;
   color: var(--color-neutral-80);
+}
+
+/* Small size variant for icon buttons */
+.button-tertiary--small {
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+}
+
+/* Text variant overrides */
+.button-tertiary--text {
+  width: auto;
+  border-radius: 8px;
+  padding: 8px 16px;
+  gap: 8px;
 }
 
 .button-tertiary:hover {
@@ -39,8 +58,23 @@
 .button-tertiary__icon svg {
   width: 100%;
   height: 100%;
+}
+
+.button-tertiary__icon svg path {
   stroke: currentColor;
   fill: none;
+}
+
+/* Allow filled icons to override */
+.button-tertiary__icon svg[fill="currentColor"] path {
+  fill: currentColor;
+  stroke: none;
+}
+
+/* Small button icon size */
+.button-tertiary--small .button-tertiary__icon {
+  width: 16px;
+  height: 16px;
 }
 
 /* Rotate icon for expand button states */
@@ -51,6 +85,17 @@
 
 .button-tertiary:not(.collapsed) .button-tertiary__icon svg {
   transition: transform 0.2s ease-in-out;
+}
+
+/* Text label styling */
+.button-tertiary__text {
+  font-family: 'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--color-neutral-90);
+  white-space: nowrap;
+  font-variation-settings: 'wdth' 100;
 }
 
 /* Disabled state */

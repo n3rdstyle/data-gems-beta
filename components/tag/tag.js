@@ -1,6 +1,7 @@
 /**
  * Tag Component
  * Interactive filter tags with multiple types and states
+ * Supports two sizes: default and small
  */
 
 class Tag {
@@ -8,6 +9,7 @@ class Tag {
     this.element = element;
     this.type = options.type || element.getAttribute('data-type') || 'collection';
     this.state = options.state || element.getAttribute('data-state') || 'inactive';
+    this.size = options.size || element.getAttribute('data-size') || 'default';
     this.label = options.label || 'Collection';
     this.count = options.count !== undefined ? options.count : 0;
     this.onStateChange = options.onStateChange || null;
@@ -20,6 +22,7 @@ class Tag {
     // Set initial attributes
     this.element.setAttribute('data-type', this.type);
     this.element.setAttribute('data-state', this.state);
+    this.element.setAttribute('data-size', this.size);
 
     // Set initial content
     this.updateContent();
@@ -211,12 +214,20 @@ function createTag(options = {}) {
   tag.className = 'tag';
   tag.setAttribute('data-type', options.type || 'collection');
   tag.setAttribute('data-state', options.state || 'inactive');
+  tag.setAttribute('data-size', options.size || 'default');
 
-  tag.innerHTML = `
-    <span class="tag__icon"></span>
-    <span class="tag__label">${options.label || 'Collection'}</span>
-    <span class="tag__count">${options.count !== undefined ? options.count : 0}</span>
-  `;
+  // Small tags don't have icon or count
+  if (options.size === 'small') {
+    tag.innerHTML = `
+      <span class="tag__label">${options.label || 'Collection'}</span>
+    `;
+  } else {
+    tag.innerHTML = `
+      <span class="tag__icon"></span>
+      <span class="tag__label">${options.label || 'Collection'}</span>
+      <span class="tag__count">${options.count !== undefined ? options.count : 0}</span>
+    `;
+  }
 
   return new Tag(tag, options);
 }

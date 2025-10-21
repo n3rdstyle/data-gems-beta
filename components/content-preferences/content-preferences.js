@@ -17,7 +17,9 @@ function createContentPreferences(options = {}) {
     onSearch = null,
     onTagClick = null,
     onAddClick = null,
-    onCardStateChange = null
+    onCardStateChange = null,
+    onCardClick = null,
+    modalContainer = null
   } = options;
 
   // Create main container
@@ -30,7 +32,32 @@ function createContentPreferences(options = {}) {
   const headline = createHeadline({ text: title });
   headlineWrapper.appendChild(headline.element);
 
-  // Create data search
+  // Track active filter
+  let activeFilter = null;
+
+  // Create data list first (so it's available for callbacks)
+  const listWrapper = document.createElement('div');
+  listWrapper.className = 'content-preferences__list';
+  const dataList = new DataList(listWrapper, {
+    data: data,
+    onCardStateChange: (card, state) => {
+      // When a card state changes, reapply the active filter if one exists
+      if (activeFilter) {
+        // Small delay to ensure state is updated
+        setTimeout(() => {
+          dataList.filterByState(activeFilter);
+        }, 10);
+      }
+
+      if (onCardStateChange) {
+        onCardStateChange(card, state);
+      }
+    },
+    onCardClick: onCardClick,
+    modalContainer: modalContainer
+  });
+
+  // Create data search (after data list so dataList is available)
   const searchWrapper = document.createElement('div');
   searchWrapper.className = 'content-preferences__search';
   const dataSearch = createDataSearch({
@@ -41,15 +68,56 @@ function createContentPreferences(options = {}) {
       if (onSearch) {
         onSearch(value);
       }
-      if (dataList) {
-        if (value) {
-          dataList.filter(value);
+      if (value) {
+        dataList.filter(value);
+      } else {
+        // If no search term but there's an active tag filter, reapply it
+        if (activeFilter) {
+          dataList.filterByState(activeFilter);
         } else {
           dataList.clearFilter();
         }
       }
     },
     onTagClick: (tag) => {
+      // Handle filtering by tag type
+      const tagList = dataSearch.getTagList();
+      const allTags = tagList.getTags();
+
+      // Toggle tag state
+      const isActive = tag.getState() === 'active';
+
+      if (isActive) {
+        // Deactivate and clear filter
+        tag.setState('inactive');
+        activeFilter = null;
+        dataList.clearFilter();
+      } else {
+        // Deactivate all other tags
+        allTags.forEach(t => {
+          if (t !== tag) {
+            t.setState('inactive');
+          }
+        });
+
+        // Activate clicked tag
+        tag.setState('active');
+
+        // Apply filter based on tag type
+        const tagLabel = tag.getLabel().toLowerCase();
+        if (tagLabel === 'favorites') {
+          activeFilter = 'favorited';
+          dataList.filterByState('favorited');
+        } else if (tagLabel === 'hidden') {
+          activeFilter = 'hidden';
+          dataList.filterByState('hidden');
+        } else {
+          // For collection tags, clear filter
+          activeFilter = null;
+          dataList.clearFilter();
+        }
+      }
+
       if (onTagClick) {
         onTagClick(tag);
       }
@@ -61,18 +129,6 @@ function createContentPreferences(options = {}) {
     }
   });
   searchWrapper.appendChild(dataSearch.element);
-
-  // Create data list
-  const listWrapper = document.createElement('div');
-  listWrapper.className = 'content-preferences__list';
-  const dataList = new DataList(listWrapper, {
-    data: data,
-    onCardStateChange: (card, state) => {
-      if (onCardStateChange) {
-        onCardStateChange(card, state);
-      }
-    }
-  });
 
   // Assemble component
   container.appendChild(headlineWrapper);
@@ -109,6 +165,24 @@ function createContentPreferences(options = {}) {
 
     clearSearch() {
       dataSearch.clearSearch();
+    },
+
+    filterByState(state) {
+      activeFilter = state;
+      if (state) {
+        dataList.filterByState(state);
+      } else {
+        dataList.clearFilter();
+      }
+    },
+
+    clearFilter() {
+      activeFilter = null;
+      dataList.clearFilter();
+    },
+
+    getActiveFilter() {
+      return activeFilter;
     }
   };
 }

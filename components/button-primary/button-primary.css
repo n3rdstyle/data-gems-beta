@@ -55,3 +55,48 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Dark variant - primary dark color for modals and special contexts */
+.button-primary--dark {
+  background: var(--color-primary-90);
+  transition: background 0.2s, transform 0.1s;
+}
+
+.button-primary--dark:hover {
+  background: var(--color-primary-80);
+  opacity: 1;
+}
+
+.button-primary--dark:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   SECOND VERSION - COMPACT BUTTON
+   For use in modals and compact interfaces
+   ============================================ */
+
+.button-primary--v2 {
+  background: var(--color-primary-90);
+  color: var(--color-secondary-10);
+  border-radius: 32px;
+  padding: 8px 16px;
+  height: 40px;
+  transition: background 0.2s, transform 0.1s;
+  opacity: 1;
+}
+
+.button-primary--v2:hover {
+  background: var(--color-primary-80);
+  opacity: 1;
+}
+
+.button-primary--v2:active {
+  background: var(--color-primary-70);
+}
+
+.button-primary--v2:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -1,0 +1,72 @@
+/**
+ * Data Editor Modal Component
+ * Modal for editing preference data
+ * Uses design system color palette:
+ * - Background: var(--color-secondary-10) #FFFCF6
+ * - Border: rgba(2,8,19,0.1)
+ * - Text: var(--color-neutral-90) #020813
+ */
+
+/* Modal Overlay */
+.data-editor-modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  box-sizing: border-box;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  pointer-events: none;
+}
+
+.data-editor-modal-overlay--visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.data-editor-modal {
+  background-color: var(--color-secondary-10);
+  border: 1px solid rgba(2, 8, 19, 0.1);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 400px;
+}
+
+/* Content area with flex-grow */
+.data-editor-modal__content {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  padding: 0 16px 0;
+  box-sizing: border-box;
+  min-height: 0;
+}
+
+/* Buttons section at bottom */
+.data-editor-modal__buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 16px 16px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .data-editor-modal {
+    max-width: 100%;
+    border-radius: 0;
+  }
+}

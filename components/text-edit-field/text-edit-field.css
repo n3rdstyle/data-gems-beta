@@ -1,0 +1,61 @@
+/**
+ * Text Edit Field Component
+ * Editable text field with compact header and action icons
+ * Uses design system color palette
+ */
+
+.text-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 24px;
+  box-sizing: border-box;
+}
+
+/* Text box for editable content */
+.text-edit-field__textbox {
+  background-color: var(--color-neutral-10);
+  border: 1px solid rgba(2, 8, 19, 0.1);
+  border-radius: 16px;
+  padding: 16px;
+  box-sizing: border-box;
+  font-family: 'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--color-neutral-90);
+  font-variation-settings: 'wdth' 100;
+  outline: none;
+  cursor: text;
+  min-height: 80px;
+  flex: 1 0 auto;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.text-edit-field__textbox:focus {
+  border-color: var(--color-primary-70);
+}
+
+/* Placeholder styling */
+.text-edit-field__textbox:empty:before {
+  content: attr(data-placeholder);
+  color: var(--color-text-tertiary);
+  font-weight: 400;
+}
+
+/* Non-editable state */
+.text-edit-field__textbox[contenteditable="false"] {
+  cursor: default;
+  background-color: var(--color-neutral-20);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .text-edit-field__textbox {
+    font-size: 14px;
+    padding: 12px;
+    min-height: 60px;
+  }
+}

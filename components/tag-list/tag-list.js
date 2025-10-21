@@ -23,6 +23,7 @@ function createTagList(options = {}) {
       label: tagConfig.label || 'Tag',
       count: tagConfig.count || 0,
       state: tagConfig.state || 'inactive',
+      size: tagConfig.size || 'default',
       onClick: (clickedTag) => {
         if (onTagClick) {
           onTagClick(clickedTag);
@@ -44,6 +45,7 @@ function createTagList(options = {}) {
         label: tagConfig.label || 'Tag',
         count: tagConfig.count || 0,
         state: tagConfig.state || 'inactive',
+        size: tagConfig.size || 'default',
         onClick: (clickedTag) => {
           if (onTagClick) {
             onTagClick(clickedTag);

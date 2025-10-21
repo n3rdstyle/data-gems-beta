@@ -6,9 +6,14 @@
 class DataCard {
   constructor(element, options = {}) {
     this.element = element;
-    this.state = options.state || 'default';
-    this.data = options.data || 'Preference Data';
+    // Read state from element's data-state attribute if not provided in options
+    this.state = options.state || element.getAttribute('data-state') || 'default';
+    // Read data from element's text content if not provided in options
+    const textElement = element.querySelector('.data-card__text');
+    this.data = options.data || (textElement ? textElement.textContent : 'Preference Data');
     this.onStateChange = options.onStateChange || null;
+    this.onClick = options.onClick || null;
+    this.collections = options.collections || [];
 
     this.init();
   }
@@ -17,8 +22,10 @@ class DataCard {
     // Set initial state
     this.setState(this.state);
 
-    // Set initial data
-    this.setData(this.data);
+    // Set initial data (only if different from what's already there)
+    if (this.data) {
+      this.setData(this.data);
+    }
 
     // Add click handler
     this.element.addEventListener('click', () => this.handleClick());
@@ -87,9 +94,13 @@ class DataCard {
    * Handle card click
    */
   handleClick() {
-    // Default behavior: toggle state
-    // Override this method or use onStateChange callback for custom behavior
-    this.toggleState();
+    // If onClick callback is provided, use that instead of default behavior
+    if (this.onClick) {
+      this.onClick(this);
+    } else {
+      // Default behavior: toggle state
+      this.toggleState();
+    }
   }
 
   /**
