@@ -18,11 +18,12 @@
 .data-card__content {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   padding: 16px;
   height: 100%;
   overflow: hidden;
   border-radius: inherit;
+  position: relative;
 }
 
 .data-card__text {
@@ -34,6 +35,46 @@
   flex: 1;
   font-variation-settings: 'wdth' 100;
   white-space: pre-wrap;
+  padding-right: 8px;
+}
+
+/* Action icons container */
+.data-card__actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  flex-shrink: 0;
+}
+
+.data-card:hover .data-card__actions {
+  opacity: 1;
+}
+
+/* Icon buttons */
+.data-card__icon-button {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: var(--color-neutral-60);
+  transition: color 0.2s ease-in-out;
+  flex-shrink: 0;
+}
+
+.data-card__icon-button:hover {
+  color: var(--color-neutral-80);
+}
+
+.data-card__icon-button svg {
+  width: 16px;
+  height: 16px;
 }
 
 /* Default State */

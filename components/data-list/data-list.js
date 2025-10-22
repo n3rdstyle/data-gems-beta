@@ -44,7 +44,7 @@ class DataList {
 
   /**
    * Populate the list with data
-   * @param {Array} data - Array of objects with { name, state }
+   * @param {Array} data - Array of objects with { name, state, collections }
    */
   populate(data) {
     // Clear existing cards
@@ -52,7 +52,7 @@ class DataList {
 
     // Create new cards
     data.forEach(item => {
-      this.addCard(item.name, item.state || 'default');
+      this.addCard(item.name, item.state || 'default', item.collections || []);
     });
   }
 
@@ -60,13 +60,15 @@ class DataList {
    * Add a card to the list
    * @param {string} name - Card text
    * @param {string} state - Card state ('default', 'favorited', 'hidden')
+   * @param {Array} collections - Array of collection names
    * @returns {DataCard} - The created card instance
    */
-  addCard(name, state = 'default') {
+  addCard(name, state = 'default', collections = []) {
     // Create card without callback first
     const card = createDataCard({
       state: state,
       data: name,
+      collections: collections,
       onClick: this.onCardClick ? (card) => this.onCardClick(card, this.modalContainer) : null
     });
 
@@ -193,6 +195,23 @@ class DataList {
     this.cards.forEach(card => {
       const cardState = card.getState();
       card.element.style.display = cardState === state ? '' : 'none';
+    });
+  }
+
+  /**
+   * Filter cards by collection
+   * @param {string} collectionName - Collection name to filter by
+   */
+  filterByCollection(collectionName) {
+    console.log('Filtering by collection:', collectionName);
+    this.cards.forEach(card => {
+      const collections = card.collections || [];
+      console.log('Card:', card.getData(), 'Collections:', collections);
+      const hasCollection = collections.some(c =>
+        c.toLowerCase() === collectionName.toLowerCase()
+      );
+      console.log('Has collection?', hasCollection);
+      card.element.style.display = hasCollection ? '' : 'none';
     });
   }
 

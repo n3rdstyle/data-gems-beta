@@ -62,6 +62,13 @@ function createMainScreen(options = {}) {
     ],
     modalContainer: screenElement,
     onCardClick: (card, container) => {
+      // Get all existing tags from all cards
+      const allCards = contentPreferences.getDataList().getCards();
+      const allCollections = allCards.flatMap(c => c.getCollections());
+      const currentCollections = card.getCollections();
+      // Combine all collections with current card's collections and remove duplicates
+      const existingTags = [...new Set([...allCollections, ...currentCollections])];
+
       // Create and show modal when card is clicked
       const modal = createDataEditorModal({
         title: 'Edit Preference',
@@ -69,25 +76,40 @@ function createMainScreen(options = {}) {
         preferenceText: card.getData(),
         preferenceHidden: card.getState() === 'hidden',
         preferenceFavorited: card.getState() === 'favorited',
-        collections: ['Example', 'Demo'],
+        collections: card.getCollections(),
+        existingTags: existingTags,
         onSave: (data) => {
           card.setData(data.text);
+          // Update card collections
+          card.setCollections(data.collections);
+
+          // Update card state based on hidden/favorited flags
+          if (data.favorited) {
+            card.setState('favorited');
+          } else if (data.hidden) {
+            card.setState('hidden');
+          } else {
+            card.setState('default');
+          }
+
+          // Update tag counts
+          contentPreferences.updateTagCounts();
+
+          // Reapply active filter if one exists
+          const activeFilter = contentPreferences.getActiveFilter();
+          if (activeFilter) {
+            if (activeFilter.type === 'state') {
+              contentPreferences.filterByState(activeFilter.value);
+            } else if (activeFilter.type === 'collection') {
+              const dataList = contentPreferences.getDataList();
+              dataList.filterByCollection(activeFilter.value);
+            }
+          }
+
           modal.hide();
         },
         onDelete: () => {
           modal.hide();
-        },
-        onToggleHidden: (hidden) => {
-          card.setState(hidden ? 'hidden' : 'default');
-        },
-        onToggleFavorite: (favorited) => {
-          card.setState(favorited ? 'favorited' : 'default');
-        },
-        onAddCollection: () => {
-          const newCollection = prompt('Enter collection name:');
-          if (newCollection) {
-            modal.addCollection(newCollection);
-          }
         }
       });
       modal.show(container);

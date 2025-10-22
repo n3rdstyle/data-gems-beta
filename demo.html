@@ -27,6 +27,8 @@
   <link rel="stylesheet" href="components/text-edit-field/text-edit-field.css">
   <link rel="stylesheet" href="components/collection-edit-field/collection-edit-field.css">
   <link rel="stylesheet" href="components/data-editor-modal/data-editor-modal.css">
+  <link rel="stylesheet" href="components/tag-add-field/tag-add-field.css">
+  <link rel="stylesheet" href="components/tag-add-modal/tag-add-modal.css">
 
   <!-- Screens -->
   <link rel="stylesheet" href="screens/main-screen/main-screen.css">
@@ -107,6 +109,63 @@
       color: var(--color-neutral-70);
       padding: 8px 12px;
       letter-spacing: 0.5px;
+      position: relative;
+      cursor: help;
+    }
+
+    /* Tooltip styles */
+    .nav-section-title[data-tooltip] {
+      position: relative;
+    }
+
+    .nav-section-title[data-tooltip]::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      left: 100%;
+      top: 50%;
+      transform: translateY(-50%);
+      margin-left: 12px;
+      padding: 8px 12px;
+      background-color: var(--color-neutral-90);
+      color: white;
+      font-size: 11px;
+      font-weight: 400;
+      text-transform: none;
+      letter-spacing: 0;
+      border-radius: 6px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease-in-out;
+      z-index: 1000;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .nav-section-title[data-tooltip]:hover::after {
+      opacity: 1;
+    }
+
+    /* Tooltip arrow */
+    .nav-section-title[data-tooltip]::before {
+      content: '';
+      position: absolute;
+      left: 100%;
+      top: 50%;
+      transform: translateY(-50%);
+      margin-left: 6px;
+      width: 0;
+      height: 0;
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+      border-right: 6px solid var(--color-neutral-90);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease-in-out;
+      z-index: 1001;
+    }
+
+    .nav-section-title[data-tooltip]:hover::before {
+      opacity: 1;
     }
 
     .nav-item {
@@ -292,36 +351,37 @@
       </div>
       <nav class="sidebar-nav">
         <div class="nav-section">
-          <div class="nav-section-title">Foundations</div>
+          <div class="nav-section-title" data-tooltip="Basic building blocks like colors and icons">Foundations</div>
           <a class="nav-item" data-section="colors">Colors</a>
           <a class="nav-item" data-section="icons">Icons</a>
         </div>
         <div class="nav-section">
-          <div class="nav-section-title">Elements</div>
+          <div class="nav-section-title" data-tooltip="Individual UI elements that can be combined into components">Elements</div>
           <a class="nav-item" data-section="button-primary">Primary Button</a>
           <a class="nav-item" data-section="button-tertiary">Tertiary Button</a>
           <a class="nav-item" data-section="calibration">Calibration</a>
-          <a class="nav-item" data-section="data-card">Data Card</a>
-          <a class="nav-item" data-section="headline">Headline</a>
-          <a class="nav-item" data-section="profile-teaser">Profile Teaser</a>
-          <a class="nav-item" data-section="search">Search</a>
-          <a class="nav-item" data-section="tag">Tag</a>
-        </div>
-        <div class="nav-section">
-          <div class="nav-section-title">Components</div>
           <a class="nav-item" data-section="collection-edit-field">Collection Edit Field</a>
-          <a class="nav-item" data-section="content-preferences">Content Preferences</a>
+          <a class="nav-item" data-section="data-card">Data Card</a>
           <a class="nav-item" data-section="data-editor-modal">Data Editor Modal</a>
           <a class="nav-item" data-section="data-list">Data List</a>
           <a class="nav-item" data-section="data-search">Data Search</a>
           <a class="nav-item" data-section="header">Header</a>
+          <a class="nav-item" data-section="headline">Headline</a>
           <a class="nav-item" data-section="preference-options">Preference Options</a>
+          <a class="nav-item" data-section="profile-teaser">Profile Teaser</a>
+          <a class="nav-item" data-section="search">Search</a>
+          <a class="nav-item" data-section="tag">Tag</a>
+          <a class="nav-item" data-section="tag-add-modal">Tag Add Modal</a>
           <a class="nav-item" data-section="tag-list">Tag List</a>
           <a class="nav-item" data-section="text-edit-field">Text Edit Field</a>
           <a class="nav-item" data-section="top-menu">Top Menu</a>
         </div>
         <div class="nav-section">
-          <div class="nav-section-title">Screens</div>
+          <div class="nav-section-title" data-tooltip="Combined elements with functionality">Components</div>
+          <a class="nav-item" data-section="content-preferences">Content Preferences</a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title" data-tooltip="Full screens combining multiple components">Screens</div>
           <a class="nav-item" data-section="main-screen">Main Screen</a>
         </div>
       </nav>
@@ -337,6 +397,11 @@
         <div class="demo-subsection">
           <h3>Primary Colors (Blue)</h3>
           <div class="color-grid" id="primary-colors"></div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Secondary Colors (Warm Tan/Beige)</h3>
+          <div class="color-grid" id="secondary-colors"></div>
         </div>
 
         <div class="demo-subsection">
@@ -471,17 +536,31 @@
 
         <div class="demo-subsection">
           <h3>Simple Variant</h3>
-          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Title + close button (for settings/modals)</p>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Title + close/delete button (for settings/modals)</p>
+
+          <p style="font-size: 12px; font-weight: 600; color: var(--color-neutral-80); margin: 16px 0 8px 0;">Default State (Close Icon)</p>
           <div class="demo-example">
             <div id="header-simple-demo"></div>
+          </div>
+
+          <p style="font-size: 12px; font-weight: 600; color: var(--color-neutral-80); margin: 16px 0 8px 0;">Delete State (Trash Icon)</p>
+          <div class="demo-example">
+            <div id="header-simple-delete-demo"></div>
           </div>
         </div>
 
         <div class="demo-subsection">
           <h3>Compact Variant</h3>
           <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Small title + action icons (for preference cards)</p>
+
+          <p style="font-size: 12px; font-weight: 600; color: var(--color-neutral-80); margin: 16px 0 8px 0;">With Action Icons</p>
           <div class="demo-example">
             <div id="header-compact-demo"></div>
+          </div>
+
+          <p style="font-size: 12px; font-weight: 600; color: var(--color-neutral-80); margin: 16px 0 8px 0;">Plain (No Icons)</p>
+          <div class="demo-example">
+            <div id="header-compact-plain-demo"></div>
           </div>
         </div>
       </section>
@@ -562,6 +641,26 @@
 
         <div class="demo-example">
           <div class="tag-list" id="tag-list-demo"></div>
+        </div>
+      </section>
+
+      <!-- Tag Add Modal Section -->
+      <section id="section-tag-add-modal" class="demo-section hidden">
+        <h2>Tag Add Modal</h2>
+        <p class="description">Modal for adding a new collection/tag with input field and action buttons.</p>
+
+        <div class="demo-example">
+          <button id="show-tag-add-modal-btn" style="
+            padding: 12px 24px;
+            background: var(--color-primary-60);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-family: var(--font-family);
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+          ">Show Tag Add Modal</button>
         </div>
       </section>
 
@@ -679,6 +778,8 @@
   <script src="components/collection-edit-field/collection-edit-field.js"></script>
   <script src="components/data-search/data-search.js"></script>
   <script src="components/data-editor-modal/data-editor-modal.js"></script>
+  <script src="components/tag-add-field/tag-add-field.js"></script>
+  <script src="components/tag-add-modal/tag-add-modal.js"></script>
   <script src="components/content-preferences/content-preferences.js"></script>
 
   <!-- Screens (depend on composite components) -->
@@ -733,6 +834,22 @@
           </div>
         `;
         primaryContainer.appendChild(box);
+      });
+
+      const secondaryColors = ['10', '20', '30', '40', '50', '60', '70', '80', '90'];
+      const secondaryContainer = document.getElementById('secondary-colors');
+
+      secondaryColors.forEach(shade => {
+        const box = document.createElement('div');
+        box.className = 'color-box';
+        box.innerHTML = `
+          <div class="color-box-swatch" style="background-color: var(--color-secondary-${shade})"></div>
+          <div class="color-box-info">
+            <div class="color-box-name">Secondary ${shade}</div>
+            <div class="color-box-value">--color-secondary-${shade}</div>
+          </div>
+        `;
+        secondaryContainer.appendChild(box);
       });
 
       const neutralColors = ['10', '20', '30', '40', '50', '60', '70', '80', '90'];
@@ -964,6 +1081,15 @@
       });
       simpleContainer.appendChild(simpleHeader.element);
 
+      // Simple delete variant demo
+      const simpleDeleteContainer = document.getElementById('header-simple-delete-demo');
+      const simpleDeleteHeader = createHeader({
+        variant: 'simple-delete',
+        title: 'Edit Preference',
+        onDelete: () => console.log('Delete clicked')
+      });
+      simpleDeleteContainer.appendChild(simpleDeleteHeader.element);
+
       // Compact variant demo
       const compactContainer = document.getElementById('header-compact-demo');
       const compactHeader = createHeader({
@@ -986,6 +1112,14 @@
         }
       });
       compactContainer.appendChild(compactHeader.element);
+
+      // Compact plain variant demo (no icons)
+      const compactPlainContainer = document.getElementById('header-compact-plain-demo');
+      const compactPlainHeader = createHeader({
+        variant: 'compact-plain',
+        title: 'Collection Name'
+      });
+      compactPlainContainer.appendChild(compactPlainHeader.element);
     }
 
     function initCalibrationDemo() {
@@ -1035,6 +1169,28 @@
         ]
       });
       container.appendChild(tagList.element);
+    }
+
+    function initTagAddModalDemo() {
+      const showButton = document.getElementById('show-tag-add-modal-btn');
+      if (!showButton) return;
+
+      showButton.addEventListener('click', () => {
+        const modal = createTagAddModal({
+          title: 'Add Collection',
+          placeholder: 'Enter collection name...',
+          existingTags: ['Travel', 'Shopping', 'Food', 'Health', 'Entertainment'],
+          onAdd: (tagName) => {
+            console.log('Tag added:', tagName);
+            alert(`Collection "${tagName}" added!`);
+          },
+          onCancel: () => {
+            console.log('Tag add cancelled');
+          }
+        });
+
+        modal.show();
+      });
     }
 
     function initDataCardDemo() {
@@ -1193,6 +1349,7 @@
         preferenceHidden: false,
         preferenceFavorited: true,
         collections: ['On', 'Sports'],
+        existingTags: ['On', 'Sports', 'Running', 'Health', 'Lifestyle'],
         onSave: (data) => {
           console.log('Save clicked:', data);
           modal.hide();
@@ -1202,13 +1359,7 @@
           modal.hide();
         },
         onToggleHidden: (hidden) => console.log('Toggle hidden:', hidden),
-        onToggleFavorite: (favorited) => console.log('Toggle favorite:', favorited),
-        onAddCollection: () => {
-          const newCollection = prompt('Enter collection name:');
-          if (newCollection) {
-            modal.addCollection(newCollection);
-          }
-        }
+        onToggleFavorite: (favorited) => console.log('Toggle favorite:', favorited)
       });
 
       // Show modal when button is clicked
@@ -1224,32 +1375,61 @@
       const contentPreferences = createContentPreferences({
         title: 'My Preferences',
         data: [
-          { name: 'Travel Preferences', state: 'default' },
-          { name: 'Shopping Habits', state: 'default' },
-          { name: 'Food & Dining', state: 'favorited' },
-          { name: 'Entertainment', state: 'hidden' },
-          { name: 'Health & Fitness', state: 'default' }
+          { name: 'Travel Preferences', state: 'default', collections: ['Travel'] },
+          { name: 'Shopping Habits', state: 'default', collections: ['Shopping', 'Lifestyle'] },
+          { name: 'Food & Dining', state: 'favorited', collections: ['Food'] },
+          { name: 'Entertainment', state: 'hidden', collections: ['Entertainment', 'Lifestyle'] },
+          { name: 'Health & Fitness', state: 'default', collections: ['Health'] }
         ],
+        // Tags will be auto-calculated from data
         modalContainer: container,
         onCardClick: (card, modalContainer) => {
+          // Get all existing tags from all cards
+          const allCards = contentPreferences.getDataList().getCards();
+          const allCollections = allCards.flatMap(c => c.getCollections());
+          const currentCollections = card.getCollections();
+          // Combine all collections with current card's collections and remove duplicates
+          const existingTags = [...new Set([...allCollections, ...currentCollections])];
+
           const modal = createDataEditorModal({
             title: 'Edit Preference',
             preferenceTitle: 'Preference',
             preferenceText: card.getData(),
             preferenceHidden: card.getState() === 'hidden',
             preferenceFavorited: card.getState() === 'favorited',
-            collections: ['Example', 'Demo'],
+            collections: card.getCollections(),
+            existingTags: existingTags,
             onSave: (data) => {
               card.setData(data.text);
+              // Update card collections
+              card.setCollections(data.collections);
+
+              // Update card state based on hidden/favorited flags
+              if (data.favorited) {
+                card.setState('favorited');
+              } else if (data.hidden) {
+                card.setState('hidden');
+              } else {
+                card.setState('default');
+              }
+
+              // Update tag counts
+              contentPreferences.updateTagCounts();
+
+              // Reapply active filter if one exists
+              const activeFilter = contentPreferences.getActiveFilter();
+              if (activeFilter) {
+                if (activeFilter.type === 'state') {
+                  contentPreferences.filterByState(activeFilter.value);
+                } else if (activeFilter.type === 'collection') {
+                  const dataList = contentPreferences.getDataList();
+                  dataList.filterByCollection(activeFilter.value);
+                }
+              }
+
               modal.hide();
             },
-            onDelete: () => modal.hide(),
-            onToggleHidden: (hidden) => card.setState(hidden ? 'hidden' : 'default'),
-            onToggleFavorite: (favorited) => card.setState(favorited ? 'favorited' : 'default'),
-            onAddCollection: () => {
-              const newCollection = prompt('Enter collection name:');
-              if (newCollection) modal.addCollection(newCollection);
-            }
+            onDelete: () => modal.hide()
           });
           modal.show(modalContainer);
         }
@@ -1280,6 +1460,7 @@
       initCalibrationDemo();
       initPreferenceOptionsDemo();
       initTagListDemo();
+      initTagAddModalDemo();
       initDataCardDemo();
       initTextEditFieldDemo();
       initCollectionEditFieldDemo();

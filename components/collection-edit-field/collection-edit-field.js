@@ -43,6 +43,10 @@ function createCollectionEditField(options = {}) {
       state: 'active'
     })),
     onTagClick: (tag) => {
+      // Remove tag when clicked
+      tagList.removeTag(tag);
+
+      // Call external callback if provided
       if (onTagClick) {
         onTagClick(tag);
       }

@@ -197,6 +197,28 @@ class Tag {
   }
 
   /**
+   * Hide the tag
+   */
+  hide() {
+    this.element.style.display = 'none';
+  }
+
+  /**
+   * Show the tag
+   */
+  show() {
+    this.element.style.display = '';
+  }
+
+  /**
+   * Check if tag is visible
+   * @returns {boolean}
+   */
+  isVisible() {
+    return this.element.style.display !== 'none';
+  }
+
+  /**
    * Destroy the tag instance
    */
   destroy() {

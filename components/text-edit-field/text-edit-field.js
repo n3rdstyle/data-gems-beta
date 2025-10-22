@@ -15,7 +15,8 @@ function createTextEditField(options = {}) {
     onToggleHidden = null,
     onToggleFavorite = null,
     onTextChange = null,
-    editable = true
+    editable = true,
+    headerVariant = 'compact' // 'compact' (with icons) or 'compact-plain' (without icons)
   } = options;
 
   // Create container
@@ -83,9 +84,9 @@ function createTextEditField(options = {}) {
 
   // Create compact header with initial icons
   const header = createHeader({
-    variant: 'compact',
+    variant: headerVariant,
     title: title,
-    actionIcons: buildActionIcons()
+    actionIcons: headerVariant === 'compact' ? buildActionIcons() : []
   });
 
   // Create text box

@@ -1,0 +1,28 @@
+/**
+ * Tag Add Field Component Styles
+ */
+
+.tag-add-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Tag List Section */
+.tag-add-field__tag-list {
+  padding: 0 16px 16px 16px;
+  background-color: var(--color-neutral-0);
+  border: 1px solid var(--color-neutral-20);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+}
+
+/* Adjust text-edit-field border radius when tag list is present */
+.tag-add-field:has(.tag-add-field__tag-list) .text-edit-field {
+  border-radius: 8px 8px 0 0;
+}
+
+.tag-add-field:has(.tag-add-field__tag-list) .text-edit-field textarea {
+  border-radius: 0 0 0 0;
+  border-bottom: 1px solid var(--color-neutral-20);
+}

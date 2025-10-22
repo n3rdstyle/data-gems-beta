@@ -58,6 +58,33 @@ function createTagList(options = {}) {
       return tag;
     },
 
+    addTagAtIndex(tagConfig, index) {
+      const tag = createTag({
+        type: tagConfig.type || 'collection',
+        label: tagConfig.label || 'Tag',
+        count: tagConfig.count || 0,
+        state: tagConfig.state || 'inactive',
+        size: tagConfig.size || 'default',
+        onClick: (clickedTag) => {
+          if (onTagClick) {
+            onTagClick(clickedTag);
+          }
+        }
+      });
+
+      // Insert at specific index
+      if (index >= tagInstances.length) {
+        tagListElement.appendChild(tag.element);
+        tagInstances.push(tag);
+      } else {
+        const referenceElement = tagInstances[index].element;
+        tagListElement.insertBefore(tag.element, referenceElement);
+        tagInstances.splice(index, 0, tag);
+      }
+
+      return tag;
+    },
+
     removeTag(tag) {
       const index = tagInstances.indexOf(tag);
       if (index > -1) {

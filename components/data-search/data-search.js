@@ -9,7 +9,6 @@ function createDataSearch(options = {}) {
     tags = [],
     onSearch = null,
     onTagClick = null,
-    onAddClick = null,
     expandedByDefault = true
   } = options;
 
@@ -49,23 +48,12 @@ function createDataSearch(options = {}) {
   topRow.appendChild(searchWrapper);
   topRow.appendChild(expandButton.element);
 
-  // Create bottom row (add button + tag list)
+  // Create bottom row (tag list only)
   const bottomRow = document.createElement('div');
   bottomRow.className = 'data-search__bottom-row';
   if (!expandedByDefault) {
     bottomRow.classList.add('hidden');
   }
-
-  // Create add button using tertiary button
-  const addButton = createTertiaryButton({
-    icon: 'plus',
-    ariaLabel: 'Add collection',
-    onClick: () => {
-      if (onAddClick) {
-        onAddClick();
-      }
-    }
-  });
 
   // Create tag list wrapper
   const tagListWrapper = document.createElement('div');
@@ -78,7 +66,6 @@ function createDataSearch(options = {}) {
   });
   tagListWrapper.appendChild(tagList.element);
 
-  bottomRow.appendChild(addButton.element);
   bottomRow.appendChild(tagListWrapper);
 
   // Add expand/collapse functionality

@@ -17,6 +17,7 @@ function createDataEditorModal(options = {}) {
     preferenceHidden = false,
     preferenceFavorited = false,
     collections = [],
+    existingTags = [], // All existing tags in the system
     onSave = null,
     onDelete = null,
     onToggleHidden = null,
@@ -32,12 +33,11 @@ function createDataEditorModal(options = {}) {
   const modalElement = document.createElement('div');
   modalElement.className = 'data-editor-modal';
 
-  // Create header (simple variant with trash button)
+  // Create header (simple-delete variant)
   const headerSection = createHeader({
-    variant: 'simple',
+    variant: 'simple-delete',
     title: title,
-    closeIcon: 'trash',
-    onClose: () => {
+    onDelete: () => {
       if (onDelete) {
         onDelete();
       }
@@ -71,19 +71,13 @@ function createDataEditorModal(options = {}) {
       // Get current state from text edit field
       const currentState = textEditField.getState();
 
-      // Apply state changes
-      if (onToggleHidden && currentState.hidden !== preferenceHidden) {
-        onToggleHidden(currentState.hidden);
-      }
-      if (onToggleFavorite && currentState.favorited !== preferenceFavorited) {
-        onToggleFavorite(currentState.favorited);
-      }
-
-      // Call save callback
+      // Call save callback with all data including state
       if (onSave) {
         onSave({
           text: textEditField.getText(),
-          collections: collectionEditField.getCollections()
+          collections: collectionEditField.getCollections(),
+          hidden: currentState.hidden,
+          favorited: currentState.favorited
         });
       }
     }
@@ -109,9 +103,28 @@ function createDataEditorModal(options = {}) {
     title: 'Collections',
     collections: collections,
     onAddCollection: () => {
-      if (onAddCollection) {
-        onAddCollection();
-      }
+      // Open Tag Add Modal
+      const tagAddModal = createTagAddModal({
+        title: 'Add Collection',
+        label: 'Collection Name',
+        placeholder: 'Enter collection name...',
+        existingTags: existingTags,
+        currentCollections: collectionEditField.getCollections(),
+        onAdd: (tagNames) => {
+          // Parse comma-separated tag names and add each one to the collection edit field
+          // These will only be saved to the card when the user clicks Save
+          const tags = tagNames.split(',').map(t => t.trim()).filter(t => t);
+          tags.forEach(tag => {
+            collectionEditField.addCollection(tag);
+          });
+        },
+        onCancel: () => {
+          console.log('Tag add cancelled');
+        }
+      });
+
+      // Show the modal in the same container as data editor modal
+      tagAddModal.show(overlayElement.parentNode || document.body);
     }
   });
 

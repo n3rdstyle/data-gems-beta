@@ -9,10 +9,11 @@
 
 function createHeader(options = {}) {
   const {
-    variant = 'default', // 'default', 'simple', or 'compact'
+    variant = 'default', // 'default', 'simple', 'simple-delete', or 'compact'
     title = 'Settings', // For simple/compact variants
-    onClose = null, // For simple variant
-    closeIcon = 'close', // For simple variant: icon to use for close button
+    onClose = null, // For simple/simple-delete variants
+    onDelete = null, // For simple-delete variant
+    closeIcon = 'close', // For simple variant: icon to use for close button (deprecated, use variant instead)
     actionIcons = [], // For compact variant: array of {icon, ariaLabel, onClick, active}
     onIconClick = null, // For compact variant
     profile = {
@@ -31,55 +32,69 @@ function createHeader(options = {}) {
 
   // Create header container
   const headerElement = document.createElement('div');
-  const variantClass = variant === 'simple' ? 'header--simple' : variant === 'compact' ? 'header--compact' : '';
+  const variantClass = variant === 'simple' || variant === 'simple-delete' ? 'header--simple' : (variant === 'compact' || variant === 'compact-plain') ? 'header--compact' : '';
   headerElement.className = variantClass ? `header ${variantClass}` : 'header';
 
   let profileTeaser, topMenu, titleElement, closeButton, iconButtons, iconsContainer;
 
-  if (variant === 'compact') {
-    // Compact variant: Small title + small tertiary action buttons
+  if (variant === 'compact' || variant === 'compact-plain') {
+    // Compact variant: Small title + small tertiary action buttons (or no buttons for compact-plain)
     titleElement = document.createElement('h3');
     titleElement.className = 'header__title-compact';
     titleElement.textContent = title;
 
-    iconsContainer = document.createElement('div');
-    iconsContainer.className = 'header__icons';
+    headerElement.appendChild(titleElement);
 
-    iconButtons = [];
+    // Only add icons for 'compact' variant, not for 'compact-plain'
+    if (variant === 'compact') {
+      iconsContainer = document.createElement('div');
+      iconsContainer.className = 'header__icons';
 
-    actionIcons.forEach((iconConfig, index) => {
-      const button = createTertiaryButton({
-        icon: iconConfig.icon,
-        size: 'small',
-        filled: iconConfig.filled || false,
-        ariaLabel: iconConfig.ariaLabel,
-        onClick: () => {
-          if (iconConfig.onClick) {
-            iconConfig.onClick(iconConfig, index);
+      iconButtons = [];
+
+      actionIcons.forEach((iconConfig, index) => {
+        const button = createTertiaryButton({
+          icon: iconConfig.icon,
+          size: 'small',
+          filled: iconConfig.filled || false,
+          ariaLabel: iconConfig.ariaLabel,
+          onClick: () => {
+            if (iconConfig.onClick) {
+              iconConfig.onClick(iconConfig, index);
+            }
+            if (onIconClick) {
+              onIconClick(iconConfig, index);
+            }
           }
-          if (onIconClick) {
-            onIconClick(iconConfig, index);
-          }
-        }
+        });
+
+        iconsContainer.appendChild(button.element);
+        iconButtons.push({ element: button.element, button: button, config: iconConfig });
       });
 
-      iconsContainer.appendChild(button.element);
-      iconButtons.push({ element: button.element, button: button, config: iconConfig });
-    });
-
-    headerElement.appendChild(titleElement);
-    headerElement.appendChild(iconsContainer);
-  } else if (variant === 'simple') {
-    // Simple variant: Title + close button
+      headerElement.appendChild(iconsContainer);
+    }
+  } else if (variant === 'simple' || variant === 'simple-delete') {
+    // Simple variant: Title + close/delete button
     titleElement = document.createElement('h2');
     titleElement.className = 'header__title';
     titleElement.textContent = title;
 
+    const buttonIcon = variant === 'simple-delete' ? 'trash' : closeIcon;
+    const buttonLabel = variant === 'simple-delete' ? 'Delete' : (closeIcon === 'trash' ? 'Delete' : 'Close');
+
     closeButton = createTertiaryButton({
-      icon: closeIcon,
-      ariaLabel: closeIcon === 'trash' ? 'Delete' : 'Close',
+      icon: buttonIcon,
+      ariaLabel: buttonLabel,
       onClick: () => {
-        if (onClose) {
+        // For simple-delete variant, call onDelete if provided, otherwise fall back to onClose
+        if (variant === 'simple-delete') {
+          if (onDelete) {
+            onDelete();
+          } else if (onClose) {
+            onClose();
+          }
+        } else if (onClose) {
           onClose();
         }
       }
@@ -134,45 +149,49 @@ function createHeader(options = {}) {
     variant
   };
 
-  if (variant === 'compact') {
+  if (variant === 'compact' || variant === 'compact-plain') {
     api.setTitle = (newTitle) => {
       titleElement.textContent = newTitle;
     };
     api.getTitle = () => {
       return titleElement.textContent;
     };
-    api.getIconButtons = () => {
-      return iconButtons;
-    };
-    api.getIconButton = (index) => {
-      return iconButtons[index];
-    };
-    api.setActionIcons = (newActionIcons) => {
-      // Clear existing icons
-      iconsContainer.innerHTML = '';
-      iconButtons = [];
 
-      // Create new icons
-      newActionIcons.forEach((iconConfig, index) => {
-        const button = createTertiaryButton({
-          icon: iconConfig.icon,
-          size: 'small',
-          filled: iconConfig.filled || false,
-          ariaLabel: iconConfig.ariaLabel,
-          onClick: () => {
-            if (iconConfig.onClick) {
-              iconConfig.onClick(iconConfig, index);
+    // Only add icon methods for 'compact' variant, not 'compact-plain'
+    if (variant === 'compact') {
+      api.getIconButtons = () => {
+        return iconButtons;
+      };
+      api.getIconButton = (index) => {
+        return iconButtons[index];
+      };
+      api.setActionIcons = (newActionIcons) => {
+        // Clear existing icons
+        iconsContainer.innerHTML = '';
+        iconButtons = [];
+
+        // Create new icons
+        newActionIcons.forEach((iconConfig, index) => {
+          const button = createTertiaryButton({
+            icon: iconConfig.icon,
+            size: 'small',
+            filled: iconConfig.filled || false,
+            ariaLabel: iconConfig.ariaLabel,
+            onClick: () => {
+              if (iconConfig.onClick) {
+                iconConfig.onClick(iconConfig, index);
+              }
+              if (onIconClick) {
+                onIconClick(iconConfig, index);
+              }
             }
-            if (onIconClick) {
-              onIconClick(iconConfig, index);
-            }
-          }
+          });
+
+          iconsContainer.appendChild(button.element);
+          iconButtons.push({ element: button.element, button: button, config: iconConfig });
         });
-
-        iconsContainer.appendChild(button.element);
-        iconButtons.push({ element: button.element, button: button, config: iconConfig });
-      });
-    };
+      };
+    }
   } else if (variant === 'simple') {
     api.setTitle = (newTitle) => {
       titleElement.textContent = newTitle;
