@@ -5,30 +5,16 @@
  * - Background: var(--color-secondary-10) #FFFCF6
  * - Border: rgba(2,8,19,0.1)
  * - Text: var(--color-neutral-90) #020813
+ * Requires: overlay.css
  */
 
-/* Modal Overlay */
-.data-editor-modal-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+/* Layout for modal within overlay */
+.overlay:has(.data-editor-modal) {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
   padding: 16px;
   box-sizing: border-box;
-  opacity: 0;
-  transition: opacity 0.2s ease-in-out;
-  pointer-events: none;
-}
-
-.data-editor-modal-overlay--visible {
-  opacity: 1;
-  pointer-events: auto;
 }
 
 .data-editor-modal {

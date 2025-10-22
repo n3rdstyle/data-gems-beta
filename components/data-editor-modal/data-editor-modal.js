@@ -5,7 +5,7 @@
  * - Text edit field component
  * - Collection edit field component
  * - Action buttons (save/remove)
- * Requires: header.js, text-edit-field.js, collection-edit-field.js, button-primary.js, button-tertiary.js
+ * Requires: header.js, text-edit-field.js, collection-edit-field.js, button-primary.js, button-tertiary.js, overlay.js
  */
 
 function createDataEditorModal(options = {}) {
@@ -25,9 +25,18 @@ function createDataEditorModal(options = {}) {
     onAddCollection = null
   } = options;
 
-  // Create modal overlay
-  const overlayElement = document.createElement('div');
-  overlayElement.className = 'data-editor-modal-overlay';
+  // Create modal overlay using overlay component
+  const overlay = createOverlay({
+    blur: false,
+    opacity: 'default',
+    visible: false,
+    onClick: () => {
+      if (onClose) {
+        onClose();
+      }
+      api.hide();
+    }
+  });
 
   // Create modal container
   const modalElement = document.createElement('div');
@@ -42,16 +51,6 @@ function createDataEditorModal(options = {}) {
         onDelete();
       }
       api.hide();
-    }
-  });
-
-  // Close on overlay click
-  overlayElement.addEventListener('click', (e) => {
-    if (e.target === overlayElement) {
-      api.hide();
-      if (onClose) {
-        onClose();
-      }
     }
   });
 
@@ -124,7 +123,7 @@ function createDataEditorModal(options = {}) {
       });
 
       // Show the modal in the same container as data editor modal
-      tagAddModal.show(overlayElement.parentNode || document.body);
+      tagAddModal.show(overlay.element.parentNode || document.body);
     }
   });
 
@@ -148,11 +147,11 @@ function createDataEditorModal(options = {}) {
   modalElement.appendChild(buttonsSection);
 
   // Assemble overlay with modal
-  overlayElement.appendChild(modalElement);
+  overlay.element.appendChild(modalElement);
 
   // Public API
   const api = {
-    element: overlayElement,
+    element: overlay.element,
     modalElement: modalElement,
 
     getHeader() {
@@ -192,24 +191,25 @@ function createDataEditorModal(options = {}) {
     },
 
     show(container) {
-      overlayElement.classList.add('data-editor-modal-overlay--visible');
       // If container provided, append to container, otherwise append to body
       const target = container || document.body;
-      target.appendChild(overlayElement);
+      target.appendChild(overlay.element);
+      // Show overlay after appending to trigger transition
+      setTimeout(() => overlay.show(), 10);
     },
 
     hide() {
-      overlayElement.classList.remove('data-editor-modal-overlay--visible');
+      overlay.hide();
       // Use timeout to allow fade-out animation
       setTimeout(() => {
-        if (overlayElement.parentNode) {
-          overlayElement.parentNode.removeChild(overlayElement);
+        if (overlay.element.parentNode) {
+          overlay.element.parentNode.removeChild(overlay.element);
         }
       }, 200);
     },
 
     destroy() {
-      overlayElement.remove();
+      overlay.destroy();
     }
   };
 

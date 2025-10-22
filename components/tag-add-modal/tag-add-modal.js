@@ -4,7 +4,7 @@
  * - Header (simple variant)
  * - Tag add field component
  * - Action buttons (add/cancel)
- * Requires: header.js, tag-add-field.js, button-primary.js, button-tertiary.js
+ * Requires: header.js, tag-add-field.js, button-primary.js, button-tertiary.js, overlay.js
  */
 
 function createTagAddModal(options = {}) {
@@ -18,9 +18,18 @@ function createTagAddModal(options = {}) {
     onCancel = null
   } = options;
 
-  // Create modal overlay
-  const overlayElement = document.createElement('div');
-  overlayElement.className = 'tag-add-modal-overlay';
+  // Create modal overlay using overlay component
+  const overlay = createOverlay({
+    blur: false,
+    opacity: 'default',
+    visible: false,
+    onClick: () => {
+      api.hide();
+      if (onCancel) {
+        onCancel();
+      }
+    }
+  });
 
   // Create modal container
   const modalElement = document.createElement('div');
@@ -31,16 +40,6 @@ function createTagAddModal(options = {}) {
     variant: 'simple',
     title: title,
     onClose: () => {
-      api.hide();
-      if (onCancel) {
-        onCancel();
-      }
-    }
-  });
-
-  // Close on overlay click
-  overlayElement.addEventListener('click', (e) => {
-    if (e.target === overlayElement) {
       api.hide();
       if (onCancel) {
         onCancel();
@@ -107,23 +106,31 @@ function createTagAddModal(options = {}) {
   // Assemble modal
   modalElement.appendChild(headerSection.element);
   modalElement.appendChild(contentContainer);
-  overlayElement.appendChild(modalElement);
+  overlay.element.appendChild(modalElement);
 
   // Public API
   const api = {
-    element: overlayElement,
+    element: overlay.element,
 
     show(container = document.body) {
-      container.appendChild(overlayElement);
-      // Focus input after a short delay
-      setTimeout(() => tagAddField.focus(), 100);
+      container.appendChild(overlay.element);
+      // Show overlay after appending to trigger transition
+      setTimeout(() => {
+        overlay.show();
+        // Focus input after overlay is visible
+        tagAddField.focus();
+      }, 10);
       return this;
     },
 
     hide() {
-      if (overlayElement.parentNode) {
-        overlayElement.parentNode.removeChild(overlayElement);
-      }
+      overlay.hide();
+      // Use timeout to allow fade-out animation
+      setTimeout(() => {
+        if (overlay.element.parentNode) {
+          overlay.element.parentNode.removeChild(overlay.element);
+        }
+      }, 200);
       return this;
     },
 

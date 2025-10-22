@@ -8,7 +8,7 @@
   /* Base styles */
   position: relative;
   width: 368px;
-  height: 56px;
+  min-height: 56px;
   border-radius: 16px;
   border: 1px solid;
   transition: all 0.2s ease-in-out;
@@ -17,11 +17,10 @@
 
 .data-card__content {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   padding: 16px;
-  height: 100%;
-  overflow: hidden;
+  min-height: 56px;
   border-radius: inherit;
   position: relative;
 }
@@ -36,16 +35,20 @@
   font-variation-settings: 'wdth' 100;
   white-space: pre-wrap;
   padding-right: 8px;
+  min-width: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 /* Action icons container */
 .data-card__actions {
   display: flex;
   gap: 4px;
-  align-items: center;
+  align-items: flex-start;
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
   flex-shrink: 0;
+  padding-top: 0;
 }
 
 .data-card:hover .data-card__actions {

@@ -1,0 +1,39 @@
+/**
+ * Overlay Element
+ * Backdrop for modals and overlays with blur effect
+ */
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  pointer-events: none;
+}
+
+.overlay--visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.overlay--blur {
+  backdrop-filter: blur(8px);
+}
+
+.overlay--fixed {
+  position: fixed;
+}
+
+/* Different opacity levels */
+.overlay--light {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+.overlay--dark {
+  background-color: rgba(0, 0, 0, 0.7);
+}

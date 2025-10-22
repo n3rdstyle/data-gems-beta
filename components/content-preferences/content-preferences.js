@@ -321,7 +321,19 @@ function createContentPreferences(options = {}) {
           dataList.clearFilter();
         }
       } else {
-        // Tag was just deactivated, clear filter and show all tags and cards
+        // Tag was just deactivated
+        // Check if any other tag is still active
+        const hasActiveTag = allTags.some(t => t.getState() === 'active');
+
+        if (!hasActiveTag) {
+          // No tag is active, activate "All" tag
+          const allTag = allTags.find(t => t.getLabel().toLowerCase() === 'all');
+          if (allTag) {
+            allTag.setState('active');
+          }
+        }
+
+        // Clear filter and show all tags and cards
         activeFilter = null;
         dataList.clearFilter();
 

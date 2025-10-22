@@ -1,7 +1,7 @@
 /**
  * Preference Options Component
  * Overlay with blur effect and action buttons triggered by plus button
- * Requires: button-tertiary.js, button-primary.js
+ * Requires: button-tertiary.js, button-primary.js, overlay.js, input-field.js
  */
 
 function createPreferenceOptions(options = {}) {
@@ -22,8 +22,22 @@ function createPreferenceOptions(options = {}) {
   const preferenceOptionsElement = document.createElement('div');
   preferenceOptionsElement.className = 'preference-options';
 
-  // Create blur overlay
-  const overlay = document.createElement('div');
+  // Create overlay using overlay component
+  const overlayComponent = createOverlay({
+    blur: false,
+    opacity: 'default',
+    visible: false,
+    zIndex: 1,  // Set low z-index so buttons are above
+    onClick: () => {
+      if (isModalActive) {
+        hideModal();
+      } else {
+        hide();
+      }
+    }
+  });
+
+  const overlay = overlayComponent.element;
   overlay.className = 'preference-options__overlay';
 
   // Create content container
@@ -67,34 +81,32 @@ function createPreferenceOptions(options = {}) {
   const answerContainer = document.createElement('div');
   answerContainer.className = 'preference-options__modal-answer';
 
-  const input = document.createElement('input');
-  input.className = 'preference-options__modal-input';
-  input.type = 'text';
-  input.placeholder = 'Type your answer';
+  const inputField = createInputField({
+    type: 'text',
+    placeholder: 'Type your answer',
+    onKeyDown: (e) => {
+      if (e.key === 'Enter') {
+        sendButton.element.click();
+      }
+    }
+  });
 
   const sendButton = createPrimaryButton({
     label: 'Send',
     variant: 'neutral',
     onClick: () => {
-      const answer = input.value.trim();
+      const answer = inputField.getValue().trim();
       if (answer) {
         if (onModalSend) {
           onModalSend(answer, currentQuestion);
         }
-        input.value = '';
+        inputField.clear();
         hideModal();
       }
     }
   });
 
-  // Handle Enter key
-  input.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      sendButton.element.click();
-    }
-  });
-
-  answerContainer.appendChild(input);
+  answerContainer.appendChild(inputField.element);
   answerContainer.appendChild(sendButton.element);
 
   // Question text
@@ -105,26 +117,27 @@ function createPreferenceOptions(options = {}) {
   modalCard.appendChild(questionText);
   modal.appendChild(modalCard);
 
-  // Helper functions (now that input and questionText exist)
+  // Helper functions (now that inputField and questionText exist)
   function showModal(question) {
     currentQuestion = question;
     questionText.textContent = question;
     isModalActive = true;
     preferenceOptionsElement.classList.add('modal-active');
     // Focus input
-    setTimeout(() => input.focus(), 100);
+    setTimeout(() => inputField.focus(), 100);
   }
 
   function hideModal() {
     isModalActive = false;
     preferenceOptionsElement.classList.remove('modal-active');
-    input.value = '';
+    inputField.clear();
     currentQuestion = '';
   }
 
   function show() {
     isActive = true;
     preferenceOptionsElement.classList.add('active');
+    overlayComponent.show();
     if (onToggle) onToggle(true);
   }
 
@@ -133,6 +146,7 @@ function createPreferenceOptions(options = {}) {
     isModalActive = false;
     preferenceOptionsElement.classList.remove('active');
     preferenceOptionsElement.classList.remove('modal-active');
+    overlayComponent.hide();
     if (onToggle) onToggle(false);
   }
 
@@ -157,14 +171,19 @@ function createPreferenceOptions(options = {}) {
     button.type = 'button';
 
     button.addEventListener('click', () => {
+      // Check if button config has showModal set to false
+      const shouldShowModal = buttonConfig.showModal !== false;
+
       if (buttonConfig.onClick) {
         buttonConfig.onClick(buttonConfig.label || buttonConfig, index);
       }
       if (onButtonClick) {
         onButtonClick(buttonConfig.label || buttonConfig, index);
       }
-      // Show modal with question
-      showModal(buttonConfig.label || buttonConfig);
+      // Show modal with question only if not explicitly disabled
+      if (shouldShowModal) {
+        showModal(buttonConfig.label || buttonConfig);
+      }
     });
 
     buttonElements.push(button);
@@ -181,8 +200,8 @@ function createPreferenceOptions(options = {}) {
     if (onRandomQuestionClick) {
       onRandomQuestionClick();
     }
-    // Show modal with a random question or the button label
-    showModal(randomQuestionLabel);
+    // Show modal with the current button label
+    showModal(randomQuestionButton.textContent);
   });
 
   triggerButtonWrapper.appendChild(triggerButton.element);
@@ -196,15 +215,6 @@ function createPreferenceOptions(options = {}) {
   content.appendChild(bottomBar);
   preferenceOptionsElement.appendChild(overlay);
   preferenceOptionsElement.appendChild(content);
-
-  // Close overlay when clicking on blur background
-  overlay.addEventListener('click', () => {
-    if (isModalActive) {
-      hideModal();
-    } else {
-      hide();
-    }
-  });
 
   function addButton(buttonConfig) {
     const button = document.createElement('button');
@@ -254,7 +264,10 @@ function createPreferenceOptions(options = {}) {
       return triggerButton;
     },
     getInput() {
-      return input;
+      return inputField;
+    },
+    setRandomQuestionLabel(label) {
+      randomQuestionButton.textContent = label;
     }
   };
 }

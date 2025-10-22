@@ -62,6 +62,11 @@
   text-align: center;
 }
 
+/* Hide count by default (only show when active) */
+.tag[data-state="inactive"] .tag__count {
+  display: none;
+}
+
 /* Hide icon by default for collection tags */
 .tag[data-type="collection"] .tag__icon {
   display: none;

@@ -1,6 +1,7 @@
 /**
  * Search Component
  * Creates a search input field with state management
+ * Requires: input-field.js
  */
 
 function createSearch(options = {}) {
@@ -14,52 +15,47 @@ function createSearch(options = {}) {
   const searchElement = document.createElement('div');
   searchElement.className = 'search';
 
-  // Create input
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.className = 'search__input';
-  input.placeholder = placeholder;
-
-  // Add input event listener
-  input.addEventListener('input', (e) => {
-    const value = e.target.value;
-    if (onInput) {
-      onInput(value);
-    }
-  });
-
-  // Add clear functionality (Escape key)
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      input.value = '';
-      if (onClear) {
-        onClear();
-      }
+  // Create input field
+  const inputField = createInputField({
+    type: 'search',
+    placeholder: placeholder,
+    onChange: (value) => {
       if (onInput) {
-        onInput('');
+        onInput(value);
+      }
+    },
+    onKeyDown: (e) => {
+      if (e.key === 'Escape') {
+        inputField.clear();
+        if (onClear) {
+          onClear();
+        }
+        if (onInput) {
+          onInput('');
+        }
       }
     }
   });
 
-  searchElement.appendChild(input);
+  searchElement.appendChild(inputField.element);
 
   // Public API
   return {
     element: searchElement,
 
     getValue() {
-      return input.value;
+      return inputField.getValue();
     },
 
     setValue(value) {
-      input.value = value;
+      inputField.setValue(value);
       if (onInput) {
         onInput(value);
       }
     },
 
     clear() {
-      input.value = '';
+      inputField.clear();
       if (onClear) {
         onClear();
       }
@@ -69,15 +65,15 @@ function createSearch(options = {}) {
     },
 
     focus() {
-      input.focus();
+      inputField.focus();
     },
 
     blur() {
-      input.blur();
+      inputField.blur();
     },
 
     setPlaceholder(newPlaceholder) {
-      input.placeholder = newPlaceholder;
+      inputField.setPlaceholder(newPlaceholder);
     },
 
     // Event handlers

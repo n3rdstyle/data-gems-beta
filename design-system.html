@@ -3,10 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Design System - Demo</title>
+  <title>Design System</title>
 
   <!-- Design System -->
   <link rel="stylesheet" href="design-system/colors/colors.css">
+
+  <!-- Elements -->
+  <link rel="stylesheet" href="components/overlay/overlay.css">
+  <link rel="stylesheet" href="components/input-field/input-field.css">
 
   <!-- Components -->
   <link rel="stylesheet" href="components/data-card/data-card.css">
@@ -77,21 +81,24 @@
     /* Sidebar */
     .sidebar {
       width: 280px;
-      background: white;
-      border-right: 1px solid var(--color-neutral-30);
+      background: var(--color-primary-40);
+      border-right: 1px solid var(--color-primary-30);
       overflow-y: auto;
       flex-shrink: 0;
     }
 
     .sidebar-header {
       padding: 24px;
-      border-bottom: 1px solid var(--color-neutral-30);
+      position: sticky;
+      top: 0;
+      background: var(--color-primary-40);
+      z-index: 10;
     }
 
     .sidebar-header h1 {
       font-size: 20px;
       font-weight: 600;
-      color: var(--color-neutral-90);
+      color: var(--color-neutral-80);
     }
 
     .sidebar-nav {
@@ -102,11 +109,36 @@
       margin-bottom: 24px;
     }
 
+    /* Special styling for Screens section */
+    .nav-section:first-child {
+      background: var(--color-neutral-90);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 24px;
+    }
+
+    .nav-section:first-child .nav-section-title {
+      color: var(--color-neutral-10);
+    }
+
+    .nav-section:first-child .nav-item {
+      color: var(--color-neutral-10);
+    }
+
+    .nav-section:first-child .nav-item:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .nav-section:first-child .nav-item.active {
+      background-color: var(--color-primary-70);
+      color: var(--color-neutral-10);
+    }
+
     .nav-section-title {
       font-size: 12px;
       font-weight: 600;
       text-transform: uppercase;
-      color: var(--color-neutral-70);
+      color: var(--color-neutral-80);
       padding: 8px 12px;
       letter-spacing: 0.5px;
       position: relative;
@@ -121,10 +153,10 @@
     .nav-section-title[data-tooltip]::after {
       content: attr(data-tooltip);
       position: absolute;
-      left: 100%;
-      top: 50%;
-      transform: translateY(-50%);
-      margin-left: 12px;
+      left: 50%;
+      bottom: 100%;
+      transform: translateX(-50%);
+      margin-bottom: 8px;
       padding: 8px 12px;
       background-color: var(--color-neutral-90);
       color: white;
@@ -149,15 +181,15 @@
     .nav-section-title[data-tooltip]::before {
       content: '';
       position: absolute;
-      left: 100%;
-      top: 50%;
-      transform: translateY(-50%);
-      margin-left: 6px;
+      left: 50%;
+      bottom: 100%;
+      transform: translateX(-50%);
+      margin-bottom: 2px;
       width: 0;
       height: 0;
-      border-top: 5px solid transparent;
-      border-bottom: 5px solid transparent;
-      border-right: 6px solid var(--color-neutral-90);
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 6px solid var(--color-neutral-90);
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.2s ease-in-out;
@@ -166,6 +198,11 @@
 
     .nav-section-title[data-tooltip]:hover::before {
       opacity: 1;
+    }
+
+    /* Aurora gradient for Screens title */
+    .nav-section-title--screens {
+      color: var(--color-neutral-80);
     }
 
     .nav-item {
@@ -184,8 +221,8 @@
     }
 
     .nav-item.active {
-      background-color: var(--color-primary-70);
-      color: white;
+      background-color: var(--color-neutral-10);
+      color: var(--color-neutral-80);
     }
 
     /* Main Content */
@@ -351,16 +388,26 @@
       </div>
       <nav class="sidebar-nav">
         <div class="nav-section">
+          <div class="nav-section-title nav-section-title--screens" data-tooltip="Full screens combining multiple components">Screens</div>
+          <a class="nav-item" data-section="main-screen">Main Screen</a>
+        </div>
+        <div class="nav-section">
           <div class="nav-section-title" data-tooltip="Basic building blocks like colors and icons">Foundations</div>
           <a class="nav-item" data-section="colors">Colors</a>
           <a class="nav-item" data-section="icons">Icons</a>
         </div>
         <div class="nav-section">
-          <div class="nav-section-title" data-tooltip="Individual UI elements that can be combined into components">Elements</div>
+          <div class="nav-section-title" data-tooltip="Basic reusable UI elements">Elements</div>
           <a class="nav-item" data-section="button-primary">Primary Button</a>
           <a class="nav-item" data-section="button-tertiary">Tertiary Button</a>
+          <a class="nav-item" data-section="input-field">Input Field</a>
+          <a class="nav-item" data-section="overlay">Overlay</a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title" data-tooltip="Combined elements forming functional units">Components</div>
           <a class="nav-item" data-section="calibration">Calibration</a>
           <a class="nav-item" data-section="collection-edit-field">Collection Edit Field</a>
+          <a class="nav-item" data-section="content-preferences">Content Preferences</a>
           <a class="nav-item" data-section="data-card">Data Card</a>
           <a class="nav-item" data-section="data-editor-modal">Data Editor Modal</a>
           <a class="nav-item" data-section="data-list">Data List</a>
@@ -371,18 +418,11 @@
           <a class="nav-item" data-section="profile-teaser">Profile Teaser</a>
           <a class="nav-item" data-section="search">Search</a>
           <a class="nav-item" data-section="tag">Tag</a>
+          <a class="nav-item" data-section="tag-add-field">Tag Add Field</a>
           <a class="nav-item" data-section="tag-add-modal">Tag Add Modal</a>
           <a class="nav-item" data-section="tag-list">Tag List</a>
           <a class="nav-item" data-section="text-edit-field">Text Edit Field</a>
           <a class="nav-item" data-section="top-menu">Top Menu</a>
-        </div>
-        <div class="nav-section">
-          <div class="nav-section-title" data-tooltip="Combined elements with functionality">Components</div>
-          <a class="nav-item" data-section="content-preferences">Content Preferences</a>
-        </div>
-        <div class="nav-section">
-          <div class="nav-section-title" data-tooltip="Full screens combining multiple components">Screens</div>
-          <a class="nav-item" data-section="main-screen">Main Screen</a>
         </div>
       </nav>
     </aside>
@@ -501,6 +541,81 @@
         </div>
       </section>
 
+      <!-- Overlay Section -->
+      <section id="section-overlay" class="demo-section hidden">
+        <h2>Overlay</h2>
+        <p class="description">Reusable backdrop overlay element with configurable opacity and blur.</p>
+
+        <div class="demo-subsection">
+          <h3>Basic Overlay</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Click button to toggle overlay</p>
+          <div class="demo-example">
+            <button id="overlay-demo-btn" style="padding: 8px 16px; cursor: pointer;">Toggle Overlay</button>
+            <div id="overlay-demo-container" style="position: relative; width: 100%; height: 200px; margin-top: 16px; background: var(--color-neutral-20); border-radius: 8px; overflow: hidden;">
+              <div style="padding: 16px;">
+                <p>Content behind overlay</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>With Blur</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Overlay with backdrop blur effect</p>
+          <div class="demo-example">
+            <button id="overlay-blur-demo-btn" style="padding: 8px 16px; cursor: pointer;">Toggle Blur Overlay</button>
+            <div id="overlay-blur-demo-container" style="position: relative; width: 100%; height: 200px; margin-top: 16px; background: var(--color-neutral-20); border-radius: 8px; overflow: hidden;">
+              <div style="padding: 16px;">
+                <p>Content with blur effect when overlay is active</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Input Field Section -->
+      <section id="section-input-field" class="demo-section hidden">
+        <h2>Input Field</h2>
+        <p class="description">Reusable input and textarea element with auto-resize and error states.</p>
+
+        <div class="demo-subsection">
+          <h3>Text Input</h3>
+          <div class="demo-example">
+            <div id="input-field-text-demo"></div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Search Input</h3>
+          <div class="demo-example">
+            <div id="input-field-search-demo"></div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Textarea</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Multi-line input field</p>
+          <div class="demo-example">
+            <div id="input-field-textarea-demo"></div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>With Character Count</h3>
+          <div class="demo-example">
+            <div id="input-field-maxlength-demo"></div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Error State</h3>
+          <div class="demo-example">
+            <div id="input-field-error-demo"></div>
+            <button id="input-field-error-btn" style="padding: 8px 16px; cursor: pointer; margin-top: 12px;">Toggle Error</button>
+          </div>
+        </div>
+      </section>
+
       <!-- Top Menu Section -->
       <section id="section-top-menu" class="demo-section hidden">
         <h2>Top Menu</h2>
@@ -599,9 +714,7 @@
         <p class="description">Search input field with placeholder text.</p>
 
         <div class="demo-example">
-          <div class="search">
-            <input type="text" class="search__input" placeholder="Search your preferences">
-          </div>
+          <div id="search-demo"></div>
         </div>
       </section>
 
@@ -641,6 +754,16 @@
 
         <div class="demo-example">
           <div class="tag-list" id="tag-list-demo"></div>
+        </div>
+      </section>
+
+      <!-- Tag Add Field Section -->
+      <section id="section-tag-add-field" class="demo-section hidden">
+        <h2>Tag Add Field</h2>
+        <p class="description">Combined input field with tag list for adding collections. Shows existing tags that can be selected.</p>
+
+        <div class="demo-example">
+          <div id="tag-add-field-demo"></div>
         </div>
       </section>
 
@@ -758,7 +881,9 @@
   <!-- JavaScript - Load in dependency order -->
   <script src="design-system/icons/icons.js"></script>
 
-  <!-- Base components (no dependencies) -->
+  <!-- Elements (no dependencies) -->
+  <script src="components/overlay/overlay.js"></script>
+  <script src="components/input-field/input-field.js"></script>
   <script src="components/headline/headline.js"></script>
   <script src="components/button-primary/button-primary.js"></script>
   <script src="components/button-tertiary/button-tertiary.js"></script>
@@ -1158,6 +1283,16 @@
       container.appendChild(preferenceOptions.element);
     }
 
+    function initSearchDemo() {
+      const container = document.getElementById('search-demo');
+      const search = createSearch({
+        placeholder: 'Search your preferences',
+        onInput: (value) => console.log('Search input:', value),
+        onClear: () => console.log('Search cleared')
+      });
+      container.appendChild(search.element);
+    }
+
     function initTagListDemo() {
       const container = document.getElementById('tag-list-demo');
       const tagList = createTagList({
@@ -1169,6 +1304,25 @@
         ]
       });
       container.appendChild(tagList.element);
+    }
+
+    function initTagAddFieldDemo() {
+      const container = document.getElementById('tag-add-field-demo');
+      const tagAddField = createTagAddField({
+        title: 'Collection Name',
+        placeholder: 'Enter collection name...',
+        existingTags: ['Travel', 'Shopping', 'Food', 'Health', 'Entertainment', 'Sports'],
+        currentCollections: ['Travel', 'Shopping'],
+        onInput: (value) => {
+          console.log('Tag add field input:', value);
+        },
+        onEnter: (value) => {
+          console.log('Tag add field enter:', value);
+          alert(`Collection "${value}" would be added!`);
+          tagAddField.clear();
+        }
+      });
+      container.appendChild(tagAddField.element);
     }
 
     function initTagAddModalDemo() {
@@ -1447,6 +1601,107 @@
       container.appendChild(mainScreen.element);
     }
 
+    function initOverlayDemo() {
+      // Basic overlay demo
+      const basicContainer = document.getElementById('overlay-demo-container');
+      const basicButton = document.getElementById('overlay-demo-btn');
+
+      const basicOverlay = createOverlay({
+        blur: false,
+        opacity: 'default',
+        visible: false,
+        onClick: () => basicOverlay.hide()
+      });
+
+      basicContainer.appendChild(basicOverlay.element);
+
+      basicButton.addEventListener('click', () => {
+        basicOverlay.toggle();
+      });
+
+      // Blur overlay demo
+      const blurContainer = document.getElementById('overlay-blur-demo-container');
+      const blurButton = document.getElementById('overlay-blur-demo-btn');
+
+      const blurOverlay = createOverlay({
+        blur: true,
+        opacity: 'default',
+        visible: false,
+        onClick: () => blurOverlay.hide()
+      });
+
+      blurContainer.appendChild(blurOverlay.element);
+
+      blurButton.addEventListener('click', () => {
+        blurOverlay.toggle();
+      });
+    }
+
+    function initInputFieldDemo() {
+      // Text input
+      const textContainer = document.getElementById('input-field-text-demo');
+      const textInput = createInputField({
+        type: 'text',
+        label: 'Name',
+        placeholder: 'Enter your name...',
+        onChange: (value) => console.log('Text input:', value)
+      });
+      textContainer.appendChild(textInput.element);
+
+      // Search input
+      const searchContainer = document.getElementById('input-field-search-demo');
+      const searchInput = createInputField({
+        type: 'search',
+        placeholder: 'Search...',
+        onChange: (value) => console.log('Search:', value)
+      });
+      searchContainer.appendChild(searchInput.element);
+
+      // Textarea
+      const textareaContainer = document.getElementById('input-field-textarea-demo');
+      const textarea = createInputField({
+        type: 'textarea',
+        label: 'Message',
+        placeholder: 'Enter your message...',
+        autoResize: true,
+        onChange: (value) => console.log('Textarea:', value)
+      });
+      textareaContainer.appendChild(textarea.element);
+
+      // With character count
+      const maxLengthContainer = document.getElementById('input-field-maxlength-demo');
+      const maxLengthInput = createInputField({
+        type: 'text',
+        label: 'Bio',
+        placeholder: 'Tell us about yourself...',
+        maxLength: 100,
+        showCount: true,
+        onChange: (value) => console.log('Bio:', value)
+      });
+      maxLengthContainer.appendChild(maxLengthInput.element);
+
+      // Error state
+      const errorContainer = document.getElementById('input-field-error-demo');
+      const errorInput = createInputField({
+        type: 'text',
+        label: 'Email',
+        placeholder: 'Enter your email...',
+        onChange: (value) => console.log('Email:', value)
+      });
+      errorContainer.appendChild(errorInput.element);
+
+      const errorButton = document.getElementById('input-field-error-btn');
+      let hasError = false;
+      errorButton.addEventListener('click', () => {
+        hasError = !hasError;
+        if (hasError) {
+          errorInput.setError('Invalid email address');
+        } else {
+          errorInput.clearError();
+        }
+      });
+    }
+
     // Initialize on page load
     document.addEventListener('DOMContentLoaded', () => {
       initColorDemo();
@@ -1454,12 +1709,16 @@
       initMainScreenDemo();
       initPrimaryButtonDemo();
       initButtonDemo();
+      initOverlayDemo();
+      initInputFieldDemo();
       initTopMenuDemo();
       initProfileTeaserDemo();
       initHeaderDemo();
       initCalibrationDemo();
       initPreferenceOptionsDemo();
+      initSearchDemo();
       initTagListDemo();
+      initTagAddFieldDemo();
       initTagAddModalDemo();
       initDataCardDemo();
       initTextEditFieldDemo();
