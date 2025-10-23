@@ -8,6 +8,9 @@
   <!-- Design System Foundations -->
   <link rel="stylesheet" href="design-system/colors/colors.css">
   <link rel="stylesheet" href="design-system/typography/typography.css">
+  <link rel="stylesheet" href="design-system/spacing/spacing.css">
+  <link rel="stylesheet" href="design-system/border-radius/border-radius.css">
+  <link rel="stylesheet" href="design-system/shadows/shadows.css">
 
   <!-- Elements -->
   <link rel="stylesheet" href="components/overlay/overlay.css">
@@ -407,6 +410,9 @@
           <div class="nav-section-title" data-tooltip="Basic building blocks like colors and icons">Foundations</div>
           <a class="nav-item" data-section="colors">Colors</a>
           <a class="nav-item" data-section="icons">Icons</a>
+          <a class="nav-item" data-section="spacing">Spacing</a>
+          <a class="nav-item" data-section="border-radius">Border Radius</a>
+          <a class="nav-item" data-section="shadows">Shadows</a>
           <a class="nav-item" data-section="typography">Typography</a>
         </div>
         <div class="nav-section">
@@ -579,6 +585,542 @@
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Spacing Section -->
+      <section id="section-spacing" class="demo-section hidden">
+        <h2>Spacing</h2>
+        <p class="description">Consistent spacing scale for layout hierarchy: 8px within elements, 16px between elements, 24px between components.</p>
+
+        <div class="demo-subsection">
+          <h3>Spacing Scale</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-60); margin-bottom: 16px;">
+            Hierarchical spacing system for consistent layouts
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <!-- XXS -->
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="width: 100px; font-size: 14px; font-weight: 500; color: var(--color-neutral-80);">4px (xxs)</div>
+              <div style="width: 4px; height: 40px; background: var(--color-primary-60); border-radius: 2px;"></div>
+              <div style="font-size: 12px; color: var(--color-neutral-60);">Micro spacing (tight)</div>
+            </div>
+            <!-- XS -->
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="width: 100px; font-size: 14px; font-weight: 500; color: var(--color-neutral-80);">8px (xs)</div>
+              <div style="width: 8px; height: 40px; background: var(--color-primary-60); border-radius: 2px;"></div>
+              <div style="font-size: 12px; color: var(--color-neutral-60);">Within elements (icon + text)</div>
+            </div>
+            <!-- SM -->
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="width: 100px; font-size: 14px; font-weight: 500; color: var(--color-neutral-80);">16px (sm)</div>
+              <div style="width: 16px; height: 40px; background: var(--color-primary-60); border-radius: 2px;"></div>
+              <div style="font-size: 12px; color: var(--color-neutral-60);">Between elements in components</div>
+            </div>
+            <!-- MD -->
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="width: 100px; font-size: 14px; font-weight: 500; color: var(--color-neutral-80);">24px (md)</div>
+              <div style="width: 24px; height: 40px; background: var(--color-primary-60); border-radius: 2px;"></div>
+              <div style="font-size: 12px; color: var(--color-neutral-60);">Between components on screens</div>
+            </div>
+            <!-- LG -->
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="width: 100px; font-size: 14px; font-weight: 500; color: var(--color-neutral-80);">32px (lg)</div>
+              <div style="width: 32px; height: 40px; background: var(--color-primary-70); border-radius: 2px;"></div>
+              <div style="font-size: 12px; color: var(--color-neutral-60);">Between major sections</div>
+            </div>
+            <!-- XL -->
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="width: 100px; font-size: 14px; font-weight: 500; color: var(--color-neutral-80);">48px (xl)</div>
+              <div style="width: 48px; height: 40px; background: var(--color-primary-70); border-radius: 2px;"></div>
+              <div style="font-size: 12px; color: var(--color-neutral-60);">Between screens/pages</div>
+            </div>
+            <!-- XXL -->
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="width: 100px; font-size: 14px; font-weight: 500; color: var(--color-neutral-80);">64px (xxl)</div>
+              <div style="width: 64px; height: 40px; background: var(--color-primary-70); border-radius: 2px;"></div>
+              <div style="font-size: 12px; color: var(--color-neutral-60);">Large separations</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Semantic Aliases</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-60); margin-bottom: 16px;">
+            Use these for clearer intent in your code
+          </p>
+          <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <thead>
+              <tr style="text-align: left; border-bottom: 1px solid var(--color-neutral-30);">
+                <th style="padding: 8px; font-weight: 500;">Variable</th>
+                <th style="padding: 8px; font-weight: 500;">Value</th>
+                <th style="padding: 8px; font-weight: 500;">Usage</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom: 1px solid var(--color-neutral-20);">
+                <td style="padding: 8px; font-family: monospace; color: var(--color-primary-90);">--spacing-element-internal</td>
+                <td style="padding: 8px;">8px</td>
+                <td style="padding: 8px;">Within elements (icon + text)</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--color-neutral-20);">
+                <td style="padding: 8px; font-family: monospace; color: var(--color-primary-90);">--spacing-component-internal</td>
+                <td style="padding: 8px;">16px</td>
+                <td style="padding: 8px;">Between elements in a component</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--color-neutral-20);">
+                <td style="padding: 8px; font-family: monospace; color: var(--color-primary-90);">--spacing-screen-internal</td>
+                <td style="padding: 8px;">24px</td>
+                <td style="padding: 8px;">Between components on a screen</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Usage Example: Flexbox with Gap</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-60); margin-bottom: 16px;">
+            Recommended approach for spacing between items
+          </p>
+          <div style="background: var(--color-neutral-20); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+            <pre style="margin: 0; font-size: 12px; color: var(--color-neutral-80); font-family: monospace; line-height: 1.6;">/* Screen level - 24px between components */
+.home {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-screen-internal); /* 24px */
+}
+
+/* Component level - 16px between elements */
+.data-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-component-internal); /* 16px */
+}
+
+/* Element level - 8px within element */
+.button {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-element-internal); /* 8px */
+}</pre>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Visual Hierarchy</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-60); margin-bottom: 16px;">
+            How spacing creates visual relationships
+          </p>
+          <div style="border: 2px dashed var(--color-neutral-30); padding: 24px; border-radius: 8px;">
+            <div style="font-size: 12px; color: var(--color-neutral-60); margin-bottom: 8px;">Screen (gap: 24px)</div>
+            <div style="display: flex; flex-direction: column; gap: 24px;">
+              <!-- Component 1 -->
+              <div style="background: var(--color-primary-10); padding: 16px; border-radius: 8px;">
+                <div style="font-size: 12px; color: var(--color-neutral-60); margin-bottom: 8px;">Component (gap: 16px)</div>
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                  <div style="background: var(--color-primary-20); padding: 8px; border-radius: 4px;">
+                    <div style="font-size: 12px; color: var(--color-neutral-60); margin-bottom: 4px;">Element (gap: 8px)</div>
+                    <div style="display: flex; gap: 8px;">
+                      <div style="width: 40px; height: 20px; background: var(--color-primary-60); border-radius: 2px;"></div>
+                      <div style="width: 40px; height: 20px; background: var(--color-primary-60); border-radius: 2px;"></div>
+                    </div>
+                  </div>
+                  <div style="background: var(--color-primary-20); padding: 8px; border-radius: 4px; height: 40px;"></div>
+                </div>
+              </div>
+              <!-- Component 2 -->
+              <div style="background: var(--color-primary-10); padding: 16px; border-radius: 8px; height: 60px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Spacing Systematik: Screens & Modals</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-60); margin-bottom: 16px;">
+            Einheitliche Regeln für Padding und Gaps über alle Screens und Modals
+          </p>
+
+          <!-- Rule 1: Screen/Modal Level -->
+          <div style="background: var(--color-primary-10); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+            <h4 style="font-size: 14px; font-weight: 600; color: var(--color-neutral-80); margin-bottom: 12px;">
+              1. Screen/Modal Level
+            </h4>
+            <div style="font-size: 13px; color: var(--color-neutral-70); line-height: 1.6; margin-bottom: 12px;">
+              Screens (.home, .settings, .profile) und Modals definieren:
+            </div>
+            <ul style="font-size: 13px; color: var(--color-neutral-70); line-height: 1.8; margin-left: 20px;">
+              <li><strong>Padding:</strong> <code style="background: var(--color-neutral-20); padding: 2px 6px; border-radius: 3px;">var(--spacing-sm)</code> (16px) auf allen Seiten</li>
+              <li><strong>Gap:</strong> <code style="background: var(--color-neutral-20); padding: 2px 6px; border-radius: 3px;">var(--spacing-screen-internal)</code> (24px) zwischen Components</li>
+              <li><strong>Overflow:</strong> <code style="background: var(--color-neutral-20); padding: 2px 6px; border-radius: 3px;">hidden</code> am Container</li>
+            </ul>
+            <pre style="background: var(--color-neutral-20); padding: 12px; border-radius: 6px; margin-top: 12px; font-size: 12px; color: var(--color-neutral-80); font-family: monospace; line-height: 1.6;">.home, .settings, .profile,
+.messages-modal, .data-editor-modal, .tag-add-modal {
+  padding: var(--spacing-sm); /* 16px */
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-screen-internal); /* 24px */
+  overflow: hidden;
+}</pre>
+          </div>
+
+          <!-- Rule 2: Section Level -->
+          <div style="background: var(--color-primary-10); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+            <h4 style="font-size: 14px; font-weight: 600; color: var(--color-neutral-80); margin-bottom: 12px;">
+              2. Section/Content Level
+            </h4>
+            <div style="font-size: 13px; color: var(--color-neutral-70); line-height: 1.6; margin-bottom: 12px;">
+              Sections innerhalb von Screens/Modals haben:
+            </div>
+            <ul style="font-size: 13px; color: var(--color-neutral-70); line-height: 1.8; margin-left: 20px;">
+              <li><strong>Kein eigenes Padding</strong> – Screen/Modal stellt bereits Padding bereit</li>
+              <li><strong>Scrollbare Content-Bereiche</strong> haben <code style="background: var(--color-neutral-20); padding: 2px 6px; border-radius: 3px;">overflow-y: auto</code></li>
+              <li><strong>Gaps für interne Abstände</strong> zwischen Sub-Sections</li>
+            </ul>
+            <pre style="background: var(--color-neutral-20); padding: 12px; border-radius: 6px; margin-top: 12px; font-size: 12px; color: var(--color-neutral-80); font-family: monospace; line-height: 1.6;">.profile__content, .settings__content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-screen-internal); /* 24px between sections */
+  /* No padding - screen provides padding */
+}</pre>
+          </div>
+
+          <!-- Rule 3: Component Level -->
+          <div style="background: var(--color-primary-10); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+            <h4 style="font-size: 14px; font-weight: 600; color: var(--color-neutral-80); margin-bottom: 12px;">
+              3. Component Level
+            </h4>
+            <div style="font-size: 13px; color: var(--color-neutral-70); line-height: 1.6; margin-bottom: 12px;">
+              Components (Header, Content-Preferences, etc.) haben:
+            </div>
+            <ul style="font-size: 13px; color: var(--color-neutral-70); line-height: 1.8; margin-left: 20px;">
+              <li><strong>Kein horizontales Padding</strong> – wird vom Screen/Modal bereitgestellt</li>
+              <li><strong>Gaps für interne Elemente:</strong> <code style="background: var(--color-neutral-20); padding: 2px 6px; border-radius: 3px;">var(--spacing-component-internal)</code> (16px)</li>
+              <li><strong>Ausnahmen</strong> nutzen negative Margins (z.B. Calibration für full-width)</li>
+            </ul>
+            <pre style="background: var(--color-neutral-20); padding: 12px; border-radius: 6px; margin-top: 12px; font-size: 12px; color: var(--color-neutral-80); font-family: monospace; line-height: 1.6;">.content-preferences, .header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-component-internal); /* 16px */
+  /* No padding - screen provides padding */
+}
+
+/* Exception: Full-width element */
+.home__calibration {
+  margin-left: calc(-1 * var(--spacing-sm)); /* -16px */
+  margin-right: calc(-1 * var(--spacing-sm)); /* -16px */
+}</pre>
+          </div>
+
+          <!-- Visual System Overview -->
+          <div style="background: var(--color-neutral-10); border: 2px solid var(--color-primary-40); padding: 16px; border-radius: 8px;">
+            <h4 style="font-size: 14px; font-weight: 600; color: var(--color-neutral-80); margin-bottom: 12px;">
+              ✓ Systematik auf einen Blick
+            </h4>
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+              <thead>
+                <tr style="text-align: left; border-bottom: 2px solid var(--color-neutral-30);">
+                  <th style="padding: 8px; font-weight: 600;">Level</th>
+                  <th style="padding: 8px; font-weight: 600;">Padding</th>
+                  <th style="padding: 8px; font-weight: 600;">Gap</th>
+                  <th style="padding: 8px; font-weight: 600;">Beispiele</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-bottom: 1px solid var(--color-neutral-20);">
+                  <td style="padding: 8px; font-weight: 500;">Screen/Modal</td>
+                  <td style="padding: 8px;"><code style="background: var(--color-neutral-20); padding: 2px 6px; border-radius: 3px;">16px</code></td>
+                  <td style="padding: 8px;"><code style="background: var(--color-neutral-20); padding: 2px 6px; border-radius: 3px;">24px</code></td>
+                  <td style="padding: 8px; color: var(--color-neutral-60);">.home, .profile, .messages-modal</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--color-neutral-20);">
+                  <td style="padding: 8px; font-weight: 500;">Section/Content</td>
+                  <td style="padding: 8px;"><code style="background: var(--color-neutral-20); padding: 2px 6px; border-radius: 3px;">0</code></td>
+                  <td style="padding: 8px;"><code style="background: var(--color-neutral-20); padding: 2px 6px; border-radius: 3px;">24px</code></td>
+                  <td style="padding: 8px; color: var(--color-neutral-60);">.profile__content, .settings__content</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--color-neutral-20);">
+                  <td style="padding: 8px; font-weight: 500;">Component</td>
+                  <td style="padding: 8px;"><code style="background: var(--color-neutral-20); padding: 2px 6px; border-radius: 3px;">0</code></td>
+                  <td style="padding: 8px;"><code style="background: var(--color-neutral-20); padding: 2px 6px; border-radius: 3px;">16px</code></td>
+                  <td style="padding: 8px; color: var(--color-neutral-60);">.header, .content-preferences</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px; font-weight: 500;">Element</td>
+                  <td style="padding: 8px;"><code style="background: var(--color-neutral-20); padding: 2px 6px; border-radius: 3px;">varies</code></td>
+                  <td style="padding: 8px;"><code style="background: var(--color-neutral-20); padding: 2px 6px; border-radius: 3px;">8px</code></td>
+                  <td style="padding: 8px; color: var(--color-neutral-60);">.button, .field-group</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Border Radius Section -->
+      <section id="section-border-radius" class="demo-section hidden">
+        <h2>Border Radius</h2>
+        <p class="description">Consistent corner rounding for UI elements: 4px subtle, 8px buttons/inputs, 12px modals, 16px containers.</p>
+
+        <div class="demo-subsection">
+          <h3>Border Radius Scale</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-60); margin-bottom: 16px;">
+            Hierarchical rounding system for consistent UI elements
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <!-- None -->
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="width: 120px; font-size: 14px; font-weight: 500; color: var(--color-neutral-80);">0px (none)</div>
+              <div style="width: 80px; height: 60px; background: var(--color-primary-60); border-radius: 0;"></div>
+              <div style="font-size: 12px; color: var(--color-neutral-60);">Sharp corners</div>
+            </div>
+            <!-- XS -->
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="width: 120px; font-size: 14px; font-weight: 500; color: var(--color-neutral-80);">4px (xs)</div>
+              <div style="width: 80px; height: 60px; background: var(--color-primary-60); border-radius: 4px;"></div>
+              <div style="font-size: 12px; color: var(--color-neutral-60);">Subtle rounding, badges</div>
+            </div>
+            <!-- SM -->
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="width: 120px; font-size: 14px; font-weight: 500; color: var(--color-neutral-80);">8px (sm)</div>
+              <div style="width: 80px; height: 60px; background: var(--color-primary-60); border-radius: 8px;"></div>
+              <div style="font-size: 12px; color: var(--color-neutral-60);">Buttons, inputs, small cards</div>
+            </div>
+            <!-- MD -->
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="width: 120px; font-size: 14px; font-weight: 500; color: var(--color-neutral-80);">12px (md)</div>
+              <div style="width: 80px; height: 60px; background: var(--color-primary-60); border-radius: 12px;"></div>
+              <div style="font-size: 12px; color: var(--color-neutral-60);">Standard cards, dropdowns, modals</div>
+            </div>
+            <!-- LG -->
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="width: 120px; font-size: 14px; font-weight: 500; color: var(--color-neutral-80);">16px (lg)</div>
+              <div style="width: 80px; height: 60px; background: var(--color-primary-60); border-radius: 16px;"></div>
+              <div style="font-size: 12px; color: var(--color-neutral-60);">Large cards, containers</div>
+            </div>
+            <!-- XL -->
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="width: 120px; font-size: 14px; font-weight: 500; color: var(--color-neutral-80);">24px (xl)</div>
+              <div style="width: 80px; height: 60px; background: var(--color-primary-60); border-radius: 24px;"></div>
+              <div style="font-size: 12px; color: var(--color-neutral-60);">Hero cards, featured content</div>
+            </div>
+            <!-- XXL -->
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="width: 120px; font-size: 14px; font-weight: 500; color: var(--color-neutral-80);">32px (xxl)</div>
+              <div style="width: 80px; height: 60px; background: var(--color-primary-60); border-radius: 32px;"></div>
+              <div style="font-size: 12px; color: var(--color-neutral-60);">Extra large containers</div>
+            </div>
+            <!-- Full -->
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="width: 120px; font-size: 14px; font-weight: 500; color: var(--color-neutral-80);">50% (full)</div>
+              <div style="width: 60px; height: 60px; background: var(--color-primary-60); border-radius: 50%;"></div>
+              <div style="font-size: 12px; color: var(--color-neutral-60);">Perfect circles (avatars)</div>
+            </div>
+            <!-- Pill -->
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="width: 120px; font-size: 14px; font-weight: 500; color: var(--color-neutral-80);">1000px (pill)</div>
+              <div style="width: 120px; height: 40px; background: var(--color-primary-60); border-radius: 1000px;"></div>
+              <div style="font-size: 12px; color: var(--color-neutral-60);">Pill-shaped buttons</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Semantic Aliases</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-60); margin-bottom: 16px;">
+            Use these for clearer intent in your code
+          </p>
+          <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <thead>
+              <tr style="text-align: left; border-bottom: 1px solid var(--color-neutral-30);">
+                <th style="padding: 8px; font-weight: 500;">Variable</th>
+                <th style="padding: 8px; font-weight: 500;">Value</th>
+                <th style="padding: 8px; font-weight: 500;">Usage</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom: 1px solid var(--color-neutral-20);">
+                <td style="padding: 8px; font-family: monospace; color: var(--color-primary-90);">--radius-button</td>
+                <td style="padding: 8px;">8px</td>
+                <td style="padding: 8px;">Buttons</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--color-neutral-20);">
+                <td style="padding: 8px; font-family: monospace; color: var(--color-primary-90);">--radius-input</td>
+                <td style="padding: 8px;">8px</td>
+                <td style="padding: 8px;">Input fields</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--color-neutral-20);">
+                <td style="padding: 8px; font-family: monospace; color: var(--color-primary-90);">--radius-card</td>
+                <td style="padding: 8px;">8px</td>
+                <td style="padding: 8px;">Data cards</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--color-neutral-20);">
+                <td style="padding: 8px; font-family: monospace; color: var(--color-primary-90);">--radius-modal</td>
+                <td style="padding: 8px;">12px</td>
+                <td style="padding: 8px;">Modals</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--color-neutral-20);">
+                <td style="padding: 8px; font-family: monospace; color: var(--color-primary-90);">--radius-container</td>
+                <td style="padding: 8px;">16px</td>
+                <td style="padding: 8px;">Large containers</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--color-neutral-20);">
+                <td style="padding: 8px; font-family: monospace; color: var(--color-primary-90);">--radius-avatar</td>
+                <td style="padding: 8px;">50%</td>
+                <td style="padding: 8px;">Profile avatars</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Usage Example</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-60); margin-bottom: 16px;">
+            Apply border radius with CSS variables
+          </p>
+          <div style="background: var(--color-neutral-20); padding: 16px; border-radius: 8px;">
+            <pre style="margin: 0; font-size: 12px; color: var(--color-neutral-80); font-family: monospace; line-height: 1.6;">/* Using scale values */
+.card {
+  border-radius: var(--radius-sm); /* 8px */
+}
+
+/* Using semantic aliases */
+.button {
+  border-radius: var(--radius-button); /* 8px */
+}
+
+.modal {
+  border-radius: var(--radius-modal); /* 12px */
+}
+
+/* Top corners only */
+.dropdown-header {
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- Shadows Section -->
+      <section id="section-shadows" class="demo-section hidden">
+        <h2>Shadows</h2>
+        <p class="description">Elevation and depth system: subtle (1px), standard (4px), high (4px strong), maximum (8px).</p>
+
+        <div class="demo-subsection">
+          <h3>Shadow Scale</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-60); margin-bottom: 16px;">
+            Hierarchical elevation system for creating depth
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 24px;">
+            <!-- None -->
+            <div>
+              <div style="font-size: 14px; font-weight: 500; color: var(--color-neutral-80); margin-bottom: 8px;">None</div>
+              <div style="width: 200px; height: 80px; background: var(--color-neutral-10); box-shadow: none; border: 1px solid var(--color-neutral-30); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--color-neutral-60);">
+                No shadow
+              </div>
+            </div>
+            <!-- SM -->
+            <div>
+              <div style="font-size: 14px; font-weight: 500; color: var(--color-neutral-80); margin-bottom: 8px;">SM - Subtle elevation</div>
+              <div style="width: 200px; height: 80px; background: var(--color-neutral-10); box-shadow: var(--shadow-sm); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--color-neutral-60);">
+                Cards, hover states
+              </div>
+            </div>
+            <!-- MD -->
+            <div>
+              <div style="font-size: 14px; font-weight: 500; color: var(--color-neutral-80); margin-bottom: 8px;">MD - Standard elevation</div>
+              <div style="width: 200px; height: 80px; background: var(--color-neutral-10); box-shadow: var(--shadow-md); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--color-neutral-60);">
+                Dropdowns, menus
+              </div>
+            </div>
+            <!-- LG -->
+            <div>
+              <div style="font-size: 14px; font-weight: 500; color: var(--color-neutral-80); margin-bottom: 8px;">LG - High elevation</div>
+              <div style="width: 200px; height: 80px; background: var(--color-neutral-10); box-shadow: var(--shadow-lg); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--color-neutral-60);">
+                Modals, dialogs
+              </div>
+            </div>
+            <!-- XL -->
+            <div>
+              <div style="font-size: 14px; font-weight: 500; color: var(--color-neutral-80); margin-bottom: 8px;">XL - Maximum elevation</div>
+              <div style="width: 200px; height: 80px; background: var(--color-neutral-10); box-shadow: var(--shadow-xl); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--color-neutral-60);">
+                Tooltips, popovers
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Semantic Aliases</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-60); margin-bottom: 16px;">
+            Use these for clearer intent in your code
+          </p>
+          <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <thead>
+              <tr style="text-align: left; border-bottom: 1px solid var(--color-neutral-30);">
+                <th style="padding: 8px; font-weight: 500;">Variable</th>
+                <th style="padding: 8px; font-weight: 500;">Value</th>
+                <th style="padding: 8px; font-weight: 500;">Usage</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom: 1px solid var(--color-neutral-20);">
+                <td style="padding: 8px; font-family: monospace; color: var(--color-primary-90);">--shadow-button-hover</td>
+                <td style="padding: 8px;">var(--shadow-sm)</td>
+                <td style="padding: 8px;">Subtle lift on hover</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--color-neutral-20);">
+                <td style="padding: 8px; font-family: monospace; color: var(--color-primary-90);">--shadow-card</td>
+                <td style="padding: 8px;">var(--shadow-sm)</td>
+                <td style="padding: 8px;">Cards and tiles</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--color-neutral-20);">
+                <td style="padding: 8px; font-family: monospace; color: var(--color-primary-90);">--shadow-dropdown</td>
+                <td style="padding: 8px;">var(--shadow-md)</td>
+                <td style="padding: 8px;">Dropdowns and menus</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--color-neutral-20);">
+                <td style="padding: 8px; font-family: monospace; color: var(--color-primary-90);">--shadow-modal</td>
+                <td style="padding: 8px;">var(--shadow-lg)</td>
+                <td style="padding: 8px;">Modals and dialogs</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--color-neutral-20);">
+                <td style="padding: 8px; font-family: monospace; color: var(--color-primary-90);">--shadow-popover</td>
+                <td style="padding: 8px;">var(--shadow-xl)</td>
+                <td style="padding: 8px;">Tooltips and popovers</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Usage Example</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-60); margin-bottom: 16px;">
+            Apply shadows with CSS variables
+          </p>
+          <div style="background: var(--color-neutral-20); padding: 16px; border-radius: 8px;">
+            <pre style="margin: 0; font-size: 12px; color: var(--color-neutral-80); font-family: monospace; line-height: 1.6;">/* Using scale values */
+.card {
+  box-shadow: var(--shadow-sm);
+}
+
+/* Using semantic aliases */
+.modal {
+  box-shadow: var(--shadow-modal); /* same as --shadow-lg */
+}
+
+/* Hover effect */
+.button:hover {
+  box-shadow: var(--shadow-button-hover);
+}
+
+/* Remove shadow */
+.flat-surface {
+  box-shadow: var(--shadow-none);
+}</pre>
           </div>
         </div>
       </section>

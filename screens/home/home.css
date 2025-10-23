@@ -1,6 +1,7 @@
 /**
  * Home
  * Full screen layout combining header, calibration, and content preferences
+ * Uses spacing system: 24px gap between components, 16px screen padding
  */
 
 .home {
@@ -10,24 +11,27 @@
   height: 600px;
   max-height: 600px;
   background-color: var(--color-secondary-10);
-  padding: 16px 0;
+  padding: var(--spacing-sm); /* 16px padding on all sides */
   display: flex;
   flex-direction: column;
+  gap: var(--spacing-screen-internal); /* 24px between components */
   position: relative;
   box-sizing: border-box;
   overflow: hidden;
 }
 
 .home__header {
-  /* Header component styles */
+  /* Header component - uses screen padding */
 }
 
 .home__calibration {
-  padding: 0 0 24px 0;
+  /* Calibration component - full width, breaks out of screen padding */
+  margin-left: calc(-1 * var(--spacing-sm)); /* -16px */
+  margin-right: calc(-1 * var(--spacing-sm)); /* -16px */
 }
 
 .home__content {
-  /* Content preferences component styles */
+  /* Content preferences component */
   flex: 1;
   overflow-y: auto;
 }

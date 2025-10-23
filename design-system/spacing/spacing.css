@@ -1,0 +1,118 @@
+/**
+ * Spacing System - Data Gems
+ * Consistent spacing scale for layout hierarchy
+ *
+ * Hierarchy:
+ * - Between Screens/Pages: --spacing-xl, --spacing-xxl
+ * - Between Components: --spacing-md (24px)
+ * - Between Elements in Components: --spacing-sm (16px)
+ * - Within Elements: --spacing-xs (8px)
+ * - Micro spacing: --spacing-xxs (4px)
+ */
+
+:root {
+  /* ============================================
+     SPACING SCALE
+     ============================================ */
+
+  /* Micro spacing */
+  --spacing-xxs: 4px;    /* Tight spacing within elements */
+  --spacing-xs: 8px;     /* Within elements (e.g., icon + text) */
+
+  /* Component spacing */
+  --spacing-sm: 16px;    /* Between elements in a component */
+  --spacing-md: 24px;    /* Between components on a screen */
+
+  /* Layout spacing */
+  --spacing-lg: 32px;    /* Between major sections */
+  --spacing-xl: 48px;    /* Between screens/pages */
+  --spacing-xxl: 64px;   /* Large separations */
+
+  /* ============================================
+     SEMANTIC ALIASES
+     For clearer intent in code
+     ============================================ */
+
+  /* Hierarchical spacing */
+  --spacing-element-internal: var(--spacing-xs);      /* 8px - Within elements */
+  --spacing-component-internal: var(--spacing-sm);    /* 16px - Between elements in components */
+  --spacing-screen-internal: var(--spacing-md);       /* 24px - Between components */
+
+  /* Common use cases */
+  --spacing-icon-text: var(--spacing-xs);             /* 8px - Icon next to text */
+  --spacing-stack-items: var(--spacing-sm);           /* 16px - Stacked items */
+  --spacing-sections: var(--spacing-md);              /* 24px - Major sections */
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+/* Gap utilities for flex/grid containers */
+.gap-xxs { gap: var(--spacing-xxs); }
+.gap-xs { gap: var(--spacing-xs); }
+.gap-sm { gap: var(--spacing-sm); }
+.gap-md { gap: var(--spacing-md); }
+.gap-lg { gap: var(--spacing-lg); }
+.gap-xl { gap: var(--spacing-xl); }
+.gap-xxl { gap: var(--spacing-xxl); }
+
+/* Margin utilities */
+.m-0 { margin: 0; }
+.mt-xs { margin-top: var(--spacing-xs); }
+.mt-sm { margin-top: var(--spacing-sm); }
+.mt-md { margin-top: var(--spacing-md); }
+.mt-lg { margin-top: var(--spacing-lg); }
+
+.mb-xs { margin-bottom: var(--spacing-xs); }
+.mb-sm { margin-bottom: var(--spacing-sm); }
+.mb-md { margin-bottom: var(--spacing-md); }
+.mb-lg { margin-bottom: var(--spacing-lg); }
+
+/* Padding utilities */
+.p-0 { padding: 0; }
+.p-xs { padding: var(--spacing-xs); }
+.p-sm { padding: var(--spacing-sm); }
+.p-md { padding: var(--spacing-md); }
+.p-lg { padding: var(--spacing-lg); }
+
+.px-xs { padding-left: var(--spacing-xs); padding-right: var(--spacing-xs); }
+.px-sm { padding-left: var(--spacing-sm); padding-right: var(--spacing-sm); }
+.px-md { padding-left: var(--spacing-md); padding-right: var(--spacing-md); }
+
+.py-xs { padding-top: var(--spacing-xs); padding-bottom: var(--spacing-xs); }
+.py-sm { padding-top: var(--spacing-sm); padding-bottom: var(--spacing-sm); }
+.py-md { padding-top: var(--spacing-md); padding-bottom: var(--spacing-md); }
+
+/* ============================================
+   STACK LAYOUTS
+   Vertical spacing patterns
+   ============================================ */
+
+/* Stack with small gaps (8px) - for tightly grouped content */
+.stack-xs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+/* Stack with medium gaps (16px) - for component internals */
+.stack-sm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+/* Stack with large gaps (24px) - for components on screens */
+.stack-md {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+/* Stack with extra large gaps (32px) - for major sections */
+.stack-lg {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}

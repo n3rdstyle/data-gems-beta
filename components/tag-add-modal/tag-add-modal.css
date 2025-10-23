@@ -22,20 +22,22 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  padding: var(--spacing-sm); /* 16px padding on all sides */
+  gap: var(--spacing-screen-internal); /* 24px between sections */
 }
 
 /* Modal Content */
 .tag-add-modal__content {
-  padding: 0 24px 24px 24px;
+  /* No padding - modal provides padding */
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--spacing-screen-internal); /* 24px */
 }
 
 /* Buttons Section */
 .tag-add-modal__buttons {
   display: flex;
-  gap: 12px;
+  gap: var(--spacing-xs); /* 8px */
   justify-content: flex-end;
 }
 

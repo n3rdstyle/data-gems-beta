@@ -1,6 +1,7 @@
 /**
  * Settings Screen
  * Full screen layout for app settings
+ * Uses spacing system: 24px between sections, 16px within sections, 16px screen padding
  */
 
 .settings {
@@ -10,15 +11,17 @@
   height: 600px;
   max-height: 600px;
   background-color: var(--color-secondary-10);
+  padding: var(--spacing-sm); /* 16px padding on all sides */
   display: flex;
   flex-direction: column;
+  gap: var(--spacing-screen-internal); /* 24px between sections */
   position: relative;
   box-sizing: border-box;
   overflow: hidden;
 }
 
 .settings__header {
-  padding: 16px 0 0 0;
+  /* No padding - uses screen padding */
   flex-shrink: 0;
 }
 
@@ -28,20 +31,20 @@
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
+  gap: var(--spacing-screen-internal); /* 24px between sections */
 }
 
 .settings__section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 0 16px 24px 16px;
+  gap: var(--spacing-component-internal); /* 16px between elements */
 }
 
 .settings__section-header {
-  padding: 0;
+  /* No padding needed */
 }
 
 .settings__footer {
-  padding: 0 16px 16px 16px;
+  /* No padding - uses screen padding */
   flex-shrink: 0;
 }

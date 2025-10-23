@@ -1,0 +1,61 @@
+/**
+ * Shadows System - Data Gems
+ * Elevation and depth for UI elements
+ *
+ * Hierarchy:
+ * - SM: Subtle elevation (1px offset, light shadow)
+ * - MD: Standard elevation for cards and dropdowns (4px offset)
+ * - LG: High elevation for modals and popovers (4px offset, stronger)
+ * - XL: Maximum elevation for critical overlays (8px offset)
+ */
+
+:root {
+  /* ============================================
+     SHADOW SCALE
+     ============================================ */
+
+  /* Subtle elevation */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+  /* Standard elevation */
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+  /* High elevation */
+  --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.15);
+
+  /* Maximum elevation */
+  --shadow-xl: 0 8px 32px rgba(0, 0, 0, 0.2);
+
+  /* Special cases */
+  --shadow-none: none;
+  --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+
+  /* ============================================
+     SEMANTIC ALIASES
+     For clearer intent in code
+     ============================================ */
+
+  /* Common use cases */
+  --shadow-button-hover: var(--shadow-sm);    /* Subtle lift on hover */
+  --shadow-card: var(--shadow-sm);            /* Cards and tiles */
+  --shadow-dropdown: var(--shadow-md);        /* Dropdowns and menus */
+  --shadow-modal: var(--shadow-lg);           /* Modals and dialogs */
+  --shadow-popover: var(--shadow-xl);         /* Tooltips and popovers */
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+/* Shadow utilities */
+.shadow-none { box-shadow: var(--shadow-none); }
+.shadow-sm { box-shadow: var(--shadow-sm); }
+.shadow-md { box-shadow: var(--shadow-md); }
+.shadow-lg { box-shadow: var(--shadow-lg); }
+.shadow-xl { box-shadow: var(--shadow-xl); }
+.shadow-inner { box-shadow: var(--shadow-inner); }
+
+/* Hover shadows */
+.hover-shadow-sm:hover { box-shadow: var(--shadow-sm); }
+.hover-shadow-md:hover { box-shadow: var(--shadow-md); }
+.hover-shadow-lg:hover { box-shadow: var(--shadow-lg); }

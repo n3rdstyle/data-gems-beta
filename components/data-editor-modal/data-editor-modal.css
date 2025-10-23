@@ -26,6 +26,8 @@
   box-sizing: border-box;
   width: 100%;
   max-width: 400px;
+  padding: var(--spacing-sm); /* 16px padding on all sides */
+  gap: var(--spacing-screen-internal); /* 24px between sections */
 }
 
 /* Content area with flex-grow */
@@ -33,7 +35,7 @@
   flex: 1 0 auto;
   display: flex;
   flex-direction: column;
-  padding: 0 16px 0;
+  /* No padding - modal provides padding */
   box-sizing: border-box;
   min-height: 0;
 }
@@ -43,8 +45,8 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
-  padding: 0 16px 16px;
+  gap: var(--spacing-element-internal); /* 8px */
+  /* No padding - modal provides padding, gap provides vertical spacing */
   box-sizing: border-box;
   flex-shrink: 0;
 }

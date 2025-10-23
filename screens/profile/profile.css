@@ -1,6 +1,7 @@
 /**
  * Profile Screen
  * Full screen layout for user profile
+ * Uses spacing system: 24px between sections, 16px between fields, 8px within field groups
  */
 
 .profile {
@@ -10,42 +11,49 @@
   height: 600px;
   max-height: 600px;
   background-color: var(--color-secondary-10);
+  padding: var(--spacing-sm); /* 16px padding on all sides */
   display: flex;
   flex-direction: column;
+  gap: var(--spacing-screen-internal); /* 24px between sections */
   position: relative;
   box-sizing: border-box;
   overflow: hidden;
 }
 
 .profile__header {
-  padding: 16px 0 0 0;
+  /* No padding - uses screen padding */
+  flex-shrink: 0;
 }
 
 .profile__profile {
-  padding: 0 16px 24px 16px;
+  /* No padding - uses screen padding */
+  flex-shrink: 0;
 }
 
 .profile__content {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0 16px 24px 16px;
+  /* No padding - uses screen padding */
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-screen-internal); /* 24px between sections */
 }
 
 .profile__section {
-  padding-bottom: 24px;
+  /* No padding - gaps handle all spacing */
 }
 
 .profile__section-fields {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-component-internal); /* 16px between fields */
 }
 
 .profile__field-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--spacing-element-internal); /* 8px within field group */
 }
 
 .profile__field-label {
@@ -54,7 +62,7 @@
 
 .profile__field-row {
   display: flex;
-  gap: 8px;
+  gap: var(--spacing-element-internal); /* 8px between row items */
 }
 
 .profile__field-row > * {

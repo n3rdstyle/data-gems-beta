@@ -11,7 +11,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px 24px;
+  /* No padding - screen provides horizontal padding, gap provides vertical spacing */
   box-sizing: border-box;
 }
 
@@ -25,7 +25,7 @@
 
 /* Simple variant styles */
 .header--simple {
-  padding: 16px 16px 24px;
+  /* No padding - screen provides horizontal padding, gap provides vertical spacing */
 }
 
 .header__title {
@@ -54,7 +54,7 @@
 .header__icons {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-element-internal); /* 8px - Within element spacing */
   flex-shrink: 0;
 }
 

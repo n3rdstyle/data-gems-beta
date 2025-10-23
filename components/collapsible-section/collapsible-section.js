@@ -1,6 +1,7 @@
 /**
  * Collapsible Section Component
- * Section with expandable/collapsible content
+ * Section with header (compact-toggle variant) and hideable content
+ * Requires: header.js
  */
 
 function createCollapsibleSection(options = {}) {
@@ -11,36 +12,41 @@ function createCollapsibleSection(options = {}) {
     onToggle = null
   } = options;
 
-  // State
-  let isCollapsed = collapsed;
+  // State - Toggle is INVERTED: active = content visible, inactive = content hidden
+  let isHidden = collapsed;
+  let isToggleEnabled = false; // Toggle starts disabled until at least one field is filled
 
   // Create container
   const container = document.createElement('div');
   container.className = 'collapsible-section';
 
-  if (isCollapsed) {
-    container.classList.add('collapsible-section--collapsed');
+  if (isHidden) {
+    container.classList.add('collapsible-section--hidden');
   }
 
-  // Create header
-  const header = document.createElement('div');
-  header.className = 'collapsible-section__header';
-  header.setAttribute('role', 'button');
-  header.setAttribute('tabindex', '0');
-  header.setAttribute('aria-expanded', !isCollapsed);
+  // Create header using header component with compact-toggle variant
+  const headerComponent = createHeader({
+    variant: 'compact-toggle',
+    title: title,
+    toggleActive: !isHidden, // Toggle active = content visible
+    onToggleChange: (isActive) => {
+      // Only allow toggle if at least one field is filled
+      if (!isToggleEnabled) {
+        return;
+      }
 
-  // Create title
-  const titleElement = document.createElement('div');
-  titleElement.className = 'collapsible-section__title text-style-h2';
-  titleElement.textContent = title;
+      isHidden = !isActive; // If toggle is active, content is visible (not hidden)
+      container.classList.toggle('collapsible-section--hidden', isHidden);
 
-  // Create toggle icon
-  const toggleIcon = document.createElement('div');
-  toggleIcon.className = 'collapsible-section__toggle';
-  toggleIcon.innerHTML = typeof getIcon !== 'undefined' ? getIcon('chevronDown') : '▼';
+      if (onToggle) {
+        onToggle(isHidden);
+      }
+    }
+  });
 
-  header.appendChild(titleElement);
-  header.appendChild(toggleIcon);
+  const headerWrapper = document.createElement('div');
+  headerWrapper.className = 'collapsible-section__header';
+  headerWrapper.appendChild(headerComponent.element);
 
   // Create content container
   const contentContainer = document.createElement('div');
@@ -59,42 +65,91 @@ function createCollapsibleSection(options = {}) {
     }
   }
 
+  // Check if any field has a value
+  const checkFieldsAndUpdateToggle = () => {
+    const inputs = contentContainer.querySelectorAll('input, textarea, select, .dropdown__selected');
+    let hasValue = false;
+
+    inputs.forEach(input => {
+      if (input.classList && input.classList.contains('dropdown__selected')) {
+        // Check dropdown selected value
+        const text = input.textContent.trim();
+        if (text && !input.parentElement.querySelector('.dropdown__placeholder')) {
+          hasValue = true;
+        }
+      } else if (input.value && input.value.trim() !== '') {
+        hasValue = true;
+      }
+    });
+
+    isToggleEnabled = hasValue;
+
+    // Update toggle appearance based on enabled state
+    const toggleElement = headerComponent.getToggle();
+    if (toggleElement && toggleElement.element) {
+      if (isToggleEnabled) {
+        toggleElement.element.style.opacity = '1';
+        toggleElement.element.style.pointerEvents = 'auto';
+      } else {
+        toggleElement.element.style.opacity = '0.3';
+        toggleElement.element.style.pointerEvents = 'none';
+      }
+    }
+
+    return hasValue;
+  };
+
+  // Monitor field changes
+  const monitorFields = () => {
+    contentContainer.addEventListener('input', () => {
+      checkFieldsAndUpdateToggle();
+    });
+
+    contentContainer.addEventListener('change', () => {
+      checkFieldsAndUpdateToggle();
+    });
+
+    // Initial check
+    setTimeout(() => {
+      checkFieldsAndUpdateToggle();
+    }, 100);
+  };
+
   // Toggle function
   const toggle = () => {
-    isCollapsed = !isCollapsed;
-    container.classList.toggle('collapsible-section--collapsed', isCollapsed);
-    header.setAttribute('aria-expanded', !isCollapsed);
+    if (!isToggleEnabled) {
+      return;
+    }
+
+    const newToggleState = !headerComponent.isToggleActive();
+    headerComponent.setToggleActive(newToggleState);
+    isHidden = !newToggleState;
+    container.classList.toggle('collapsible-section--hidden', isHidden);
 
     if (onToggle) {
-      onToggle(isCollapsed);
+      onToggle(isHidden);
     }
   };
 
-  // Event listeners
-  header.addEventListener('click', toggle);
-  header.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      toggle();
-    }
-  });
-
   // Assemble component
-  container.appendChild(header);
+  container.appendChild(headerWrapper);
   container.appendChild(contentContainer);
+
+  // Start monitoring fields
+  monitorFields();
 
   // Public API
   return {
     element: container,
 
-    expand() {
-      if (isCollapsed) {
+    show() {
+      if (isHidden) {
         toggle();
       }
     },
 
-    collapse() {
-      if (!isCollapsed) {
+    hide() {
+      if (!isHidden) {
         toggle();
       }
     },
@@ -103,16 +158,29 @@ function createCollapsibleSection(options = {}) {
       toggle();
     },
 
+    isHidden() {
+      return isHidden;
+    },
+
+    // Legacy methods for backward compatibility
+    expand() {
+      this.show();
+    },
+
+    collapse() {
+      this.hide();
+    },
+
     isCollapsed() {
-      return isCollapsed;
+      return isHidden;
     },
 
     setTitle(newTitle) {
-      titleElement.textContent = newTitle;
+      headerComponent.setTitle(newTitle);
     },
 
     getTitle() {
-      return titleElement.textContent;
+      return headerComponent.getTitle();
     },
 
     setContent(newContent) {
@@ -131,11 +199,20 @@ function createCollapsibleSection(options = {}) {
     addContent(newContent) {
       if (newContent instanceof HTMLElement) {
         contentContainer.appendChild(newContent);
+        // Re-check fields after adding content
+        setTimeout(() => {
+          checkFieldsAndUpdateToggle();
+        }, 100);
       }
     },
 
     getContentContainer() {
       return contentContainer;
+    },
+
+    // Force re-check of fields (useful after programmatic updates)
+    updateToggleState() {
+      checkFieldsAndUpdateToggle();
     }
   };
 }

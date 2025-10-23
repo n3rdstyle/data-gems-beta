@@ -7,9 +7,9 @@
 .content-preferences {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-component-internal); /* 16px - Between elements in component */
   width: 100%;
-  padding: 0 16px 24px 16px;
+  /* No padding - screen provides horizontal padding, gap provides vertical spacing */
 }
 
 .content-preferences__headline {

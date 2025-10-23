@@ -23,10 +23,12 @@
   flex-direction: column;
   overflow: hidden;
   box-sizing: border-box;
+  padding: var(--spacing-sm); /* 16px padding on all sides */
+  gap: var(--spacing-screen-internal); /* 24px between sections */
 }
 
 .messages-modal__header {
-  padding: 16px 0 0 0;
+  /* No padding - modal provides padding, gap provides vertical spacing */
   flex-shrink: 0;
 }
 
@@ -41,8 +43,8 @@
 .messages-modal__item {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 0 16px 16px 16px;
+  gap: var(--spacing-component-internal); /* 16px */
+  padding-bottom: var(--spacing-component-internal); /* 16px */
 }
 
 .messages-modal__item:last-child .messages-modal__divider {
