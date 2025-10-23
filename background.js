@@ -1,0 +1,58 @@
+/**
+ * Data Gems Background Service Worker
+ * Handles background tasks and lifecycle events
+ */
+
+// Initialize extension on install
+chrome.runtime.onInstalled.addListener((details) => {
+  console.log('Data Gems extension installed:', details.reason);
+
+  // Set default data on fresh install
+  if (details.reason === 'install') {
+    chrome.storage.local.set({
+      userData: {
+        name: 'User',
+        subtitle: '',
+        email: '',
+        age: '',
+        gender: '',
+        location: '',
+        languages: [],
+        description: ''
+      },
+      preferences: {
+        favoriteTopics: [],
+        hiddenTopics: []
+      },
+      dataGems: []
+    });
+  }
+});
+
+// Handle messages from popup or content scripts
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log('Message received:', request);
+
+  // Add message handlers here as needed
+  switch (request.action) {
+    case 'getData':
+      chrome.storage.local.get(['userData', 'preferences', 'dataGems'], (result) => {
+        sendResponse(result);
+      });
+      return true; // Keep channel open for async response
+
+    case 'saveData':
+      chrome.storage.local.set(request.data, () => {
+        sendResponse({ success: true });
+      });
+      return true;
+
+    default:
+      sendResponse({ error: 'Unknown action' });
+  }
+});
+
+// Keep service worker alive
+chrome.runtime.onStartup.addListener(() => {
+  console.log('Data Gems extension started');
+});
