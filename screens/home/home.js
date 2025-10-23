@@ -1,10 +1,10 @@
 /**
- * Main Screen
+ * Home
  * Complete screen combining header, calibration, and content preferences
  * Requires: header.js, calibration.js, content-preferences.js, preference-options.js
  */
 
-function createMainScreen(options = {}) {
+function createHome(options = {}) {
   const {
     profileName = 'Dennis',
     profileSubtitle = 'Founder',
@@ -18,23 +18,133 @@ function createMainScreen(options = {}) {
     onPreferenceOptionsToggle = null
   } = options;
 
-  // Create main screen container
+  // Create home container
   const screenElement = document.createElement('div');
-  screenElement.className = 'main-screen';
+  screenElement.className = 'home';
+
+  // Create modals (hidden by default)
+  let profileModal = null;
+  let profileOverlay = null;
+  let messagesModal = null;
+  let messagesOverlay = null;
+  let settingsScreen = null;
+
+  const openProfile = () => {
+    // Create overlay
+    profileOverlay = createOverlay({
+      opacity: 0.5
+    });
+
+    // Create profile screen
+    profileModal = createProfile({
+      profileName: profileName,
+      profileSubtitle: profileSubtitle,
+      onClose: closeProfile
+    });
+
+    // Position profile screen centered
+    profileModal.element.style.position = 'absolute';
+    profileModal.element.style.top = '50%';
+    profileModal.element.style.left = '50%';
+    profileModal.element.style.transform = 'translate(-50%, -50%)';
+    profileModal.element.style.zIndex = '1001';
+
+    screenElement.appendChild(profileOverlay.element);
+    screenElement.appendChild(profileModal.element);
+    profileOverlay.show();
+  };
+
+  const closeProfile = () => {
+    if (profileOverlay) {
+      profileOverlay.hide();
+      setTimeout(() => {
+        if (profileModal) {
+          profileModal.element.remove();
+          profileModal = null;
+        }
+        if (profileOverlay) {
+          profileOverlay.element.remove();
+          profileOverlay = null;
+        }
+      }, 300);
+    }
+  };
+
+  const openMessages = () => {
+    // Create overlay
+    messagesOverlay = createOverlay({
+      opacity: 0.5
+    });
+
+    // Create messages modal
+    messagesModal = createMessagesModal({
+      messages: [
+        { id: 1, title: 'Message #1', preview: 'Lorem Ipsum Dolor ...' },
+        { id: 2, title: 'Message #2', preview: 'Lorem Ipsum Dolor ...' },
+        { id: 3, title: 'Message #3', preview: 'Lorem Ipsum Dolor ...' },
+        { id: 4, title: 'Message #4', preview: 'Lorem Ipsum Dolor ...' },
+        { id: 5, title: 'Message #5', preview: 'Lorem Ipsum Dolor ...' }
+      ],
+      onClose: closeMessages,
+      onMessageClick: (message) => console.log('Message clicked:', message)
+    });
+
+    // Append modal inside overlay (not as sibling)
+    messagesOverlay.element.appendChild(messagesModal.element);
+    screenElement.appendChild(messagesOverlay.element);
+    messagesOverlay.show();
+  };
+
+  const closeMessages = () => {
+    if (messagesOverlay) {
+      messagesOverlay.hide();
+      setTimeout(() => {
+        if (messagesModal) {
+          messagesModal.element.remove();
+          messagesModal = null;
+        }
+        if (messagesOverlay) {
+          messagesOverlay.element.remove();
+          messagesOverlay = null;
+        }
+      }, 300);
+    }
+  };
+
+  const openSettings = () => {
+    // Hide home screen
+    screenElement.style.display = 'none';
+
+    // Create settings screen
+    settingsScreen = createSettings({
+      onClose: closeSettings
+    });
+
+    // Add settings screen to parent
+    screenElement.parentElement.appendChild(settingsScreen.element);
+  };
+
+  const closeSettings = () => {
+    if (settingsScreen) {
+      settingsScreen.element.remove();
+      settingsScreen = null;
+    }
+    // Show home screen again
+    screenElement.style.display = '';
+  };
 
   // Create header
   const headerWrapper = document.createElement('div');
-  headerWrapper.className = 'main-screen__header';
+  headerWrapper.className = 'home__header';
   const header = createHeader({
     profile: {
       name: profileName,
       subtitle: profileSubtitle,
-      onClick: onProfileClick || (() => console.log('Profile clicked'))
+      onClick: openProfile
     },
     menuButtons: [
-      { icon: 'message', ariaLabel: 'Messages', onClick: () => console.log('Messages') },
-      { icon: 'settings', ariaLabel: 'Settings', onClick: () => console.log('Settings') },
-      { icon: 'arrowUpRight', ariaLabel: 'Share', onClick: () => console.log('Share') }
+      { icon: 'message', ariaLabel: 'Messages', onClick: openMessages },
+      { icon: 'settings', ariaLabel: 'Settings', onClick: openSettings }
     ],
     onMenuButtonClick
   });
@@ -42,7 +152,7 @@ function createMainScreen(options = {}) {
 
   // Create calibration
   const calibrationWrapper = document.createElement('div');
-  calibrationWrapper.className = 'main-screen__calibration';
+  calibrationWrapper.className = 'home__calibration';
   const calibration = createCalibration({ progress: 0 });
   calibrationWrapper.appendChild(calibration.element);
 
@@ -64,7 +174,7 @@ function createMainScreen(options = {}) {
 
   // Create content preferences
   const contentWrapper = document.createElement('div');
-  contentWrapper.className = 'main-screen__content';
+  contentWrapper.className = 'home__content';
   const contentPreferences = createContentPreferences({
     title: preferencesTitle,
     data: preferencesData.length > 0 ? preferencesData : [
@@ -408,5 +518,5 @@ function createMainScreen(options = {}) {
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { createMainScreen };
+  module.exports = { createHome };
 }

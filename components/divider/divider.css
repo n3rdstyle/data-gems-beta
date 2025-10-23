@@ -1,0 +1,13 @@
+/**
+ * Divider Component
+ * Horizontal divider line
+ */
+
+.divider {
+  width: 100%;
+  height: 1px;
+  background-color: rgba(2, 8, 19, 0.1);
+  border: none;
+  margin: 0;
+  padding: 0;
+}

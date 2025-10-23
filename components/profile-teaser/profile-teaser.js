@@ -8,13 +8,20 @@ function createProfileTeaser(options = {}) {
     name = 'User',
     subtitle = '',
     avatarImage = null,
+    showUpload = false,
+    variant = 'default', // 'default' or 'large'
     onClick = null,
+    onUploadClick = null,
     ariaLabel = ''
   } = options;
 
   // Create main container
   const container = document.createElement('div');
   container.className = 'profile-teaser';
+
+  if (variant === 'large') {
+    container.classList.add('profile-teaser--large');
+  }
 
   if (onClick) {
     container.classList.add('profile-teaser--clickable');
@@ -42,6 +49,25 @@ function createProfileTeaser(options = {}) {
     initial.className = 'profile-teaser__avatar-initial';
     initial.textContent = name.charAt(0).toUpperCase();
     avatar.appendChild(initial);
+  }
+
+  // Add upload icon if showUpload is true
+  if (showUpload) {
+    const uploadIcon = document.createElement('div');
+    uploadIcon.className = 'profile-teaser__avatar-upload';
+    uploadIcon.innerHTML = typeof getIcon !== 'undefined' ? getIcon('upload') : '↑';
+    uploadIcon.setAttribute('role', 'button');
+    uploadIcon.setAttribute('aria-label', 'Upload profile picture');
+    uploadIcon.style.cursor = 'pointer';
+
+    if (onUploadClick) {
+      uploadIcon.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent triggering container onClick
+        onUploadClick(e);
+      });
+    }
+
+    avatar.appendChild(uploadIcon);
   }
 
   // Create info container

@@ -100,3 +100,11 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Small variant - for compact contexts like action buttons */
+.button-primary--v2.button-primary--small {
+  padding: 8px 16px;
+  height: auto;
+  font-size: 12px;
+  line-height: 1.2;
+}

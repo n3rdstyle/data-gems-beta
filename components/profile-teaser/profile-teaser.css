@@ -19,6 +19,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  position: relative;
 }
 
 .profile-teaser__avatar-initial {
@@ -26,6 +27,28 @@
   font-weight: 600;
   color: var(--color-neutral-80);
   line-height: 1;
+}
+
+/* Upload icon overlay */
+.profile-teaser__avatar-upload {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-neutral-80);
+  pointer-events: all;
+}
+
+.profile-teaser__avatar-upload svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Hide initial when upload icon is present */
+.profile-teaser__avatar:has(.profile-teaser__avatar-upload) .profile-teaser__avatar-initial {
+  display: none;
 }
 
 /* Info */
@@ -72,4 +95,27 @@
 
 .profile-teaser--clickable:hover {
   opacity: 0.8;
+}
+
+/* Large variant (for settings/profile screen) */
+.profile-teaser--large .profile-teaser__avatar {
+  width: 80px;
+  height: 80px;
+}
+
+.profile-teaser--large .profile-teaser__avatar-initial {
+  font-size: 32px;
+}
+
+.profile-teaser--large .profile-teaser__name {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.profile-teaser--large .profile-teaser__subtitle {
+  font-size: 20px;
+}
+
+.profile-teaser--large .profile-teaser__info {
+  gap: 8px;
 }

@@ -1,6 +1,6 @@
 /**
  * Overlay Element
- * Backdrop for modals and overlays with blur effect
+ * Backdrop for modals and overlays
  */
 
 .overlay {
@@ -19,10 +19,6 @@
 .overlay--visible {
   opacity: 1;
   pointer-events: auto;
-}
-
-.overlay--blur {
-  backdrop-filter: blur(8px);
 }
 
 .overlay--fixed {

@@ -5,7 +5,6 @@
 
 function createOverlay(options = {}) {
   const {
-    blur = false,
     opacity = 'default', // 'light', 'default', 'dark'
     fixed = false,
     visible = false,
@@ -18,10 +17,6 @@ function createOverlay(options = {}) {
   overlayElement.className = 'overlay';
 
   // Apply optional classes
-  if (blur) {
-    overlayElement.classList.add('overlay--blur');
-  }
-
   if (fixed) {
     overlayElement.classList.add('overlay--fixed');
   }
@@ -67,14 +62,6 @@ function createOverlay(options = {}) {
 
     isVisible() {
       return overlayElement.classList.contains('overlay--visible');
-    },
-
-    setBlur(enabled) {
-      if (enabled) {
-        overlayElement.classList.add('overlay--blur');
-      } else {
-        overlayElement.classList.remove('overlay--blur');
-      }
     },
 
     setOpacity(level) {

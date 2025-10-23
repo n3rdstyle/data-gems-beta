@@ -14,7 +14,8 @@ function createPrimaryButton(options = {}) {
     onClick = null,
     disabled = false,
     ariaLabel = '',
-    variant = 'default' // 'default', 'neutral', 'dark', or 'v2'
+    variant = 'default', // 'default', 'neutral', 'dark', or 'v2'
+    size = 'default' // 'default' or 'small' (only applies to v2 variant)
   } = options;
 
   // Create button element
@@ -31,6 +32,11 @@ function createPrimaryButton(options = {}) {
     button.classList.add('button-primary--dark');
   } else if (variant === 'v2') {
     button.classList.add('button-primary--v2');
+
+    // Apply size for v2 variant
+    if (size === 'small') {
+      button.classList.add('button-primary--small');
+    }
   }
 
   if (ariaLabel) {

@@ -1,0 +1,50 @@
+/**
+ * Messages Modal Component
+ * Modal for displaying a list of messages
+ * Requires: overlay.css
+ */
+
+/* Layout for modal within overlay */
+.overlay:has(.messages-modal) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.messages-modal {
+  width: 100%;
+  max-width: 400px;
+  background-color: var(--color-secondary-10);
+  border: 1px solid rgba(2, 8, 19, 0.1);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.messages-modal__header {
+  padding: 16px 0 0 0;
+  flex-shrink: 0;
+}
+
+.messages-modal__content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.messages-modal__item {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0 16px 16px 16px;
+}
+
+.messages-modal__item:last-child .messages-modal__divider {
+  display: none;
+}

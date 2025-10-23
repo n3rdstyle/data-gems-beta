@@ -1,21 +1,24 @@
 /**
  * Header Component
- * Main header with three variants:
+ * Main header with multiple variants:
  * 1. Default: Profile teaser + top menu
  * 2. Simple: Title + close button (for settings/modals)
  * 3. Compact: Small title + action icons (for preference cards)
- * Requires: profile-teaser.js, top-menu.js, button-tertiary.js
+ * 4. Compact-toggle: Small title + toggle switch (for collapsible sections)
+ * Requires: profile-teaser.js, top-menu.js, button-tertiary.js, toggle.js
  */
 
 function createHeader(options = {}) {
   const {
-    variant = 'default', // 'default', 'simple', 'simple-delete', or 'compact'
+    variant = 'default', // 'default', 'simple', 'simple-delete', 'compact', 'compact-plain', or 'compact-toggle'
     title = 'Settings', // For simple/compact variants
     onClose = null, // For simple/simple-delete variants
     onDelete = null, // For simple-delete variant
     closeIcon = 'close', // For simple variant: icon to use for close button (deprecated, use variant instead)
     actionIcons = [], // For compact variant: array of {icon, ariaLabel, onClick, active}
     onIconClick = null, // For compact variant
+    toggleActive = false, // For compact-toggle variant
+    onToggleChange = null, // For compact-toggle variant
     profile = {
       name: 'User',
       subtitle: '',
@@ -32,12 +35,32 @@ function createHeader(options = {}) {
 
   // Create header container
   const headerElement = document.createElement('div');
-  const variantClass = variant === 'simple' || variant === 'simple-delete' ? 'header--simple' : (variant === 'compact' || variant === 'compact-plain') ? 'header--compact' : '';
+  const variantClass = variant === 'simple' || variant === 'simple-delete' ? 'header--simple' :
+                       (variant === 'compact' || variant === 'compact-plain') ? 'header--compact' :
+                       variant === 'compact-toggle' ? 'header--compact-toggle' : '';
   headerElement.className = variantClass ? `header ${variantClass}` : 'header';
 
-  let profileTeaser, topMenu, titleElement, closeButton, iconButtons, iconsContainer;
+  let profileTeaser, topMenu, titleElement, closeButton, iconButtons, iconsContainer, toggleElement;
 
-  if (variant === 'compact' || variant === 'compact-plain') {
+  if (variant === 'compact-toggle') {
+    // Compact-toggle variant: Small title + toggle switch
+    titleElement = document.createElement('h3');
+    titleElement.className = 'header__title-compact';
+    titleElement.textContent = title;
+
+    toggleElement = createToggle({
+      active: toggleActive,
+      onChange: (isActive) => {
+        if (onToggleChange) {
+          onToggleChange(isActive);
+        }
+      }
+    });
+    toggleElement.element.classList.add('header__toggle');
+
+    headerElement.appendChild(titleElement);
+    headerElement.appendChild(toggleElement.element);
+  } else if (variant === 'compact' || variant === 'compact-plain') {
     // Compact variant: Small title + small tertiary action buttons (or no buttons for compact-plain)
     titleElement = document.createElement('h3');
     titleElement.className = 'header__title-compact';
@@ -149,7 +172,25 @@ function createHeader(options = {}) {
     variant
   };
 
-  if (variant === 'compact' || variant === 'compact-plain') {
+  if (variant === 'compact-toggle') {
+    api.setTitle = (newTitle) => {
+      titleElement.textContent = newTitle;
+    };
+    api.getTitle = () => {
+      return titleElement.textContent;
+    };
+    api.getToggle = () => {
+      return toggleElement;
+    };
+    api.setToggleActive = (value) => {
+      if (toggleElement) {
+        toggleElement.setActive(value);
+      }
+    };
+    api.isToggleActive = () => {
+      return toggleElement ? toggleElement.isActive() : false;
+    };
+  } else if (variant === 'compact' || variant === 'compact-plain') {
     api.setTitle = (newTitle) => {
       titleElement.textContent = newTitle;
     };

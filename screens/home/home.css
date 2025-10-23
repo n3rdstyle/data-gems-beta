@@ -1,9 +1,9 @@
 /**
- * Main Screen
+ * Home
  * Full screen layout combining header, calibration, and content preferences
  */
 
-.main-screen {
+.home {
   width: 400px;
   max-width: 400px;
   min-width: 400px;
@@ -18,15 +18,15 @@
   overflow: hidden;
 }
 
-.main-screen__header {
+.home__header {
   /* Header component styles */
 }
 
-.main-screen__calibration {
+.home__calibration {
   padding: 0 0 24px 0;
 }
 
-.main-screen__content {
+.home__content {
   /* Content preferences component styles */
   flex: 1;
   overflow-y: auto;

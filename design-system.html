@@ -11,6 +11,8 @@
   <!-- Elements -->
   <link rel="stylesheet" href="components/overlay/overlay.css">
   <link rel="stylesheet" href="components/input-field/input-field.css">
+  <link rel="stylesheet" href="components/divider/divider.css">
+  <link rel="stylesheet" href="components/toggle/toggle.css">
 
   <!-- Components -->
   <link rel="stylesheet" href="components/data-card/data-card.css">
@@ -33,9 +35,16 @@
   <link rel="stylesheet" href="components/data-editor-modal/data-editor-modal.css">
   <link rel="stylesheet" href="components/tag-add-field/tag-add-field.css">
   <link rel="stylesheet" href="components/tag-add-modal/tag-add-modal.css">
+  <link rel="stylesheet" href="components/dropdown/dropdown.css">
+  <link rel="stylesheet" href="components/collapsible-section/collapsible-section.css">
+  <link rel="stylesheet" href="components/action-button/action-button.css">
+  <link rel="stylesheet" href="components/messages-modal/messages-modal.css">
+  <link rel="stylesheet" href="components/app-footer/app-footer.css">
 
   <!-- Screens -->
-  <link rel="stylesheet" href="screens/main-screen/main-screen.css">
+  <link rel="stylesheet" href="screens/home/home.css">
+  <link rel="stylesheet" href="screens/profile/profile.css">
+  <link rel="stylesheet" href="screens/settings/settings.css">
 
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -389,7 +398,9 @@
       <nav class="sidebar-nav">
         <div class="nav-section">
           <div class="nav-section-title nav-section-title--screens" data-tooltip="Full screens combining multiple components">Screens</div>
-          <a class="nav-item" data-section="main-screen">Main Screen</a>
+          <a class="nav-item" data-section="home">Home</a>
+          <a class="nav-item" data-section="profile">Profile</a>
+          <a class="nav-item" data-section="settings">Settings</a>
         </div>
         <div class="nav-section">
           <div class="nav-section-title" data-tooltip="Basic building blocks like colors and icons">Foundations</div>
@@ -402,18 +413,25 @@
           <a class="nav-item" data-section="button-tertiary">Tertiary Button</a>
           <a class="nav-item" data-section="input-field">Input Field</a>
           <a class="nav-item" data-section="overlay">Overlay</a>
+          <a class="nav-item" data-section="divider">Divider</a>
+          <a class="nav-item" data-section="toggle">Toggle</a>
         </div>
         <div class="nav-section">
           <div class="nav-section-title" data-tooltip="Combined elements forming functional units">Components</div>
+          <a class="nav-item" data-section="action-button">Action Button</a>
+          <a class="nav-item" data-section="app-footer">App Footer</a>
           <a class="nav-item" data-section="calibration">Calibration</a>
           <a class="nav-item" data-section="collection-edit-field">Collection Edit Field</a>
+          <a class="nav-item" data-section="collapsible-section">Collapsible Section</a>
           <a class="nav-item" data-section="content-preferences">Content Preferences</a>
           <a class="nav-item" data-section="data-card">Data Card</a>
           <a class="nav-item" data-section="data-editor-modal">Data Editor Modal</a>
           <a class="nav-item" data-section="data-list">Data List</a>
           <a class="nav-item" data-section="data-search">Data Search</a>
+          <a class="nav-item" data-section="dropdown">Dropdown</a>
           <a class="nav-item" data-section="header">Header</a>
           <a class="nav-item" data-section="headline">Headline</a>
+          <a class="nav-item" data-section="messages-modal">Messages Modal</a>
           <a class="nav-item" data-section="preference-options">Preference Options</a>
           <a class="nav-item" data-section="profile-teaser">Profile Teaser</a>
           <a class="nav-item" data-section="search">Search</a>
@@ -469,13 +487,33 @@
         </div>
       </section>
 
-      <!-- Main Screen Section -->
-      <section id="section-main-screen" class="demo-section hidden">
-        <h2>Main Screen</h2>
-        <p class="description">Complete main screen with header, calibration, preferences, and bottom button.</p>
+      <!-- Home Section -->
+      <section id="section-home" class="demo-section hidden">
+        <h2>Home</h2>
+        <p class="description">Complete home screen with header, calibration, preferences, and bottom button.</p>
 
         <div class="demo-example" style="display: flex; justify-content: center; background-color: var(--color-neutral-10); padding: 0;">
-          <div id="main-screen-demo"></div>
+          <div id="home-demo"></div>
+        </div>
+      </section>
+
+      <!-- Profile Section -->
+      <section id="section-profile" class="demo-section hidden">
+        <h2>Profile</h2>
+        <p class="description">Complete user profile screen with collapsible sections and form fields.</p>
+
+        <div class="demo-example" style="display: flex; justify-content: center; background-color: var(--color-neutral-10); padding: 0;">
+          <div id="profile-demo"></div>
+        </div>
+      </section>
+
+      <!-- Settings Section -->
+      <section id="section-settings" class="demo-section hidden">
+        <h2>Settings</h2>
+        <p class="description">Complete settings screen with sections for general, data center, legal info, and app footer.</p>
+
+        <div class="demo-example" style="display: flex; justify-content: center; background-color: var(--color-neutral-10); padding: 0;">
+          <div id="settings-demo"></div>
         </div>
       </section>
 
@@ -505,9 +543,17 @@
 
         <div class="demo-subsection">
           <h3>Version 2 (Compact)</h3>
-          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Dark blue background with 8px border radius (for modals)</p>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Dark blue background, 40px height, 16px font (for modals)</p>
           <div class="demo-example">
             <div style="display: flex; gap: 16px; flex-wrap: wrap;" id="button-primary-v2-demo"></div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Version 2 Small</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Compact version, 12px font (for action buttons)</p>
+          <div class="demo-example">
+            <div style="display: flex; gap: 16px; flex-wrap: wrap;" id="button-primary-v2-small-demo"></div>
           </div>
         </div>
       </section>
@@ -541,10 +587,58 @@
         </div>
       </section>
 
+      <!-- Divider Section -->
+      <section id="section-divider" class="demo-section hidden">
+        <h2>Divider</h2>
+        <p class="description">Simple horizontal divider line for separating sections.</p>
+
+        <div class="demo-example">
+          <div style="max-width: 600px;">
+            <p style="margin-bottom: 16px;">Section 1 Content</p>
+            <div id="divider-demo"></div>
+            <p style="margin-top: 16px;">Section 2 Content</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Toggle Section -->
+      <section id="section-toggle" class="demo-section hidden">
+        <h2>Toggle</h2>
+        <p class="description">Switch toggle for binary on/off states.</p>
+
+        <div class="demo-subsection">
+          <h3>Basic Toggle</h3>
+          <div class="demo-example">
+            <div id="toggle-demo"></div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>With Label</h3>
+          <div class="demo-example">
+            <div id="toggle-label-demo"></div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Active State</h3>
+          <div class="demo-example">
+            <div id="toggle-active-demo"></div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Disabled State</h3>
+          <div class="demo-example">
+            <div id="toggle-disabled-demo"></div>
+          </div>
+        </div>
+      </section>
+
       <!-- Overlay Section -->
       <section id="section-overlay" class="demo-section hidden">
         <h2>Overlay</h2>
-        <p class="description">Reusable backdrop overlay element with configurable opacity and blur.</p>
+        <p class="description">Reusable backdrop overlay element with configurable opacity.</p>
 
         <div class="demo-subsection">
           <h3>Basic Overlay</h3>
@@ -554,19 +648,6 @@
             <div id="overlay-demo-container" style="position: relative; width: 100%; height: 200px; margin-top: 16px; background: var(--color-neutral-20); border-radius: 8px; overflow: hidden;">
               <div style="padding: 16px;">
                 <p>Content behind overlay</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="demo-subsection">
-          <h3>With Blur</h3>
-          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Overlay with backdrop blur effect</p>
-          <div class="demo-example">
-            <button id="overlay-blur-demo-btn" style="padding: 8px 16px; cursor: pointer;">Toggle Blur Overlay</button>
-            <div id="overlay-blur-demo-container" style="position: relative; width: 100%; height: 200px; margin-top: 16px; background: var(--color-neutral-20); border-radius: 8px; overflow: hidden;">
-              <div style="padding: 16px;">
-                <p>Content with blur effect when overlay is active</p>
               </div>
             </div>
           </div>
@@ -631,8 +712,18 @@
         <h2>Profile Teaser</h2>
         <p class="description">Clickable user profile display with avatar and info.</p>
 
-        <div class="demo-example">
-          <div id="profile-teaser-demo"></div>
+        <div class="demo-subsection">
+          <h3>Default Variant</h3>
+          <div class="demo-example">
+            <div id="profile-teaser-demo"></div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Large Variant (with upload icon)</h3>
+          <div class="demo-example">
+            <div id="profile-teaser-large-demo"></div>
+          </div>
         </div>
       </section>
 
@@ -678,6 +769,14 @@
             <div id="header-compact-plain-demo"></div>
           </div>
         </div>
+
+        <div class="demo-subsection">
+          <h3>Compact Toggle Variant</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Small title + toggle switch (for collapsible sections)</p>
+          <div class="demo-example">
+            <div id="header-compact-toggle-demo"></div>
+          </div>
+        </div>
       </section>
 
       <!-- Calibration Section -->
@@ -700,7 +799,7 @@
       <!-- Preference Options Section -->
       <section id="section-preference-options" class="demo-section hidden">
         <h2>Preference Options</h2>
-        <p class="description">Overlay with blur effect and action buttons triggered by plus button.</p>
+        <p class="description">Overlay with action buttons triggered by plus button.</p>
 
         <div class="demo-example" style="position: relative; height: 400px; background-color: var(--color-secondary-10); display: flex; align-items: center; justify-content: center;">
           <p style="color: var(--color-neutral-60);">Click the + button in the bottom right to see the overlay</p>
@@ -875,6 +974,96 @@
           <div id="content-preferences-demo"></div>
         </div>
       </section>
+
+      <!-- Dropdown Section -->
+      <section id="section-dropdown" class="demo-section hidden">
+        <h2>Dropdown</h2>
+        <p class="description">Custom select-style dropdown component.</p>
+
+        <div class="demo-example">
+          <div style="max-width: 400px;">
+            <div id="dropdown-demo"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Collapsible Section -->
+      <section id="section-collapsible-section" class="demo-section hidden">
+        <h2>Collapsible Section</h2>
+        <p class="description">Section with expandable/collapsible content.</p>
+
+        <div class="demo-example">
+          <div style="max-width: 600px;">
+            <div id="collapsible-section-demo"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Messages Modal Section -->
+      <section id="section-messages-modal" class="demo-section hidden">
+        <h2>Messages Modal</h2>
+        <p class="description">Modal for displaying a list of messages with navigation to message details.</p>
+
+        <div class="demo-example" style="display: flex; justify-content: center; background-color: var(--color-neutral-20); padding: 40px;">
+          <div id="messages-modal-demo"></div>
+        </div>
+      </section>
+
+      <!-- App Footer Section -->
+      <section id="section-app-footer" class="demo-section hidden">
+        <h2>App Footer</h2>
+        <p class="description">Footer with app name, version and social media links.</p>
+
+        <div class="demo-example">
+          <div id="app-footer-demo"></div>
+        </div>
+      </section>
+
+      <!-- Action Button Section -->
+      <section id="section-action-button" class="demo-section hidden">
+        <h2>Action Button</h2>
+        <p class="description">Button for navigation, external links, and CTAs with three variants.</p>
+
+        <div class="demo-subsection">
+          <h3>Navigation Variant</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Internal navigation with chevron-right icon</p>
+          <div class="demo-example">
+            <div style="max-width: 400px;">
+              <div id="action-button-navigation-demo"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>External Link Variant</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">External link with arrow-top-right icon</p>
+          <div class="demo-example">
+            <div style="max-width: 400px;">
+              <div id="action-button-external-demo"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>CTA Variant</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Call-to-action with button on the right</p>
+          <div class="demo-example">
+            <div style="max-width: 400px;">
+              <div id="action-button-cta-demo"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Two-Line Variant with Caption</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Navigation with label and caption</p>
+          <div class="demo-example">
+            <div style="max-width: 400px;">
+              <div id="action-button-two-line-demo"></div>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -884,6 +1073,8 @@
   <!-- Elements (no dependencies) -->
   <script src="components/overlay/overlay.js"></script>
   <script src="components/input-field/input-field.js"></script>
+  <script src="components/divider/divider.js"></script>
+  <script src="components/toggle/toggle.js"></script>
   <script src="components/headline/headline.js"></script>
   <script src="components/button-primary/button-primary.js"></script>
   <script src="components/button-tertiary/button-tertiary.js"></script>
@@ -892,8 +1083,13 @@
   <script src="components/data-card/data-card.js"></script>
   <script src="components/calibration/calibration.js"></script>
   <script src="components/preference-options/preference-options.js"></script>
+  <script src="components/dropdown/dropdown.js"></script>
+  <script src="components/collapsible-section/collapsible-section.js"></script>
 
   <!-- Composite components (depend on base) -->
+  <script src="components/action-button/action-button.js"></script>
+  <script src="components/messages-modal/messages-modal.js"></script>
+  <script src="components/app-footer/app-footer.js"></script>
   <script src="components/tag-list/tag-list.js"></script>
   <script src="components/data-list/data-list.js"></script>
   <script src="components/top-menu/top-menu.js"></script>
@@ -908,7 +1104,9 @@
   <script src="components/content-preferences/content-preferences.js"></script>
 
   <!-- Screens (depend on composite components) -->
-  <script src="screens/main-screen/main-screen.js"></script>
+  <script src="screens/home/home.js"></script>
+  <script src="screens/profile/profile.js"></script>
+  <script src="screens/settings/settings.js"></script>
   <script>
     // Navigation functionality
     const navItems = document.querySelectorAll('.nav-item');
@@ -1049,6 +1247,34 @@
       v2Container.appendChild(v2btn1.element);
       v2Container.appendChild(v2btn2.element);
       v2Container.appendChild(v2btn3.element);
+
+      // V2 Small variant demo
+      const v2SmallContainer = document.getElementById('button-primary-v2-small-demo');
+
+      const v2SmallBtn1 = createPrimaryButton({
+        label: 'Export',
+        variant: 'v2',
+        size: 'small',
+        onClick: () => console.log('Export clicked')
+      });
+
+      const v2SmallBtn2 = createPrimaryButton({
+        label: 'Action',
+        variant: 'v2',
+        size: 'small',
+        onClick: () => console.log('Action clicked')
+      });
+
+      const v2SmallBtn3 = createPrimaryButton({
+        label: 'Disabled',
+        variant: 'v2',
+        size: 'small',
+        disabled: true
+      });
+
+      v2SmallContainer.appendChild(v2SmallBtn1.element);
+      v2SmallContainer.appendChild(v2SmallBtn2.element);
+      v2SmallContainer.appendChild(v2SmallBtn3.element);
     }
 
     function initButtonDemo() {
@@ -1245,6 +1471,16 @@
         title: 'Collection Name'
       });
       compactPlainContainer.appendChild(compactPlainHeader.element);
+
+      // Compact toggle variant demo
+      const compactToggleContainer = document.getElementById('header-compact-toggle-demo');
+      const compactToggleHeader = createHeader({
+        variant: 'compact-toggle',
+        title: 'Personal Description',
+        toggleActive: false,
+        onToggleChange: (isActive) => console.log('Toggle changed:', isActive)
+      });
+      compactToggleContainer.appendChild(compactToggleHeader.element);
     }
 
     function initCalibrationDemo() {
@@ -1591,14 +1827,213 @@
       container.appendChild(contentPreferences.element);
     }
 
-    function initMainScreenDemo() {
-      const container = document.getElementById('main-screen-demo');
-      const mainScreen = createMainScreen({
+    function initHomeDemo() {
+      const container = document.getElementById('home-demo');
+      const home = createHome({
         profileName: 'Dennis',
         profileSubtitle: 'Founder',
         preferencesTitle: 'My Preferences'
       });
-      container.appendChild(mainScreen.element);
+      container.appendChild(home.element);
+    }
+
+    function initProfileDemo() {
+      const container = document.getElementById('profile-demo');
+      const profile = createProfile({
+        profileName: 'Dennis',
+        profileSubtitle: 'Founder',
+        profileDescription: '',
+        email: 'dennisjbreuer@gmail.com',
+        age: '34',
+        gender: 'male',
+        location: 'Hamburg, Germany',
+        languages: [
+          { language: 'German', level: 'native' },
+          { language: 'English (U.S.)', level: 'very-good' }
+        ],
+        onClose: () => console.log('Profile closed'),
+        onUploadAvatar: () => console.log('Upload avatar clicked')
+      });
+      container.appendChild(profile.element);
+    }
+
+    function initSettingsDemo() {
+      const container = document.getElementById('settings-demo');
+      const settings = createSettings({
+        onClose: () => console.log('Settings closed'),
+        onHowToGuide: () => console.log('How-to Guide clicked'),
+        onFAQs: () => console.log('FAQs clicked'),
+        onBackupData: () => console.log('Backup data clicked'),
+        onUpdateData: () => console.log('Update data clicked'),
+        onPrivacyStatement: () => console.log('Privacy Statement clicked'),
+        onTerms: () => console.log('Terms clicked'),
+        onImprint: () => console.log('Imprint clicked'),
+        onContact: () => console.log('Contact clicked'),
+        onWebsite: () => console.log('Website clicked'),
+        onInstagram: () => console.log('Instagram clicked'),
+        onLinkedIn: () => console.log('LinkedIn clicked'),
+        onReddit: () => console.log('Reddit clicked')
+      });
+      container.appendChild(settings.element);
+    }
+
+    function initDividerDemo() {
+      const container = document.getElementById('divider-demo');
+      const divider = createDivider();
+      container.appendChild(divider.element);
+    }
+
+    function initToggleDemo() {
+      // Basic toggle
+      const basicContainer = document.getElementById('toggle-demo');
+      const basicToggle = createToggle({
+        onChange: (isActive) => console.log('Toggle:', isActive)
+      });
+      basicContainer.appendChild(basicToggle.element);
+
+      // Toggle with label
+      const labelContainer = document.getElementById('toggle-label-demo');
+      const labelToggle = createToggle({
+        label: 'Enable notifications',
+        onChange: (isActive) => console.log('Notifications:', isActive)
+      });
+      labelContainer.appendChild(labelToggle.element);
+
+      // Active toggle
+      const activeContainer = document.getElementById('toggle-active-demo');
+      const activeToggle = createToggle({
+        label: 'Already active',
+        active: true,
+        onChange: (isActive) => console.log('Active toggle:', isActive)
+      });
+      activeContainer.appendChild(activeToggle.element);
+
+      // Disabled toggle
+      const disabledContainer = document.getElementById('toggle-disabled-demo');
+      const disabledToggle = createToggle({
+        label: 'Disabled',
+        disabled: true,
+        onChange: (isActive) => console.log('Disabled toggle:', isActive)
+      });
+      disabledContainer.appendChild(disabledToggle.element);
+    }
+
+    function initDropdownDemo() {
+      const container = document.getElementById('dropdown-demo');
+      const dropdown = createDropdown({
+        placeholder: 'Select your age',
+        options: [
+          { value: '18', label: '18 years' },
+          { value: '25', label: '25 years' },
+          { value: '34', label: '34 years' },
+          { value: '45', label: '45 years' },
+          { value: '60', label: '60 years' }
+        ],
+        onChange: (value, option) => console.log('Selected:', value, option.label)
+      });
+      container.appendChild(dropdown.element);
+    }
+
+    function initCollapsibleSectionDemo() {
+      const container = document.getElementById('collapsible-section-demo');
+
+      const content = document.createElement('div');
+      content.innerHTML = `
+        <p style="margin: 0 0 12px 0;">This is collapsible content that can be expanded or collapsed.</p>
+        <p style="margin: 0;">Click the header to toggle the visibility of this content.</p>
+      `;
+
+      const collapsible = createCollapsibleSection({
+        title: 'Profile Information',
+        content: content,
+        collapsed: false,
+        onToggle: (isCollapsed) => console.log('Section collapsed:', isCollapsed)
+      });
+      container.appendChild(collapsible.element);
+    }
+
+    function initProfileTeaserLargeDemo() {
+      const container = document.getElementById('profile-teaser-large-demo');
+      const profile = createProfileTeaser({
+        name: 'Dennis',
+        subtitle: 'Founder',
+        variant: 'large',
+        showUpload: true,
+        onUploadClick: () => console.log('Upload clicked')
+      });
+      container.appendChild(profile.element);
+    }
+
+    function initAppFooterDemo() {
+      const container = document.getElementById('app-footer-demo');
+      const appFooter = createAppFooter({
+        appName: 'Data Gems',
+        version: 'v2.0.0',
+        social: {
+          website: () => console.log('Website clicked'),
+          instagram: () => console.log('Instagram clicked'),
+          linkedin: () => console.log('LinkedIn clicked'),
+          reddit: () => console.log('Reddit clicked')
+        }
+      });
+      container.appendChild(appFooter.element);
+    }
+
+    function initActionButtonDemo() {
+      // Navigation variant
+      const navContainer = document.getElementById('action-button-navigation-demo');
+      const navButton = createActionButton({
+        label: 'Enter more Information',
+        variant: 'navigation',
+        onClick: () => console.log('Navigation clicked')
+      });
+      navContainer.appendChild(navButton.element);
+
+      // External link variant
+      const externalContainer = document.getElementById('action-button-external-demo');
+      const externalButton = createActionButton({
+        label: 'Privacy Statement',
+        variant: 'external',
+        href: 'https://example.com/privacy',
+        onClick: () => console.log('External link clicked')
+      });
+      externalContainer.appendChild(externalButton.element);
+
+      // CTA variant
+      const ctaContainer = document.getElementById('action-button-cta-demo');
+      const ctaButton = createActionButton({
+        label: 'Backup your data',
+        variant: 'cta',
+        ctaLabel: 'Export',
+        onClick: () => console.log('CTA clicked')
+      });
+      ctaContainer.appendChild(ctaButton.element);
+
+      // Two-line variant with caption
+      const twoLineContainer = document.getElementById('action-button-two-line-demo');
+      const twoLineButton = createActionButton({
+        label: 'Message #1',
+        caption: 'Lorem Ipsum Dolor ...',
+        variant: 'navigation',
+        onClick: () => console.log('Two-line navigation clicked')
+      });
+      twoLineContainer.appendChild(twoLineButton.element);
+    }
+
+    function initMessagesModalDemo() {
+      const container = document.getElementById('messages-modal-demo');
+      const messagesModal = createMessagesModal({
+        messages: [
+          { id: 1, title: 'Message #1', preview: 'Lorem Ipsum Dolor Sit Amet ...' },
+          { id: 2, title: 'Message #2', preview: 'Consectetur adipiscing elit ...' },
+          { id: 3, title: 'Message #3', preview: 'Sed do eiusmod tempor incididunt ...' },
+          { id: 4, title: 'Message #4', preview: 'Ut labore et dolore magna aliqua ...' },
+          { id: 5, title: 'Message #5', preview: 'Ut enim ad minim veniam ...' }
+        ],
+        onClose: () => console.log('Messages modal closed'),
+        onMessageClick: (message) => console.log('Message clicked:', message)
+      });
+      container.appendChild(messagesModal.element);
     }
 
     function initOverlayDemo() {
@@ -1607,7 +2042,6 @@
       const basicButton = document.getElementById('overlay-demo-btn');
 
       const basicOverlay = createOverlay({
-        blur: false,
         opacity: 'default',
         visible: false,
         onClick: () => basicOverlay.hide()
@@ -1617,23 +2051,6 @@
 
       basicButton.addEventListener('click', () => {
         basicOverlay.toggle();
-      });
-
-      // Blur overlay demo
-      const blurContainer = document.getElementById('overlay-blur-demo-container');
-      const blurButton = document.getElementById('overlay-blur-demo-btn');
-
-      const blurOverlay = createOverlay({
-        blur: true,
-        opacity: 'default',
-        visible: false,
-        onClick: () => blurOverlay.hide()
-      });
-
-      blurContainer.appendChild(blurOverlay.element);
-
-      blurButton.addEventListener('click', () => {
-        blurOverlay.toggle();
       });
     }
 
@@ -1706,13 +2123,18 @@
     document.addEventListener('DOMContentLoaded', () => {
       initColorDemo();
       initIconDemo();
-      initMainScreenDemo();
+      initHomeDemo();
+      initProfileDemo();
+      initSettingsDemo();
       initPrimaryButtonDemo();
       initButtonDemo();
+      initDividerDemo();
+      initToggleDemo();
       initOverlayDemo();
       initInputFieldDemo();
       initTopMenuDemo();
       initProfileTeaserDemo();
+      initProfileTeaserLargeDemo();
       initHeaderDemo();
       initCalibrationDemo();
       initPreferenceOptionsDemo();
@@ -1725,11 +2147,16 @@
       initCollectionEditFieldDemo();
       initDataListDemo();
       initDataSearchDemo();
+      initDropdownDemo();
+      initCollapsibleSectionDemo();
+      initAppFooterDemo();
+      initActionButtonDemo();
+      initMessagesModalDemo();
       initDataEditorModalDemo();
       initContentPreferencesDemo();
 
-      // Show colors section by default
-      showSection('colors');
+      // Show home section by default
+      showSection('home');
     });
   </script>
 </body>
