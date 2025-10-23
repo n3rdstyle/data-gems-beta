@@ -31,7 +31,7 @@ function createCollapsibleSection(options = {}) {
 
   // Create title
   const titleElement = document.createElement('div');
-  titleElement.className = 'collapsible-section__title';
+  titleElement.className = 'collapsible-section__title text-style-h2';
   titleElement.textContent = title;
 
   // Create toggle icon

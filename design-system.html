@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Design System</title>
 
-  <!-- Design System -->
+  <!-- Design System Foundations -->
   <link rel="stylesheet" href="design-system/colors/colors.css">
+  <link rel="stylesheet" href="design-system/typography/typography.css">
 
   <!-- Elements -->
   <link rel="stylesheet" href="components/overlay/overlay.css">
@@ -106,7 +107,7 @@
 
     .sidebar-header h1 {
       font-size: 20px;
-      font-weight: 600;
+      font-weight: 500;
       color: var(--color-neutral-80);
     }
 
@@ -145,7 +146,7 @@
 
     .nav-section-title {
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 500;
       text-transform: uppercase;
       color: var(--color-neutral-80);
       padding: 8px 12px;
@@ -251,7 +252,7 @@
 
     .demo-section h2 {
       font-size: 32px;
-      font-weight: 600;
+      font-weight: 500;
       margin-bottom: 8px;
       color: var(--color-neutral-90);
     }
@@ -268,7 +269,7 @@
 
     .demo-subsection h3 {
       font-size: 20px;
-      font-weight: 600;
+      font-weight: 500;
       margin-bottom: 16px;
       color: var(--color-neutral-80);
     }
@@ -339,7 +340,7 @@
 
     .color-box-name {
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 500;
       color: var(--color-neutral-80);
       margin-bottom: 4px;
     }
@@ -366,7 +367,7 @@
       align-items: center;
       justify-content: center;
       color: white;
-      font-weight: 600;
+      font-weight: 500;
       font-size: 16px;
     }
 
@@ -406,14 +407,15 @@
           <div class="nav-section-title" data-tooltip="Basic building blocks like colors and icons">Foundations</div>
           <a class="nav-item" data-section="colors">Colors</a>
           <a class="nav-item" data-section="icons">Icons</a>
+          <a class="nav-item" data-section="typography">Typography</a>
         </div>
         <div class="nav-section">
           <div class="nav-section-title" data-tooltip="Basic reusable UI elements">Elements</div>
           <a class="nav-item" data-section="button-primary">Primary Button</a>
           <a class="nav-item" data-section="button-tertiary">Tertiary Button</a>
+          <a class="nav-item" data-section="divider">Divider</a>
           <a class="nav-item" data-section="input-field">Input Field</a>
           <a class="nav-item" data-section="overlay">Overlay</a>
-          <a class="nav-item" data-section="divider">Divider</a>
           <a class="nav-item" data-section="toggle">Toggle</a>
         </div>
         <div class="nav-section">
@@ -473,6 +475,264 @@
             <div class="gradient-box aurora">Aurora</div>
             <div class="gradient-box mist">Mist</div>
             <div class="gradient-box sundown">Sundown</div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Semantic Colors</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-60); margin-bottom: 16px;">
+            Purpose-driven colors for specific UI states and feedback
+          </p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+            <!-- Success -->
+            <div style="border: 1px solid var(--color-neutral-30); border-radius: 8px; padding: 16px;">
+              <div style="width: 100%; height: 60px; background-color: var(--color-success); border-radius: 4px; margin-bottom: 12px;"></div>
+              <div style="font-size: 14px; font-weight: 500; color: var(--color-neutral-80); margin-bottom: 4px;">Success</div>
+              <div style="font-size: 12px; color: var(--color-neutral-60); font-family: monospace;">#6fe6a8</div>
+              <div style="font-size: 12px; color: var(--color-neutral-60); margin-top: 8px;">
+                Valid inputs, confirmations, completed states
+              </div>
+            </div>
+            <!-- Warning -->
+            <div style="border: 1px solid var(--color-neutral-30); border-radius: 8px; padding: 16px;">
+              <div style="width: 100%; height: 60px; background-color: var(--color-warning); border-radius: 4px; margin-bottom: 12px;"></div>
+              <div style="font-size: 14px; font-weight: 500; color: var(--color-neutral-80); margin-bottom: 4px;">Warning</div>
+              <div style="font-size: 12px; color: var(--color-neutral-60); font-family: monospace;">#f8e87a</div>
+              <div style="font-size: 12px; color: var(--color-neutral-60); margin-top: 8px;">
+                Caution messages, attention needed
+              </div>
+            </div>
+            <!-- Error -->
+            <div style="border: 1px solid var(--color-neutral-30); border-radius: 8px; padding: 16px;">
+              <div style="width: 100%; height: 60px; background-color: var(--color-error); border-radius: 4px; margin-bottom: 12px;"></div>
+              <div style="font-size: 14px; font-weight: 500; color: var(--color-neutral-80); margin-bottom: 4px;">Error</div>
+              <div style="font-size: 12px; color: var(--color-neutral-60); font-family: monospace;">#ff6b6b</div>
+              <div style="font-size: 12px; color: var(--color-neutral-60); margin-top: 8px;">
+                Invalid inputs, errors, critical alerts
+              </div>
+            </div>
+            <!-- Info -->
+            <div style="border: 1px solid var(--color-neutral-30); border-radius: 8px; padding: 16px;">
+              <div style="width: 100%; height: 60px; background-color: var(--color-info); border-radius: 4px; margin-bottom: 12px;"></div>
+              <div style="font-size: 14px; font-weight: 500; color: var(--color-neutral-80); margin-bottom: 4px;">Info</div>
+              <div style="font-size: 12px; color: var(--color-neutral-60); font-family: monospace;">#a8e1ff</div>
+              <div style="font-size: 12px; color: var(--color-neutral-60); margin-top: 8px;">
+                Helpful information, tooltips, hints
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Utility Colors</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-60); margin-bottom: 16px;">
+            Overlays, shadows, and subtle borders
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <!-- Overlays -->
+            <div>
+              <div style="font-size: 14px; font-weight: 500; color: var(--color-neutral-80); margin-bottom: 12px;">Overlays</div>
+              <div style="display: flex; gap: 12px; align-items: center;">
+                <div style="width: 100px; height: 60px; background: var(--overlay-light); border-radius: 4px; border: 1px solid var(--color-neutral-30);"></div>
+                <div style="font-size: 12px; color: var(--color-neutral-60);">
+                  Light: rgba(0,0,0,0.3)
+                </div>
+              </div>
+              <div style="display: flex; gap: 12px; align-items: center; margin-top: 8px;">
+                <div style="width: 100px; height: 60px; background: var(--overlay-default); border-radius: 4px; border: 1px solid var(--color-neutral-30);"></div>
+                <div style="font-size: 12px; color: var(--color-neutral-60);">
+                  Default: rgba(0,0,0,0.5)
+                </div>
+              </div>
+              <div style="display: flex; gap: 12px; align-items: center; margin-top: 8px;">
+                <div style="width: 100px; height: 60px; background: var(--overlay-dark); border-radius: 4px; border: 1px solid var(--color-neutral-30);"></div>
+                <div style="font-size: 12px; color: var(--color-neutral-60);">
+                  Dark: rgba(0,0,0,0.7)
+                </div>
+              </div>
+            </div>
+            <!-- Shadows -->
+            <div>
+              <div style="font-size: 14px; font-weight: 500; color: var(--color-neutral-80); margin-bottom: 12px;">Shadows</div>
+              <div style="display: flex; gap: 16px; align-items: flex-end;">
+                <div style="width: 80px; height: 80px; background: white; border-radius: 8px; box-shadow: var(--shadow-sm);"></div>
+                <div style="font-size: 12px; color: var(--color-neutral-60);">Small</div>
+              </div>
+              <div style="display: flex; gap: 16px; align-items: flex-end; margin-top: 16px;">
+                <div style="width: 80px; height: 80px; background: white; border-radius: 8px; box-shadow: var(--shadow-md);"></div>
+                <div style="font-size: 12px; color: var(--color-neutral-60);">Medium</div>
+              </div>
+              <div style="display: flex; gap: 16px; align-items: flex-end; margin-top: 16px;">
+                <div style="width: 80px; height: 80px; background: white; border-radius: 8px; box-shadow: var(--shadow-lg);"></div>
+                <div style="font-size: 12px; color: var(--color-neutral-60);">Large</div>
+              </div>
+            </div>
+            <!-- Border Light -->
+            <div>
+              <div style="font-size: 14px; font-weight: 500; color: var(--color-neutral-80); margin-bottom: 12px;">Border Light (Subtle)</div>
+              <div style="padding: 16px; border: 1px solid var(--color-neutral-30); border-radius: 8px; background: white;">
+                <div style="font-size: 12px; color: var(--color-neutral-60);">
+                  --color-border-light / --color-neutral-30: #e6eaec
+                </div>
+                <div style="font-size: 12px; color: var(--color-neutral-60); margin-top: 4px;">
+                  Used for dividers, modals, text fields, subtle borders
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Typography Section -->
+      <section id="section-typography" class="demo-section hidden">
+        <h2>Typography</h2>
+        <p class="description">Font families, sizes, weights, and predefined text styles using Instrument Sans.</p>
+
+        <div class="demo-subsection">
+          <h3>Font Sizes</h3>
+          <div class="demo-example" style="display: flex; flex-direction: column; gap: 16px;">
+            <div style="font-size: var(--font-size-32); font-weight: var(--font-weight-bold); line-height: var(--line-height-tight);">
+              32px - Hero Text
+            </div>
+            <div style="font-size: var(--font-size-24); font-weight: var(--font-weight-medium); line-height: var(--line-height-compact);">
+              24px - Heading Large
+            </div>
+            <div style="font-size: var(--font-size-20); font-weight: var(--font-weight-medium); line-height: var(--line-height-compact);">
+              20px - Heading Medium
+            </div>
+            <div style="font-size: var(--font-size-16); font-weight: var(--font-weight-regular); line-height: var(--line-height-normal);">
+              16px - Body Text (Standard)
+            </div>
+            <div style="font-size: var(--font-size-14); font-weight: var(--font-weight-medium); line-height: var(--line-height-normal);">
+              14px - Label / Small Text
+            </div>
+            <div style="font-size: var(--font-size-12); font-weight: var(--font-weight-regular); line-height: var(--line-height-normal);">
+              12px - Caption / Helper Text
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Font Weights</h3>
+          <div class="demo-example" style="display: flex; flex-direction: column; gap: 12px; font-size: 16px;">
+            <div style="font-weight: var(--font-weight-regular);">400 - Regular (Body text, inputs)</div>
+            <div style="font-weight: var(--font-weight-medium);">500 - Medium (Buttons, headlines, labels)</div>
+            <div style="font-weight: var(--font-weight-bold);">700 - Bold (Strong emphasis, numbers)</div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Line Heights</h3>
+          <div class="demo-example" style="display: flex; flex-direction: column; gap: 24px;">
+            <div>
+              <div style="font-size: 12px; color: var(--color-neutral-60); margin-bottom: 4px;">Tight (1.0) - Very Compact</div>
+              <div style="line-height: var(--line-height-tight); font-size: 16px; border-left: 2px solid var(--color-primary-60); padding-left: 12px;">
+                This is a line with tight line height.<br>It's very compact and has minimal spacing.
+              </div>
+            </div>
+            <div>
+              <div style="font-size: 12px; color: var(--color-neutral-60); margin-bottom: 4px;">Compact (1.2) - Headlines, Buttons</div>
+              <div style="line-height: var(--line-height-compact); font-size: 16px; border-left: 2px solid var(--color-primary-60); padding-left: 12px;">
+                This is a line with compact line height.<br>Used for headlines and buttons.
+              </div>
+            </div>
+            <div>
+              <div style="font-size: 12px; color: var(--color-neutral-60); margin-bottom: 4px;">Normal (1.5) - Body Text</div>
+              <div style="line-height: var(--line-height-normal); font-size: 16px; border-left: 2px solid var(--color-primary-60); padding-left: 12px;">
+                This is a line with normal line height.<br>Used for body text and paragraphs.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Predefined Text Styles</h3>
+          <div class="demo-example" style="display: flex; flex-direction: column; gap: 16px;">
+            <div class="text-style-hero">Hero Text Style</div>
+            <div class="text-style-h1">Heading 1 Style</div>
+            <div class="text-style-h2">Heading 2 Style</div>
+            <div class="text-style-h3">Heading 3 Style</div>
+            <div class="text-style-body">Body text style with normal weight and line height for comfortable reading.</div>
+            <div class="text-style-body-medium">Body text style with medium weight for emphasis.</div>
+            <div class="text-style-label">Label Text Style</div>
+            <div class="text-style-caption">Caption text style for helper text and small labels.</div>
+            <div class="text-style-button">Button Text Style</div>
+            <div class="text-style-button-small">Button Small Text Style</div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Letter Spacing</h3>
+          <div class="demo-example" style="display: flex; flex-direction: column; gap: 16px;">
+            <div>
+              <div style="font-size: 12px; color: var(--color-neutral-60); margin-bottom: 4px;">Tight (-0.01em) - Large headings</div>
+              <div style="font-size: 32px; font-weight: 500; letter-spacing: var(--letter-spacing-tight);">
+                Hero Text with Tight Spacing
+              </div>
+            </div>
+            <div>
+              <div style="font-size: 12px; color: var(--color-neutral-60); margin-bottom: 4px;">Normal (0) - Default</div>
+              <div style="font-size: 16px; letter-spacing: var(--letter-spacing-normal);">
+                Body text with normal spacing for comfortable reading.
+              </div>
+            </div>
+            <div>
+              <div style="font-size: 12px; color: var(--color-neutral-60); margin-bottom: 4px;">Wide (0.01em) - Small text, labels</div>
+              <div style="font-size: 12px; letter-spacing: var(--letter-spacing-wide);">
+                Small text with wider spacing for better legibility at 12px
+              </div>
+            </div>
+            <div>
+              <div style="font-size: 12px; color: var(--color-neutral-60); margin-bottom: 4px;">Wider (0.02em) - Buttons, very small text</div>
+              <div style="font-size: 12px; font-weight: 500; letter-spacing: var(--letter-spacing-wider);">
+                BUTTON TEXT WITH WIDER SPACING
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>CSS Custom Properties</h3>
+          <div class="demo-example">
+            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+              <thead>
+                <tr style="text-align: left; border-bottom: 1px solid var(--color-neutral-30);">
+                  <th style="padding: 8px; font-weight: 500;">Property</th>
+                  <th style="padding: 8px; font-weight: 500;">Value</th>
+                  <th style="padding: 8px; font-weight: 500;">Usage</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-bottom: 1px solid var(--color-neutral-20);">
+                  <td style="padding: 8px; font-family: monospace; color: var(--color-primary-90);">--font-family</td>
+                  <td style="padding: 8px;">Instrument Sans + fallbacks</td>
+                  <td style="padding: 8px;">Primary font family</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--color-neutral-20);">
+                  <td style="padding: 8px; font-family: monospace; color: var(--color-primary-90);">--font-size-body</td>
+                  <td style="padding: 8px;">1rem (16px)</td>
+                  <td style="padding: 8px;">Standard body text</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--color-neutral-20);">
+                  <td style="padding: 8px; font-family: monospace; color: var(--color-primary-90);">--font-weight-medium</td>
+                  <td style="padding: 8px;">500</td>
+                  <td style="padding: 8px;">Most common weight</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--color-neutral-20);">
+                  <td style="padding: 8px; font-family: monospace; color: var(--color-primary-90);">--line-height-normal</td>
+                  <td style="padding: 8px;">1.5</td>
+                  <td style="padding: 8px;">Body text line height</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--color-neutral-20);">
+                  <td style="padding: 8px; font-family: monospace; color: var(--color-primary-90);">--letter-spacing-wide</td>
+                  <td style="padding: 8px;">0.01em</td>
+                  <td style="padding: 8px;">Small text (12-14px)</td>
+                </tr>
+              </tbody>
+            </table>
+            <p style="margin-top: 12px; font-size: 12px; color: var(--color-neutral-60);">
+              <strong>Note:</strong> All font sizes use rem units (relative to browser default 16px) for better accessibility.
+            </p>
           </div>
         </div>
       </section>
@@ -744,12 +1004,12 @@
           <h3>Simple Variant</h3>
           <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Title + close/delete button (for settings/modals)</p>
 
-          <p style="font-size: 12px; font-weight: 600; color: var(--color-neutral-80); margin: 16px 0 8px 0;">Default State (Close Icon)</p>
+          <p style="font-size: 12px; font-weight: 500; color: var(--color-neutral-80); margin: 16px 0 8px 0;">Default State (Close Icon)</p>
           <div class="demo-example">
             <div id="header-simple-demo"></div>
           </div>
 
-          <p style="font-size: 12px; font-weight: 600; color: var(--color-neutral-80); margin: 16px 0 8px 0;">Delete State (Trash Icon)</p>
+          <p style="font-size: 12px; font-weight: 500; color: var(--color-neutral-80); margin: 16px 0 8px 0;">Delete State (Trash Icon)</p>
           <div class="demo-example">
             <div id="header-simple-delete-demo"></div>
           </div>
@@ -759,12 +1019,12 @@
           <h3>Compact Variant</h3>
           <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Small title + action icons (for preference cards)</p>
 
-          <p style="font-size: 12px; font-weight: 600; color: var(--color-neutral-80); margin: 16px 0 8px 0;">With Action Icons</p>
+          <p style="font-size: 12px; font-weight: 500; color: var(--color-neutral-80); margin: 16px 0 8px 0;">With Action Icons</p>
           <div class="demo-example">
             <div id="header-compact-demo"></div>
           </div>
 
-          <p style="font-size: 12px; font-weight: 600; color: var(--color-neutral-80); margin: 16px 0 8px 0;">Plain (No Icons)</p>
+          <p style="font-size: 12px; font-weight: 500; color: var(--color-neutral-80); margin: 16px 0 8px 0;">Plain (No Icons)</p>
           <div class="demo-example">
             <div id="header-compact-plain-demo"></div>
           </div>

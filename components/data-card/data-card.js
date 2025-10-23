@@ -225,7 +225,7 @@ function createDataCard(options = {}) {
 
   card.innerHTML = `
     <div class="data-card__content">
-      <p class="data-card__text">${options.data || 'Preference Data'}</p>
+      <p class="data-card__text text-style-body-medium">${options.data || 'Preference Data'}</p>
     </div>
   `;
 

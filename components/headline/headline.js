@@ -10,7 +10,7 @@ function createHeadline(options = {}) {
 
   // Create headline element
   const headlineElement = document.createElement('div');
-  headlineElement.className = 'headline';
+  headlineElement.className = 'headline text-style-h2';
   headlineElement.textContent = text;
 
   // Public API

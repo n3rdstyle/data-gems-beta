@@ -20,23 +20,26 @@ function createPrimaryButton(options = {}) {
 
   // Create button element
   const button = document.createElement('button');
-  button.className = 'button-primary';
   button.type = 'button';
   button.textContent = label;
   button.disabled = disabled;
 
-  // Apply variant
+  // Apply variant and text-style classes
   if (variant === 'neutral') {
-    button.classList.add('button-primary--neutral');
+    button.className = 'button-primary button-primary--neutral text-style-body-medium';
   } else if (variant === 'dark') {
-    button.classList.add('button-primary--dark');
+    button.className = 'button-primary button-primary--dark text-style-body-medium';
   } else if (variant === 'v2') {
-    button.classList.add('button-primary--v2');
+    button.className = 'button-primary button-primary--v2 text-style-body-medium';
 
     // Apply size for v2 variant
     if (size === 'small') {
       button.classList.add('button-primary--small');
+      button.classList.remove('text-style-body-medium');
+      button.classList.add('text-style-button-small');
     }
+  } else {
+    button.className = 'button-primary text-style-body-medium';
   }
 
   if (ariaLabel) {

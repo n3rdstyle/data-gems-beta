@@ -19,11 +19,7 @@
 }
 
 .collapsible-section__title {
-  font-family: var(--font-family);
-  font-size: 20px;
-  font-weight: 500;
   color: var(--color-neutral-80);
-  line-height: 1.2;
 }
 
 .collapsible-section__toggle {

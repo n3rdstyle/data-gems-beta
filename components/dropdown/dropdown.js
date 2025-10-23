@@ -22,7 +22,7 @@ function createDropdown(options = {}) {
 
   // Create trigger button
   const trigger = document.createElement('button');
-  trigger.className = 'dropdown__trigger';
+  trigger.className = 'dropdown__trigger text-style-body';
   trigger.type = 'button';
   trigger.disabled = disabled;
 
@@ -52,7 +52,7 @@ function createDropdown(options = {}) {
   // Create options
   dropdownOptions.forEach(opt => {
     const optionElement = document.createElement('div');
-    optionElement.className = 'dropdown__option';
+    optionElement.className = 'dropdown__option text-style-body';
     optionElement.textContent = opt.label;
     optionElement.dataset.value = opt.value;
 

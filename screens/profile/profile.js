@@ -88,7 +88,7 @@ function createProfile(options = {}) {
   const nameFieldGroup = document.createElement('div');
   nameFieldGroup.className = 'profile__field-group';
   const nameLabel = document.createElement('div');
-  nameLabel.className = 'profile__field-label';
+  nameLabel.className = 'profile__field-label text-style-h3';
   nameLabel.textContent = 'Name';
   const nameField = createInputField({
     type: 'text',
@@ -101,7 +101,7 @@ function createProfile(options = {}) {
   const emailFieldGroup = document.createElement('div');
   emailFieldGroup.className = 'profile__field-group';
   const emailLabel = document.createElement('div');
-  emailLabel.className = 'profile__field-label';
+  emailLabel.className = 'profile__field-label text-style-h3';
   emailLabel.textContent = 'Email';
   const emailField = createInputField({
     type: 'text',
@@ -114,7 +114,7 @@ function createProfile(options = {}) {
   const ageFieldGroup = document.createElement('div');
   ageFieldGroup.className = 'profile__field-group';
   const ageLabel = document.createElement('div');
-  ageLabel.className = 'profile__field-label';
+  ageLabel.className = 'profile__field-label text-style-h3';
   ageLabel.textContent = 'Age';
   const ageOptions = [];
   for (let i = 18; i <= 100; i++) {
@@ -132,7 +132,7 @@ function createProfile(options = {}) {
   const genderFieldGroup = document.createElement('div');
   genderFieldGroup.className = 'profile__field-group';
   const genderLabel = document.createElement('div');
-  genderLabel.className = 'profile__field-label';
+  genderLabel.className = 'profile__field-label text-style-h3';
   genderLabel.textContent = 'Gender';
   const genderDropdown = createDropdown({
     value: gender,
@@ -151,7 +151,7 @@ function createProfile(options = {}) {
   const locationFieldGroup = document.createElement('div');
   locationFieldGroup.className = 'profile__field-group';
   const locationLabel = document.createElement('div');
-  locationLabel.className = 'profile__field-label';
+  locationLabel.className = 'profile__field-label text-style-h3';
   locationLabel.textContent = 'Location';
   const locationField = createInputField({
     type: 'text',
@@ -164,7 +164,7 @@ function createProfile(options = {}) {
   const languageFieldGroup = document.createElement('div');
   languageFieldGroup.className = 'profile__field-group';
   const languageLabel = document.createElement('div');
-  languageLabel.className = 'profile__field-label';
+  languageLabel.className = 'profile__field-label text-style-h3';
   languageLabel.textContent = 'Language';
 
   const languagesContainer = document.createElement('div');

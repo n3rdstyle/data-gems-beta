@@ -13,12 +13,7 @@
 }
 
 .action-button__label {
-  font-family: 'Instrument Sans', sans-serif;
-  font-size: 16px;
-  font-weight: 500;
   color: var(--color-neutral-80);
-  line-height: 1.2;
-  font-variation-settings: 'wdth' 100;
 }
 
 /* Two-line variant with caption */
@@ -30,12 +25,7 @@
 }
 
 .action-button__caption {
-  font-family: 'Instrument Sans', sans-serif;
-  font-size: 12px;
-  font-weight: 500;
   color: var(--color-neutral-80);
-  line-height: 1.2;
-  font-variation-settings: 'wdth' 100;
 }
 
 /* Navigation variant (internal link with chevron) */

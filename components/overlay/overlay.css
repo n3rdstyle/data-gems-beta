@@ -9,7 +9,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: var(--overlay-default);
   z-index: 1000;
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
@@ -27,9 +27,9 @@
 
 /* Different opacity levels */
 .overlay--light {
-  background-color: rgba(0, 0, 0, 0.3);
+  background-color: var(--overlay-light);
 }
 
 .overlay--dark {
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: var(--overlay-dark);
 }

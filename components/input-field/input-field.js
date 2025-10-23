@@ -71,13 +71,13 @@ function createInputField(options = {}) {
   let inputElement;
   if (type === 'textarea') {
     inputElement = document.createElement('textarea');
-    inputElement.className = 'input-field__textarea';
+    inputElement.className = 'input-field__textarea text-style-body';
     if (autoResize) {
       inputElement.classList.add('input-field__textarea--auto-resize');
     }
   } else {
     inputElement = document.createElement('input');
-    inputElement.className = 'input-field__input';
+    inputElement.className = 'input-field__input text-style-body';
     inputElement.type = type === 'search' ? 'text' : type;
   }
 

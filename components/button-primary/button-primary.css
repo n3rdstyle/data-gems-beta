@@ -13,10 +13,6 @@
   background: var(--gradient-sundown);
   border: none;
   color: var(--color-neutral-10);
-  font-size: 16px;
-  font-weight: 500;
-  font-family: 'Instrument Sans', sans-serif;
-  line-height: 1.5;
   cursor: pointer;
   transition: opacity 0.2s, transform 0.1s;
   white-space: nowrap;
@@ -105,6 +101,4 @@
 .button-primary--v2.button-primary--small {
   padding: 8px 16px;
   height: auto;
-  font-size: 12px;
-  line-height: 1.2;
 }

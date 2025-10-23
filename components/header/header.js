@@ -45,7 +45,7 @@ function createHeader(options = {}) {
   if (variant === 'compact-toggle') {
     // Compact-toggle variant: Small title + toggle switch
     titleElement = document.createElement('h3');
-    titleElement.className = 'header__title-compact';
+    titleElement.className = 'header__title-compact text-style-h3';
     titleElement.textContent = title;
 
     toggleElement = createToggle({
@@ -63,7 +63,7 @@ function createHeader(options = {}) {
   } else if (variant === 'compact' || variant === 'compact-plain') {
     // Compact variant: Small title + small tertiary action buttons (or no buttons for compact-plain)
     titleElement = document.createElement('h3');
-    titleElement.className = 'header__title-compact';
+    titleElement.className = 'header__title-compact text-style-h3';
     titleElement.textContent = title;
 
     headerElement.appendChild(titleElement);
@@ -100,7 +100,7 @@ function createHeader(options = {}) {
   } else if (variant === 'simple' || variant === 'simple-delete') {
     // Simple variant: Title + close/delete button
     titleElement = document.createElement('h2');
-    titleElement.className = 'header__title';
+    titleElement.className = 'header__title text-style-h1';
     titleElement.textContent = title;
 
     const buttonIcon = variant === 'simple-delete' ? 'trash' : closeIcon;

@@ -1,0 +1,241 @@
+/**
+ * Typography System - Data Gems
+ * Font families, sizes, weights, line heights, and letter spacing
+ *
+ * Note: Uses rem units for better accessibility
+ * Base: 1rem = 16px (browser default)
+ */
+
+:root {
+  /* ============================================
+     FONT FAMILIES
+     ============================================ */
+
+  --font-family-primary: 'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family-fallback: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Alias for convenience */
+  --font-family: var(--font-family-primary);
+
+  /* ============================================
+     FONT SIZES (rem-based)
+     ============================================ */
+
+  /* Caption & Small Text */
+  --font-size-12: 0.75rem;    /* 12px */
+  --font-size-14: 0.875rem;   /* 14px */
+
+  /* Body & Standard Text */
+  --font-size-16: 1rem;       /* 16px */
+
+  /* Headings */
+  --font-size-20: 1.25rem;    /* 20px */
+  --font-size-24: 1.5rem;     /* 24px */
+  --font-size-32: 2rem;       /* 32px */
+
+  /* Semantic aliases */
+  --font-size-caption: var(--font-size-12);
+  --font-size-small: var(--font-size-14);
+  --font-size-body: var(--font-size-16);
+  --font-size-heading-sm: var(--font-size-20);
+  --font-size-heading-md: var(--font-size-24);
+  --font-size-heading-lg: var(--font-size-32);
+
+  /* ============================================
+     FONT WEIGHTS
+     ============================================ */
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+
+  /* Semantic aliases */
+  --font-weight-normal: var(--font-weight-regular);
+  --font-weight-body: var(--font-weight-regular);
+  --font-weight-heading: var(--font-weight-medium);
+  --font-weight-emphasis: var(--font-weight-bold);
+
+  /* ============================================
+     LINE HEIGHTS
+     ============================================ */
+
+  --line-height-tight: 1;
+  --line-height-compact: 1.2;
+  --line-height-medium: 1.33;
+  --line-height-normal: 1.5;
+
+  /* Semantic aliases */
+  --line-height-heading: var(--line-height-compact);
+  --line-height-body: var(--line-height-normal);
+  --line-height-button: var(--line-height-compact);
+
+  /* ============================================
+     LETTER SPACING
+     (em-based for proportional scaling)
+     ============================================ */
+
+  --letter-spacing-tight: -0.01em;   /* Slightly tighter (large headings) */
+  --letter-spacing-normal: 0;        /* No adjustment */
+  --letter-spacing-wide: 0.01em;     /* Small text (12-14px) */
+  --letter-spacing-wider: 0.02em;    /* Very small text, buttons */
+
+  /* Semantic aliases */
+  --letter-spacing-caption: var(--letter-spacing-wide);
+  --letter-spacing-label: var(--letter-spacing-wide);
+  --letter-spacing-button: var(--letter-spacing-wider);
+
+  /* ============================================
+     FONT VARIATION SETTINGS
+     (Instrument Sans variable font features)
+     ============================================ */
+
+  --font-variation-normal: 'wdth' 100;
+  --font-variation-condensed: 'wdth' 75;
+  --font-variation-expanded: 'wdth' 125;
+}
+
+/* ============================================
+   TYPOGRAPHY UTILITY CLASSES
+   ============================================ */
+
+/* Text sizes */
+.text-12 { font-size: var(--font-size-12); }
+.text-14 { font-size: var(--font-size-14); }
+.text-16 { font-size: var(--font-size-16); }
+.text-20 { font-size: var(--font-size-20); }
+.text-24 { font-size: var(--font-size-24); }
+.text-32 { font-size: var(--font-size-32); }
+
+/* Semantic text sizes */
+.text-caption { font-size: var(--font-size-caption); }
+.text-small { font-size: var(--font-size-small); }
+.text-body { font-size: var(--font-size-body); }
+.text-heading-sm { font-size: var(--font-size-heading-sm); }
+.text-heading-md { font-size: var(--font-size-heading-md); }
+.text-heading-lg { font-size: var(--font-size-heading-lg); }
+
+/* Font weights */
+.font-regular { font-weight: var(--font-weight-regular); }
+.font-medium { font-weight: var(--font-weight-medium); }
+.font-bold { font-weight: var(--font-weight-bold); }
+
+/* Line heights */
+.leading-tight { line-height: var(--line-height-tight); }
+.leading-compact { line-height: var(--line-height-compact); }
+.leading-medium { line-height: var(--line-height-medium); }
+.leading-normal { line-height: var(--line-height-normal); }
+
+/* Letter spacing */
+.tracking-tight { letter-spacing: var(--letter-spacing-tight); }
+.tracking-normal { letter-spacing: var(--letter-spacing-normal); }
+.tracking-wide { letter-spacing: var(--letter-spacing-wide); }
+.tracking-wider { letter-spacing: var(--letter-spacing-wider); }
+
+/* Font variation */
+.font-normal-width { font-variation-settings: var(--font-variation-normal); }
+.font-condensed { font-variation-settings: var(--font-variation-condensed); }
+.font-expanded { font-variation-settings: var(--font-variation-expanded); }
+
+/* ============================================
+   PREDEFINED TEXT STYLES
+   Common text style combinations
+   ============================================ */
+
+/* Base styles applied to all predefined text styles */
+.text-style-hero,
+.text-style-h1,
+.text-style-h2,
+.text-style-h3,
+.text-style-body,
+.text-style-body-medium,
+.text-style-caption,
+.text-style-caption-medium,
+.text-style-button,
+.text-style-button-small,
+.text-style-label {
+  font-family: var(--font-family);
+  font-variation-settings: var(--font-variation-normal);
+}
+
+/* Hero text - Large display text */
+.text-style-hero {
+  font-size: var(--font-size-32);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  letter-spacing: var(--letter-spacing-tight);
+}
+
+/* Heading 1 - Main page headings */
+.text-style-h1 {
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-compact);
+}
+
+/* Heading 2 - Section headings */
+.text-style-h2 {
+  font-size: var(--font-size-20);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-compact);
+}
+
+/* Heading 3 - Sub-section headings */
+.text-style-h3 {
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-compact);
+}
+
+/* Body text - Regular paragraphs */
+.text-style-body {
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-normal);
+}
+
+/* Body medium - Emphasized paragraphs */
+.text-style-body-medium {
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-normal);
+}
+
+/* Caption - Small helper text */
+.text-style-caption {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-normal);
+  letter-spacing: var(--letter-spacing-caption);
+}
+
+/* Caption medium - Small emphasized text */
+.text-style-caption-medium {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-compact);
+  letter-spacing: var(--letter-spacing-caption);
+}
+
+/* Button - Standard button text */
+.text-style-button {
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-button);
+  letter-spacing: var(--letter-spacing-button);
+}
+
+/* Button small - Small button text */
+.text-style-button-small {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-compact);
+  letter-spacing: var(--letter-spacing-button);
+}
+
+/* Label - Form labels and captions */
+.text-style-label {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-normal);
+  letter-spacing: var(--letter-spacing-label);
+}

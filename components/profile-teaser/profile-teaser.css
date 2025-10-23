@@ -24,7 +24,7 @@
 
 .profile-teaser__avatar-initial {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--color-neutral-80);
   line-height: 1;
 }
@@ -61,7 +61,7 @@
 
 .profile-teaser__name {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--color-neutral-80);
   line-height: 1.25;
   white-space: nowrap;

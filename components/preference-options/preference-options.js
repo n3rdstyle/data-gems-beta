@@ -111,7 +111,7 @@ function createPreferenceOptions(options = {}) {
 
   // Question text
   const questionText = document.createElement('div');
-  questionText.className = 'preference-options__modal-question';
+  questionText.className = 'preference-options__modal-question text-style-body-medium';
 
   modalCard.appendChild(answerContainer);
   modalCard.appendChild(questionText);
@@ -166,7 +166,7 @@ function createPreferenceOptions(options = {}) {
   const buttonElements = [];
   buttons.forEach((buttonConfig, index) => {
     const button = document.createElement('button');
-    button.className = 'preference-options__button';
+    button.className = 'preference-options__button text-style-body-medium';
     button.textContent = buttonConfig.label || buttonConfig;
     button.type = 'button';
 
@@ -192,7 +192,7 @@ function createPreferenceOptions(options = {}) {
 
   // Create Random Question button (primary button) - after showModal is defined
   const randomQuestionButton = document.createElement('button');
-  randomQuestionButton.className = 'preference-options__random-button';
+  randomQuestionButton.className = 'preference-options__random-button text-style-body-medium';
   randomQuestionButton.textContent = randomQuestionLabel;
   randomQuestionButton.type = 'button';
   randomQuestionButton.addEventListener('click', () => {
@@ -218,7 +218,7 @@ function createPreferenceOptions(options = {}) {
 
   function addButton(buttonConfig) {
     const button = document.createElement('button');
-    button.className = 'preference-options__button';
+    button.className = 'preference-options__button text-style-body-medium';
     button.textContent = buttonConfig.label || buttonConfig;
     button.type = 'button';
 

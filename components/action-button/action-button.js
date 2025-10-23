@@ -32,11 +32,11 @@ function createActionButton(options = {}) {
     labelWrapper.className = 'action-button__label-wrapper';
 
     labelElement = document.createElement('div');
-    labelElement.className = 'action-button__label';
+    labelElement.className = 'action-button__label text-style-h3';
     labelElement.textContent = label;
 
     captionElement = document.createElement('div');
-    captionElement.className = 'action-button__caption';
+    captionElement.className = 'action-button__caption text-style-caption-medium';
     captionElement.textContent = caption;
 
     labelWrapper.appendChild(labelElement);
@@ -45,7 +45,7 @@ function createActionButton(options = {}) {
   } else {
     // Single-line variant
     labelElement = document.createElement('div');
-    labelElement.className = 'action-button__label';
+    labelElement.className = 'action-button__label text-style-h3';
     labelElement.textContent = label;
     container.appendChild(labelElement);
   }

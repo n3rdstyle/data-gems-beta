@@ -241,12 +241,12 @@ function createTag(options = {}) {
   // Small tags don't have icon or count
   if (options.size === 'small') {
     tag.innerHTML = `
-      <span class="tag__label">${options.label || 'Collection'}</span>
+      <span class="tag__label text-style-body">${options.label || 'Collection'}</span>
     `;
   } else {
     tag.innerHTML = `
       <span class="tag__icon"></span>
-      <span class="tag__label">${options.label || 'Collection'}</span>
+      <span class="tag__label text-style-body">${options.label || 'Collection'}</span>
       <span class="tag__count">${options.count !== undefined ? options.count : 0}</span>
     `;
   }

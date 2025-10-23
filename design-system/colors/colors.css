@@ -69,6 +69,16 @@
   --color-surface: var(--color-neutral-10);
   --color-surface-hover: var(--color-neutral-20);
   --color-surface-active: var(--color-primary-20);
+
+  /* Overlays */
+  --overlay-light: rgba(0, 0, 0, 0.3);
+  --overlay-default: rgba(0, 0, 0, 0.5);
+  --overlay-dark: rgba(0, 0, 0, 0.7);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
 /* Dark Mode Support (optional) */

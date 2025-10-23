@@ -13,9 +13,6 @@
   gap: 8px;
   padding: 8px 16px;
   border-radius: 1000px;
-  font-family: 'Instrument Sans', sans-serif;
-  font-size: 16px;
-  line-height: 1.5;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
   white-space: nowrap;
@@ -52,8 +49,7 @@
 }
 
 .tag__label {
-  font-weight: 400;
-  font-variation-settings: 'wdth' 100;
+  /* Text styling applied via JS */
 }
 
 .tag__count {
@@ -148,7 +144,7 @@
 
 /* Favorites - Inactive (unselected) */
 .tag[data-type="favorites"][data-state="inactive"] {
-  background: white;
+  background: var(--color-neutral-10);
   color: var(--color-neutral-80);
   border: 1px solid transparent;
   background-image:

@@ -46,7 +46,7 @@ function createTertiaryButton(options = {}) {
   if (variant === 'text') {
     // Create text container
     contentContainer = document.createElement('span');
-    contentContainer.className = 'button-tertiary__text';
+    contentContainer.className = 'button-tertiary__text text-style-body-medium';
     contentContainer.textContent = text;
     button.appendChild(contentContainer);
   } else {

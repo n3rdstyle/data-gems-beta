@@ -1,16 +1,11 @@
 /**
  * Headline Component
  * Section headline/title text
- * Font: Instrument Sans Medium, 20px
+ * Uses text-style-h2 from typography system
  */
 
 .headline {
-  font-family: 'Instrument Sans', sans-serif;
-  font-size: 20px;
-  font-weight: 500;
-  line-height: 1.2;
-  color: var(--color-neutral-90);
-  font-variation-settings: 'wdth' 100;
+  color: var(--color-neutral-80);
   white-space: nowrap;
   margin: 0;
 }

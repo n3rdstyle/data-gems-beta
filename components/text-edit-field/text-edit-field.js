@@ -91,7 +91,7 @@ function createTextEditField(options = {}) {
 
   // Create text box
   const textBox = document.createElement('div');
-  textBox.className = 'text-edit-field__textbox';
+  textBox.className = 'text-edit-field__textbox text-style-body-medium';
   textBox.contentEditable = editable;
   textBox.textContent = text;
 

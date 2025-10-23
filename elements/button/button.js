@@ -70,12 +70,14 @@ function createButton(options = {}) {
   // Build button content based on variant
   if (variant === 'primary') {
     // Primary button: just text
+    const textStyleClass = size === 'small' ? 'text-style-button-small' : 'text-style-body-medium';
+    button.classList.add(textStyleClass);
     button.textContent = label;
   } else if (variant === 'tertiary') {
     if (text) {
       // Tertiary text button
       contentContainer = document.createElement('span');
-      contentContainer.className = 'button__text';
+      contentContainer.className = 'button__text text-style-body-medium';
       contentContainer.textContent = text;
       button.appendChild(contentContainer);
     } else if (icon) {
