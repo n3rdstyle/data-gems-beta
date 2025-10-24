@@ -14,11 +14,11 @@ function extractSpreadsheetId(url) {
 }
 
 /**
- * Fetch spreadsheet title from Google Sheets
+ * Fetch active sheet tab name from Google Sheets
  * @param {string} spreadsheetId - Google Sheets ID
- * @returns {Promise<string>} Spreadsheet title
+ * @returns {Promise<string>} Sheet tab name
  */
-async function fetchGoogleSheetTitle(spreadsheetId) {
+async function fetchGoogleSheetTabName(spreadsheetId) {
   try {
     const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
     const response = await fetch(url);
@@ -27,17 +27,42 @@ async function fetchGoogleSheetTitle(spreadsheetId) {
     }
     const html = await response.text();
 
-    // Try to extract title from HTML
+    // Try to extract the active sheet tab name from the HTML
+    // Google Sheets renders tab names in the sheet tab bar near the bottom
+    // Look for pattern like: >Tab Name</div><div class="goog-inline-block docs-sheet-tab-dropdown"
+    const tabBarPattern = />([^<]+)<\/div><div class="goog-inline-block docs-sheet-tab-dropdown"/;
+    const tabMatch = html.match(tabBarPattern);
+    if (tabMatch && tabMatch[1]) {
+      const tabName = tabMatch[1].trim();
+      // Make sure it's not empty and not a generic element
+      if (tabName && tabName.length > 0 && !tabName.startsWith('<')) {
+        return tabName;
+      }
+    }
+
+    // Fallback: Try to extract from JSON structure
+    const sheetNamePatterns = [
+      /"sheets":\s*\[\s*\{\s*"properties":\s*\{\s*"sheetId":\s*\d+,\s*"title":\s*"([^"]+)"/,
+      /'sheets':\s*\[\s*\{\s*'properties':\s*\{\s*'sheetId':\s*\d+,\s*'title':\s*'([^']+)'/,
+    ];
+
+    for (const pattern of sheetNamePatterns) {
+      const match = html.match(pattern);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+    }
+
+    // Fallback: try to get spreadsheet title
     const titleMatch = html.match(/<title>([^<]+)<\/title>/);
     if (titleMatch) {
-      // Remove " - Google Sheets" or similar suffix
       let title = titleMatch[1].replace(/\s*-\s*Google\s+(Sheets|Tabellen)?\s*$/i, '').trim();
       return title || 'Imported Sheet';
     }
 
-    return 'Imported Sheet'; // Fallback
+    return 'Imported Sheet'; // Final fallback
   } catch (error) {
-    console.error('Error fetching sheet title:', error);
+    console.error('Error fetching sheet tab name:', error);
     return 'Imported Sheet'; // Fallback
   }
 }
@@ -158,8 +183,8 @@ async function importGoogleSheet(spreadsheetUrl) {
       throw new Error('Invalid Google Sheets URL');
     }
 
-    // Fetch spreadsheet title
-    const sheetTitle = await fetchGoogleSheetTitle(spreadsheetId);
+    // Fetch sheet tab name
+    const sheetTitle = await fetchGoogleSheetTabName(spreadsheetId);
 
     // Fetch CSV data
     const csvData = await fetchGoogleSheetCSV(spreadsheetId);
@@ -186,7 +211,7 @@ async function importGoogleSheet(spreadsheetUrl) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     extractSpreadsheetId,
-    fetchGoogleSheetTitle,
+    fetchGoogleSheetTabName,
     fetchGoogleSheetCSV,
     parseCSV,
     formatSheetAsText,
