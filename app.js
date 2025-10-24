@@ -216,7 +216,8 @@ function renderCurrentScreen() {
           },
           onBackupData: exportData,
           onUpdateData: importData,
-          onClearData: clearAllData
+          onClearData: clearAllData,
+          onThirdPartyData: importThirdPartyData
         });
         break;
 
@@ -366,6 +367,45 @@ async function clearAllData() {
       console.error('Error clearing data:', error);
       alert('Failed to clear data: ' + error.message);
     }
+  }
+}
+
+// Import third party data (Google Sheets)
+async function importThirdPartyData() {
+  const url = prompt(
+    'Import from Google Sheets\n\n' +
+    'Please enter the Google Sheets URL:\n' +
+    '(The sheet must be accessible to anyone with the link)'
+  );
+
+  if (!url) return; // User cancelled
+
+  try {
+    // Show loading message
+    console.log('Importing Google Sheet...');
+
+    // Import the sheet
+    const preferenceData = await importGoogleSheet(url, 'Training Plan');
+
+    // Add to AppState
+    AppState = addPreference(
+      AppState,
+      preferenceData.value,
+      preferenceData.state,
+      preferenceData.collections
+    );
+
+    // Save to storage
+    await saveData();
+
+    // Go to home screen to show the new card
+    AppState.metadata.currentScreen = 'home';
+    renderCurrentScreen();
+
+    alert('Google Sheet imported successfully!');
+  } catch (error) {
+    console.error('Error importing Google Sheet:', error);
+    alert('Failed to import Google Sheet:\n' + error.message);
   }
 }
 
