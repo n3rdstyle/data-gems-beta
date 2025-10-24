@@ -20,11 +20,7 @@
     "128": "icons/icon128.png"
   },
   "permissions": [
-    "storage",
-    "activeTab"
-  ],
-  "host_permissions": [
-    "<all_urls>"
+    "storage"
   ],
   "background": {
     "service_worker": "background.js"
