@@ -39,6 +39,9 @@ function createProfile(options = {}) {
 
   let hasChanges = false;
   let saveButton = null;
+  let languagesContainer = null; // Will be set when language fields are created
+  let selectedLanguageRows = []; // Track selected language rows (multiple selection)
+  let addLanguageIconButton = null; // Reference to header button
 
   // Track current avatar image (mutable)
   let currentAvatarImage = avatarImage;
@@ -59,13 +62,16 @@ function createProfile(options = {}) {
 
   // Function to check if values have changed
   const checkForChanges = () => {
+    const currentLanguages = JSON.stringify(collectLanguages());
+
     const currentValues = {
       name: nameField.getValue(),
       description: descriptionField.getValue(),
       email: emailField.getValue(),
       age: ageDropdown.getValue(),
       gender: genderDropdown.getValue(),
-      location: locationField.getValue()
+      location: locationField.getValue(),
+      languages: currentLanguages
     };
 
     const changed =
@@ -74,7 +80,8 @@ function createProfile(options = {}) {
       currentValues.email !== originalValues.email ||
       currentValues.age !== originalValues.age ||
       currentValues.gender !== originalValues.gender ||
-      currentValues.location !== originalValues.location;
+      currentValues.location !== originalValues.location ||
+      currentValues.languages !== originalValues.languages;
 
     if (changed && !hasChanges) {
       // Changes detected - show Save button
@@ -125,6 +132,63 @@ function createProfile(options = {}) {
     }
   };
 
+  // Function to update header icon based on selection
+  const updateHeaderIcon = () => {
+    if (!addLanguageIconButton) return;
+
+    const buttonElement = addLanguageIconButton.element;
+    const iconContainer = buttonElement.querySelector('.button-tertiary__icon');
+
+    if (selectedLanguageRows.length > 0) {
+      // Show trash icon
+      if (iconContainer) {
+        iconContainer.innerHTML = ICONS.trash || '';
+        const svg = iconContainer.querySelector('svg');
+        if (svg) {
+          svg.style.width = '16px';
+          svg.style.height = '16px';
+        }
+      }
+      buttonElement.setAttribute('aria-label', 'Delete Languages');
+    } else {
+      // Show plus icon
+      if (iconContainer) {
+        iconContainer.innerHTML = ICONS.plus || '';
+        const svg = iconContainer.querySelector('svg');
+        if (svg) {
+          svg.style.width = '16px';
+          svg.style.height = '16px';
+        }
+      }
+      buttonElement.setAttribute('aria-label', 'Add Language');
+    }
+  };
+
+  // Function to collect all language rows
+  const collectLanguages = () => {
+    if (!languagesContainer) return [];
+
+    const rows = languagesContainer.querySelectorAll('.profile__field-row');
+    const langs = [];
+
+    rows.forEach(row => {
+      const langInput = row.querySelector('input[type="text"]');
+      const levelDropdown = row.querySelector('.dropdown__selected');
+
+      if (langInput && langInput.value.trim()) {
+        const levelText = levelDropdown ? levelDropdown.textContent.trim() : '';
+        const levelValue = levelText.toLowerCase().replace(/\s+/g, '-');
+
+        langs.push({
+          language: langInput.value.trim(),
+          level: levelValue || 'basic'
+        });
+      }
+    });
+
+    return langs;
+  };
+
   // Function to handle save
   const handleSave = async () => {
     if (onSave) {
@@ -134,7 +198,8 @@ function createProfile(options = {}) {
         email: emailField.getValue(),
         age: ageDropdown.getValue(),
         gender: genderDropdown.getValue(),
-        location: locationField.getValue()
+        location: locationField.getValue(),
+        languages: collectLanguages()
       };
 
       await onSave(profileData);
@@ -508,63 +573,212 @@ function createProfile(options = {}) {
   // Language fields (with level dropdowns)
   const languageFieldGroup = document.createElement('div');
   languageFieldGroup.className = 'profile__field-group';
+
+  // Language header with label and add button
+  const languageHeader = document.createElement('div');
+  languageHeader.style.display = 'flex';
+  languageHeader.style.justifyContent = 'space-between';
+  languageHeader.style.alignItems = 'center';
+  languageHeader.style.marginBottom = '8px';
+
   const languageLabel = document.createElement('div');
   languageLabel.className = 'profile__field-label text-style-h3';
   languageLabel.textContent = 'Language';
 
-  const languagesContainer = document.createElement('div');
+  // Small add/delete button (icon only)
+  addLanguageIconButton = createTertiaryButton({
+    icon: 'plus',
+    ariaLabel: 'Add Language',
+    variant: 'small',
+    onClick: () => {
+      if (selectedLanguageRows.length > 0) {
+        // Delete mode - delete all selected rows
+        const totalRows = languagesContainer.children.length;
+        const selectedCount = selectedLanguageRows.length;
+
+        if (selectedCount === totalRows) {
+          // All rows selected - clear the first one, remove the rest
+          selectedLanguageRows.forEach((row, index) => {
+            if (index === 0) {
+              // First row - just clear fields
+              const langInput = row.querySelector('input[type="text"]');
+              if (langInput) langInput.value = '';
+
+              // Reset dropdown using stored instance
+              if (row._dropdownInstance) {
+                row._dropdownInstance.setValue('');
+              }
+
+              // Uncheck selector
+              const selector = row.querySelector('.profile__language-selector');
+              if (selector) {
+                selector.checked = false;
+                selector.style.backgroundColor = 'transparent';
+                selector.style.borderColor = 'var(--color-neutral-60)';
+              }
+            } else {
+              // Remove other rows
+              row.remove();
+            }
+          });
+        } else {
+          // Not all rows selected - just remove selected ones
+          selectedLanguageRows.forEach(row => row.remove());
+        }
+
+        selectedLanguageRows = [];
+        updateHeaderIcon();
+        checkForChanges();
+      } else {
+        // Add mode - add new row
+        const newRow = createLanguageRow();
+        languagesContainer.appendChild(newRow);
+        checkForChanges();
+      }
+    }
+  });
+
+  // Style the button to be smaller
+  addLanguageIconButton.element.style.width = '24px';
+  addLanguageIconButton.element.style.height = '24px';
+  addLanguageIconButton.element.style.padding = '4px';
+
+  // Style the icon inside
+  const addIconSvg = addLanguageIconButton.element.querySelector('svg');
+  if (addIconSvg) {
+    addIconSvg.style.width = '16px';
+    addIconSvg.style.height = '16px';
+  }
+
+  languageHeader.appendChild(languageLabel);
+  languageHeader.appendChild(addLanguageIconButton.element);
+
+  languagesContainer = document.createElement('div');
   languagesContainer.style.display = 'flex';
   languagesContainer.style.flexDirection = 'column';
   languagesContainer.style.gap = '8px';
 
-  // Add existing languages
-  languages.forEach(lang => {
+  // Language level options
+  const levelOptions = [
+    { value: 'native', label: 'Native' },
+    { value: 'fluent', label: 'Fluent' },
+    { value: 'good', label: 'Good' },
+    { value: 'basic', label: 'Basic' }
+  ];
+
+  // Function to create a language row
+  const createLanguageRow = (lang = null) => {
     const row = document.createElement('div');
     row.className = 'profile__field-row';
+    row.style.display = 'flex';
+    row.style.gap = '0';
+    row.style.alignItems = 'center';
+    row.style.position = 'relative';
+
+    // Selector checkbox (hidden by default, shown on hover)
+    const selector = document.createElement('input');
+    selector.type = 'checkbox';
+    selector.className = 'profile__language-selector';
+    selector.style.width = '0';
+    selector.style.height = '24px';
+    selector.style.cursor = 'pointer';
+    selector.style.opacity = '0';
+    selector.style.transition = 'width 0.2s, opacity 0.2s, margin 0.2s';
+    selector.style.flexShrink = '0';
+    selector.style.margin = '0';
+    selector.style.marginRight = '0';
+    selector.style.borderRadius = '50%';
+    selector.style.appearance = 'none';
+    selector.style.border = '1px solid var(--color-neutral-60)';
+    selector.style.backgroundColor = 'transparent';
+    selector.style.overflow = 'hidden';
+
+    selector.addEventListener('change', () => {
+      if (selector.checked) {
+        // Add this row to selection
+        if (!selectedLanguageRows.includes(row)) {
+          selectedLanguageRows.push(row);
+        }
+        selector.style.backgroundColor = 'var(--color-primary-70)';
+        selector.style.borderColor = 'var(--color-primary-70)';
+      } else {
+        // Remove this row from selection
+        const index = selectedLanguageRows.indexOf(row);
+        if (index > -1) {
+          selectedLanguageRows.splice(index, 1);
+        }
+        selector.style.backgroundColor = 'transparent';
+        selector.style.borderColor = 'var(--color-neutral-60)';
+      }
+      updateHeaderIcon();
+    });
 
     const langField = createInputField({
       type: 'text',
-      value: lang.language,
-      placeholder: 'Language'
+      value: lang?.language || '',
+      placeholder: 'Language',
+      onInput: () => checkForChanges()
     });
+    langField.element.style.width = '164px';
+    langField.element.style.marginRight = '8px';
 
     const levelDropdown = createDropdown({
-      value: lang.level,
+      value: lang?.level || '',
       placeholder: 'Level',
-      options: [
-        { value: 'native', label: 'Native' },
-        { value: 'very-good', label: 'Very good' },
-        { value: 'good', label: 'Good' },
-        { value: 'basic', label: 'Basic' }
-      ]
+      options: levelOptions,
+      onChange: () => checkForChanges()
     });
+    levelDropdown.element.style.width = '164px';
 
+    // Make dropdown open upwards
+    const menu = levelDropdown.element.querySelector('.dropdown__menu');
+    if (menu) {
+      menu.style.top = 'auto';
+      menu.style.bottom = 'calc(100% + 4px)';
+    }
+
+    // Store dropdown instance on the row for later access
+    row._dropdownInstance = levelDropdown;
+
+    // Show selector on hover over row (if at least one field is filled)
+    const showSelector = () => {
+      const langInput = row.querySelector('input[type="text"]');
+      const hasContent = langInput && langInput.value.trim() !== '';
+
+      if (hasContent) {
+        selector.style.width = '24px';
+        selector.style.marginRight = '8px';
+        selector.style.opacity = '1';
+      }
+    };
+    const hideSelector = () => {
+      if (!selector.checked) {
+        selector.style.width = '0';
+        selector.style.marginRight = '0';
+        selector.style.opacity = '0';
+      }
+    };
+
+    row.addEventListener('mouseenter', showSelector);
+    row.addEventListener('mouseleave', hideSelector);
+
+    row.appendChild(selector);
     row.appendChild(langField.element);
     row.appendChild(levelDropdown.element);
-    languagesContainer.appendChild(row);
-  });
 
-  // Add empty row for new language
-  const emptyRow = document.createElement('div');
-  emptyRow.className = 'profile__field-row';
-  const emptyLangField = createInputField({
-    type: 'text',
-    placeholder: 'Language'
-  });
-  const emptyLevelDropdown = createDropdown({
-    placeholder: 'Level',
-    options: [
-      { value: 'native', label: 'Native' },
-      { value: 'very-good', label: 'Very good' },
-      { value: 'good', label: 'Good' },
-      { value: 'basic', label: 'Basic' }
-    ]
-  });
-  emptyRow.appendChild(emptyLangField.element);
-  emptyRow.appendChild(emptyLevelDropdown.element);
-  languagesContainer.appendChild(emptyRow);
+    return row;
+  };
 
-  languageFieldGroup.appendChild(languageLabel);
+  // Add existing languages or one empty row
+  if (languages && languages.length > 0) {
+    languages.forEach(lang => {
+      languagesContainer.appendChild(createLanguageRow(lang));
+    });
+  } else {
+    languagesContainer.appendChild(createLanguageRow());
+  }
+
+  languageFieldGroup.appendChild(languageHeader);
   languageFieldGroup.appendChild(languagesContainer);
 
   // Add all fields to container
@@ -577,10 +791,6 @@ function createProfile(options = {}) {
 
   profileInfoCollapsible.addContent(fieldsContainer);
   profileInfoSection.appendChild(profileInfoCollapsible.element);
-
-  // Add divider after Profile Information
-  const divider2 = createDivider();
-  profileInfoSection.appendChild(divider2.element);
 
   // Assemble content
   contentWrapper.appendChild(personalDescSection);

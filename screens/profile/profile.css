@@ -65,7 +65,8 @@
   gap: var(--spacing-element-internal); /* 8px between row items */
 }
 
-.profile__field-row > * {
+.profile__field-row > .input-field,
+.profile__field-row > .dropdown {
   flex: 1;
 }
 
