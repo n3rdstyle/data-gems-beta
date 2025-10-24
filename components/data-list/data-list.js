@@ -52,7 +52,7 @@ class DataList {
 
     // Create new cards
     data.forEach(item => {
-      this.addCard(item.name, item.state || 'default', item.collections || []);
+      this.addCard(item.name, item.state || 'default', item.collections || [], item.id);
     });
   }
 
@@ -61,11 +61,13 @@ class DataList {
    * @param {string} name - Card text
    * @param {string} state - Card state ('default', 'favorited', 'hidden')
    * @param {Array} collections - Array of collection names
+   * @param {string} id - Card ID (optional)
    * @returns {DataCard} - The created card instance
    */
-  addCard(name, state = 'default', collections = []) {
+  addCard(name, state = 'default', collections = [], id = null) {
     // Create card without callback first
     const card = createDataCard({
+      id: id,
       state: state,
       data: name,
       collections: collections,

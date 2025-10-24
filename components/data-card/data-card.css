@@ -125,10 +125,3 @@
   color: var(--color-neutral-80);
 }
 
-/* Responsive: Full width on smaller screens */
-@media (max-width: 400px) {
-  .data-card {
-    width: 100%;
-    max-width: 368px;
-  }
-}

@@ -90,6 +90,14 @@ const ICONS = {
     </svg>
   `,
 
+  // Search icon
+  search: `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="10.5" cy="10.5" r="7.5"></circle>
+      <path d="m16.5 16.5 4.5 4.5"></path>
+    </svg>
+  `,
+
   // Communication icons
   message: `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

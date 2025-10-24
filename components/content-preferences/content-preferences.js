@@ -28,21 +28,25 @@ function calculateTagsFromData(data) {
     state: 'active'
   });
 
-  // Add "Favorites" tag
-  tags.push({
-    type: 'favorites',
-    label: 'Favorites',
-    count: favoritedCount,
-    state: 'inactive'
-  });
+  // Add "Favorites" tag only if there are favorited cards
+  if (favoritedCount > 0) {
+    tags.push({
+      type: 'favorites',
+      label: 'Favorites',
+      count: favoritedCount,
+      state: 'inactive'
+    });
+  }
 
-  // Add "Hidden" tag
-  tags.push({
-    type: 'hidden',
-    label: 'Hidden',
-    count: hiddenCount,
-    state: 'inactive'
-  });
+  // Add "Hidden" tag only if there are hidden cards
+  if (hiddenCount > 0) {
+    tags.push({
+      type: 'hidden',
+      label: 'Hidden',
+      count: hiddenCount,
+      state: 'inactive'
+    });
+  }
 
   // Count collections
   const collectionCounts = {};
@@ -133,12 +137,31 @@ function createContentPreferences(options = {}) {
         // Tag not found in newTags, set count to 0
         existingTag.setCount(0);
 
-        // Hide Favorites/Hidden tags
+        // Hide Favorites/Hidden tags if count is 0
         if (existingTag.getType() === 'favorites' || existingTag.getType() === 'hidden') {
           existingTag.hide();
         }
       }
     });
+
+    // Add Favorites/Hidden tags if they don't exist yet but have count > 0
+    const needsFavoritesTag = !existingTags.some(t => t.getType() === 'favorites') &&
+                              newTags.some(nt => nt.type === 'favorites' && nt.count > 0);
+    const needsHiddenTag = !existingTags.some(t => t.getType() === 'hidden') &&
+                           newTags.some(nt => nt.type === 'hidden' && nt.count > 0);
+
+    if (needsFavoritesTag) {
+      const favTag = newTags.find(nt => nt.type === 'favorites');
+      // Insert after "All" tag (index 1)
+      tagList.addTagAtIndex(favTag, 1);
+    }
+
+    if (needsHiddenTag) {
+      const hiddenTag = newTags.find(nt => nt.type === 'hidden');
+      // Insert after "All" and "Favorites" tags
+      const insertIndex = existingTags.some(t => t.getType() === 'favorites') ? 2 : 1;
+      tagList.addTagAtIndex(hiddenTag, insertIndex);
+    }
 
     // Add any new collection tags that don't exist yet
     const newCollectionTags = newTags.filter(newTag => {
@@ -373,8 +396,8 @@ function createContentPreferences(options = {}) {
       headline.setText(newTitle);
     },
 
-    addCard(name, state = 'default') {
-      return dataList.addCard(name, state);
+    addCard(name, state = 'default', collections = [], id = null) {
+      return dataList.addCard(name, state, collections, id);
     },
 
     removeCard(card) {

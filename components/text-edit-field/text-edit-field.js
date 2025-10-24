@@ -15,6 +15,7 @@ function createTextEditField(options = {}) {
     onToggleHidden = null,
     onToggleFavorite = null,
     onTextChange = null,
+    onEnter = null,
     editable = true,
     headerVariant = 'compact' // 'compact' (with icons) or 'compact-plain' (without icons)
   } = options;
@@ -106,10 +107,13 @@ function createTextEditField(options = {}) {
     });
   }
 
-  // Prevent newlines on Enter (optional behavior)
+  // Prevent newlines on Enter and trigger onEnter callback
   textBox.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
+      if (onEnter) {
+        onEnter();
+      }
     }
   });
 

@@ -27,6 +27,11 @@
   transform: scale(0.98);
 }
 
+.button-primary:focus {
+  outline: 2px solid var(--color-primary-70);
+  outline-offset: 2px;
+}
+
 .button-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -47,6 +52,11 @@
   opacity: 1;
 }
 
+.button-primary--neutral:focus {
+  outline: 2px solid var(--color-neutral-60);
+  outline-offset: 2px;
+}
+
 .button-primary--neutral:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -61,6 +71,11 @@
 .button-primary--dark:hover {
   background: var(--color-primary-80);
   opacity: 1;
+}
+
+.button-primary--dark:focus {
+  outline: 2px solid var(--color-primary-70);
+  outline-offset: 2px;
 }
 
 .button-primary--dark:disabled {
@@ -90,6 +105,11 @@
 
 .button-primary--v2:active {
   background: var(--color-primary-70);
+}
+
+.button-primary--v2:focus {
+  outline: 2px solid var(--color-primary-70);
+  outline-offset: 2px;
 }
 
 .button-primary--v2:disabled {

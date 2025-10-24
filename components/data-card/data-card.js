@@ -8,9 +8,10 @@ class DataCard {
     this.element = element;
     // Read state from element's data-state attribute if not provided in options
     this.state = options.state || element.getAttribute('data-state') || 'default';
-    // Read data from element's text content if not provided in options
+    // Read value from element's text content if not provided in options
     const textElement = element.querySelector('.data-card__text');
-    this.data = options.data || (textElement ? textElement.textContent : 'Preference Data');
+    this.value = options.value || options.data || (textElement ? textElement.textContent : 'Preference Data');
+    this.id = options.id || element.getAttribute('data-id') || null;
     this.onStateChange = options.onStateChange || null;
     this.onClick = options.onClick || null;
     this.collections = options.collections || [];
@@ -22,9 +23,14 @@ class DataCard {
     // Set initial state
     this.setState(this.state);
 
-    // Set initial data (only if different from what's already there)
-    if (this.data) {
-      this.setData(this.data);
+    // Set data-id attribute
+    if (this.id) {
+      this.element.setAttribute('data-id', this.id);
+    }
+
+    // Set initial value (only if different from what's already there)
+    if (this.value) {
+      this.setValue(this.value);
     }
 
     // Create action icons container
@@ -162,22 +168,46 @@ class DataCard {
 
   /**
    * Set the card text content
-   * @param {string} data - Text to display
+   * @param {string} value - Text to display
    */
-  setData(data) {
-    this.data = data;
+  setValue(value) {
+    this.value = value;
     const textElement = this.element.querySelector('.data-card__text');
     if (textElement) {
-      textElement.textContent = data;
+      textElement.textContent = value;
     }
   }
 
   /**
-   * Get current data
+   * Get current value
    * @returns {string}
    */
+  getValue() {
+    return this.value;
+  }
+
+  /**
+   * Get card ID
+   * @returns {string}
+   */
+  getId() {
+    return this.id;
+  }
+
+  /**
+   * Legacy method - for backward compatibility
+   * @deprecated Use setValue instead
+   */
+  setData(data) {
+    return this.setValue(data);
+  }
+
+  /**
+   * Legacy method - for backward compatibility
+   * @deprecated Use getValue instead
+   */
   getData() {
-    return this.data;
+    return this.getValue();
   }
 
   /**
@@ -219,13 +249,19 @@ class DataCard {
 
 // Factory function to create cards
 function createDataCard(options = {}) {
+  console.log('🎨 Creating data card:', { id: options.id, state: options.state, value: (options.value || options.data || '').substring(0, 20) });
+
   const card = document.createElement('div');
   card.className = 'data-card';
   card.setAttribute('data-state', options.state || 'default');
 
+  if (options.id) {
+    card.setAttribute('data-id', options.id);
+  }
+
   card.innerHTML = `
     <div class="data-card__content">
-      <p class="data-card__text text-style-body-medium">${options.data || 'Preference Data'}</p>
+      <p class="data-card__text text-style-body-medium">${options.value || options.data || 'Preference Data'}</p>
     </div>
   `;
 

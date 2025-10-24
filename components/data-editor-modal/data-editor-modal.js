@@ -94,6 +94,12 @@ function createDataEditorModal(options = {}) {
       // Enable/disable save button based on text content
       const isEmpty = !newText || newText.trim() === '';
       saveButton.setDisabled(isEmpty);
+    },
+    onEnter: () => {
+      // Trigger save button on Enter if not disabled
+      if (!saveButton.isDisabled()) {
+        saveButton.click();
+      }
     }
   });
 
@@ -118,7 +124,7 @@ function createDataEditorModal(options = {}) {
           });
         },
         onCancel: () => {
-          console.log('Tag add cancelled');
+          // Modal cancelled
         }
       });
 

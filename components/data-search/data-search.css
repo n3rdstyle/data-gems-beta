@@ -42,9 +42,3 @@
   overflow: hidden;
 }
 
-/* Responsive */
-@media (max-width: 400px) {
-  .data-search__search-wrapper {
-    max-width: 100%;
-  }
-}

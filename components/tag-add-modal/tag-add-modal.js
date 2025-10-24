@@ -159,3 +159,4 @@ function createTagAddModal(options = {}) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { createTagAddModal };
 }
+

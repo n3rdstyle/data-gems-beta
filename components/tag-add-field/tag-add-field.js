@@ -1,8 +1,7 @@
 /**
  * Tag Add Field Component
- * Text edit field with integrated tag list for adding collections
- * Combines text-edit-field with tag-list
- * Requires: text-edit-field.js, tag-list.js
+ * Simple input field with label and optional tag list for adding collections
+ * Requires: tag-list.js
  */
 
 function createTagAddField(options = {}) {
@@ -22,19 +21,38 @@ function createTagAddField(options = {}) {
   // Track selected tags
   let selectedTags = [];
 
-  // Create text edit field using compact-plain header (without action icons)
-  const textEditField = createTextEditField({
-    title: title,
-    text: '',
-    placeholder: placeholder,
-    headerVariant: 'compact-plain', // Use plain variant without icons
-    onTextChange: (newText) => {
-      if (onInput) {
-        onInput(newText);
-      }
-    },
-    editable: true
+  // Create label
+  const label = document.createElement('label');
+  label.className = 'tag-add-field__label text-style-h3';
+  label.textContent = title;
+
+  // Create input
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'tag-add-field__input';
+  input.placeholder = placeholder;
+
+  // Input event handler
+  input.addEventListener('input', () => {
+    if (onInput) {
+      onInput(input.value);
+    }
   });
+
+  // Enter key handler
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const value = input.value.trim();
+      if (value && onEnter) {
+        onEnter(value);
+      }
+    }
+  });
+
+  // Add label and input to container
+  container.appendChild(label);
+  container.appendChild(input);
 
   // Create tag list if there are existing tags
   let tagListInstance = null;
@@ -66,8 +84,8 @@ function createTagAddField(options = {}) {
           const activeTags = allTags.filter(t => t.getState() === 'active');
           selectedTags = activeTags.map(t => t.getLabel());
 
-          // Get current text from text field
-          const currentText = textEditField.getText().trim();
+          // Get current text from input
+          const currentText = input.value.trim();
 
           // Parse current text to get manually typed tags
           const currentTags = currentText ? currentText.split(',').map(t => t.trim()).filter(t => t) : [];
@@ -78,44 +96,23 @@ function createTagAddField(options = {}) {
           // Combine manual tags with selected tags
           const allTagsList = [...manualTags, ...selectedTags];
 
-          // Update text field with comma-separated list
+          // Update input with comma-separated list
           if (allTagsList.length > 0) {
-            textEditField.setText(allTagsList.join(', '));
+            input.value = allTagsList.join(', ');
           } else {
-            textEditField.setText('');
+            input.value = '';
           }
 
           // Trigger onInput callback
           if (onInput) {
-            onInput(allTagsList.join(', '));
+            onInput(input.value);
           }
         }
       });
 
       tagListWrapper.appendChild(tagListInstance.element);
-      container.appendChild(textEditField.element);
       container.appendChild(tagListWrapper);
-    } else {
-      // No valid tags, just add text field
-      container.appendChild(textEditField.element);
     }
-  } else {
-    // No existing tags, just add text field
-    container.appendChild(textEditField.element);
-  }
-
-  // Handle Enter key on textbox (contentEditable div)
-  const textbox = textEditField.element.querySelector('.text-edit-field__textbox');
-  if (textbox) {
-    textbox.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        const value = textEditField.getText().trim();
-        if (value && onEnter) {
-          onEnter(value);
-        }
-      }
-    });
   }
 
   // Public API
@@ -123,18 +120,18 @@ function createTagAddField(options = {}) {
     element: container,
 
     getValue() {
-      return textEditField.getText().trim();
+      return input.value.trim();
     },
 
     setValue(newValue) {
-      textEditField.setText(newValue);
+      input.value = newValue;
       if (onInput) {
         onInput(newValue);
       }
     },
 
     clear() {
-      textEditField.setText('');
+      input.value = '';
       selectedTags = [];
 
       // Deactivate all tags
@@ -149,7 +146,7 @@ function createTagAddField(options = {}) {
     },
 
     focus() {
-      textEditField.focus();
+      input.focus();
     },
 
     getSelectedTags() {

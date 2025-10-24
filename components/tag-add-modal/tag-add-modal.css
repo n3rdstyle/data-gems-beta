@@ -37,23 +37,14 @@
 /* Buttons Section */
 .tag-add-modal__buttons {
   display: flex;
+  flex-direction: row;
   gap: var(--spacing-xs); /* 8px */
   justify-content: flex-end;
+  align-items: center;
 }
 
-/* Hide any plus buttons/icons in the modal */
-.tag-add-modal__buttons > *:not(.button-primary):not(.button-tertiary:last-child) {
-  display: none;
-}
-
-/* Ensure only Add and Cancel buttons are visible */
-.tag-add-modal__buttons > .button-primary,
-.tag-add-modal__buttons > .button-tertiary {
-  display: inline-flex;
-}
-
-/* Responsive */
-@media (max-width: 480px) {
+/* Responsive - Only apply on very small mobile screens (< 360px) */
+@media (max-width: 360px) {
   .tag-add-modal {
     width: 100%;
     max-width: 100vw;

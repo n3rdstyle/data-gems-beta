@@ -11,6 +11,7 @@ function createSettings(options = {}) {
     onFAQs = null,
     onBackupData = null,
     onUpdateData = null,
+    onClearData = null,
     onPrivacyStatement = null,
     onTerms = null,
     onImprint = null,
@@ -93,6 +94,14 @@ function createSettings(options = {}) {
     onClick: onUpdateData || (() => console.log('Update data clicked'))
   });
   dataCenterSection.appendChild(updateData.element);
+
+  const clearData = createActionButton({
+    label: 'Clear all data',
+    variant: 'cta',
+    ctaLabel: 'Delete',
+    onClick: onClearData || (() => console.log('Clear data clicked'))
+  });
+  dataCenterSection.appendChild(clearData.element);
 
   const dataCenterDivider = createDivider();
   dataCenterSection.appendChild(dataCenterDivider.element);

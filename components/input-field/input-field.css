@@ -67,7 +67,7 @@
 
 /* Search variant */
 .input-field--search .input-field__input {
-  padding-left: 40px;
+  padding-left: 36px;
 }
 
 .input-field__search-icon {
@@ -75,8 +75,8 @@
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   color: var(--color-neutral-50);
   pointer-events: none;
 }

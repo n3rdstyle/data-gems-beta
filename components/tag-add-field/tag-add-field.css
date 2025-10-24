@@ -5,24 +5,43 @@
 .tag-add-field {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 12px;
+}
+
+/* Label */
+.tag-add-field__label {
+  color: var(--color-neutral-100);
+  margin: 0;
+}
+
+/* Input */
+.tag-add-field__input {
+  width: 100%;
+  padding: 16px;
+  font-family: var(--font-family);
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 150%;
+  color: var(--color-neutral-100);
+  background-color: var(--color-neutral-0);
+  border: 1px solid var(--color-primary-40);
+  border-radius: 8px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.tag-add-field__input::placeholder {
+  color: var(--color-neutral-40);
+}
+
+.tag-add-field__input:focus {
+  border-color: var(--color-primary-60);
 }
 
 /* Tag List Section */
 .tag-add-field__tag-list {
-  padding: 0 16px 16px 16px;
-  background-color: var(--color-neutral-10);
-  border: 1px solid var(--color-neutral-20);
-  border-top: none;
-  border-radius: 0 0 8px 8px;
-}
-
-/* Adjust text-edit-field border radius when tag list is present */
-.tag-add-field:has(.tag-add-field__tag-list) .text-edit-field {
-  border-radius: 8px 8px 0 0;
-}
-
-.tag-add-field:has(.tag-add-field__tag-list) .text-edit-field textarea {
-  border-radius: 0 0 0 0;
-  border-bottom: 1px solid var(--color-neutral-20);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
