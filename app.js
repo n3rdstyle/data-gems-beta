@@ -384,25 +384,33 @@ async function importThirdPartyData() {
     // Show loading message
     console.log('Importing Google Sheet...');
 
-    // Import the sheet (title will be fetched automatically)
-    const preferenceData = await importGoogleSheet(url);
+    // Import the sheet (returns array of preferences, one per tab)
+    const preferencesArray = await importGoogleSheet(url);
 
-    // Add to AppState
-    AppState = addPreference(
-      AppState,
-      preferenceData.value,
-      preferenceData.state,
-      preferenceData.collections
-    );
+    console.log(`Importing ${preferencesArray.length} tab(s)...`);
+
+    // Add each tab as a separate preference
+    for (const preferenceData of preferencesArray) {
+      AppState = addPreference(
+        AppState,
+        preferenceData.value,
+        preferenceData.state,
+        preferenceData.collections
+      );
+    }
 
     // Save to storage
     await saveData();
 
-    // Go to home screen to show the new card
+    // Go to home screen to show the new cards
     AppState.metadata.currentScreen = 'home';
     renderCurrentScreen();
 
-    alert('Google Sheet imported successfully!');
+    const tabCount = preferencesArray.length;
+    const message = tabCount === 1
+      ? 'Google Sheet imported successfully! (1 tab)'
+      : `Google Sheet imported successfully! (${tabCount} tabs)`;
+    alert(message);
   } catch (error) {
     console.error('Error importing Google Sheet:', error);
     alert('Failed to import Google Sheet:\n' + error.message);

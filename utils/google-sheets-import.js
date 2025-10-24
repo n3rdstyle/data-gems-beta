@@ -14,56 +14,72 @@ function extractSpreadsheetId(url) {
 }
 
 /**
- * Fetch active sheet tab name from Google Sheets
+ * Fetch all sheet tabs (name + GID) from Google Sheets
  * @param {string} spreadsheetId - Google Sheets ID
- * @returns {Promise<string>} Sheet tab name
+ * @returns {Promise<Array>} Array of {name, gid} objects
  */
-async function fetchGoogleSheetTabName(spreadsheetId) {
+async function fetchAllSheetTabs(spreadsheetId) {
   try {
     const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
     const response = await fetch(url);
     if (!response.ok) {
-      return 'Imported Sheet'; // Fallback
+      return [{ name: 'Imported Sheet', gid: null }];
     }
     const html = await response.text();
 
-    // Try to extract the active sheet tab name from the HTML
-    // Google Sheets renders tab names in the sheet tab bar near the bottom
-    // Look for pattern like: >Tab Name</div><div class="goog-inline-block docs-sheet-tab-dropdown"
-    const tabBarPattern = />([^<]+)<\/div><div class="goog-inline-block docs-sheet-tab-dropdown"/;
-    const tabMatch = html.match(tabBarPattern);
-    if (tabMatch && tabMatch[1]) {
-      const tabName = tabMatch[1].trim();
-      // Make sure it's not empty and not a generic element
-      if (tabName && tabName.length > 0 && !tabName.startsWith('<')) {
-        return tabName;
+    // Extract all tabs from the sheet structure
+    // Look for patterns in the embedded JSON data that contains sheet info
+    // Pattern: "sheets":[{"properties":{"sheetId":123,"title":"Tab Name",...
+    const sheetsData = [];
+
+    // Try to find the sheets array in the embedded data
+    const sheetsMatch = html.match(/"sheets":\s*\[([^\]]+)\]/);
+    if (sheetsMatch) {
+      const sheetsJson = sheetsMatch[0];
+
+      // Extract all sheet objects
+      const sheetPattern = /\{"properties":\{"sheetId":(\d+),"title":"([^"]+)"/g;
+      let match;
+
+      while ((match = sheetPattern.exec(sheetsJson)) !== null) {
+        sheetsData.push({
+          name: match[2],
+          gid: match[1]
+        });
       }
     }
 
-    // Fallback: Try to extract from JSON structure
-    const sheetNamePatterns = [
-      /"sheets":\s*\[\s*\{\s*"properties":\s*\{\s*"sheetId":\s*\d+,\s*"title":\s*"([^"]+)"/,
-      /'sheets':\s*\[\s*\{\s*'properties':\s*\{\s*'sheetId':\s*\d+,\s*'title':\s*'([^']+)'/,
-    ];
+    // Fallback: try to extract tab names from the tab bar HTML
+    if (sheetsData.length === 0) {
+      // Look for tab names in the sheet tab bar
+      const tabBarPattern = />([^<]+)<\/div><div class="goog-inline-block docs-sheet-tab-dropdown"/g;
+      let match;
 
-    for (const pattern of sheetNamePatterns) {
-      const match = html.match(pattern);
-      if (match && match[1]) {
-        return match[1].trim();
+      while ((match = tabBarPattern.exec(html)) !== null) {
+        const tabName = match[1].trim();
+        if (tabName && tabName.length > 0 && !tabName.startsWith('<')) {
+          sheetsData.push({
+            name: tabName,
+            gid: null // GID unknown from tab bar
+          });
+        }
       }
     }
 
-    // Fallback: try to get spreadsheet title
-    const titleMatch = html.match(/<title>([^<]+)<\/title>/);
-    if (titleMatch) {
-      let title = titleMatch[1].replace(/\s*-\s*Google\s+(Sheets|Tabellen)?\s*$/i, '').trim();
-      return title || 'Imported Sheet';
+    // If we still have nothing, return a fallback
+    if (sheetsData.length === 0) {
+      const titleMatch = html.match(/<title>([^<]+)<\/title>/);
+      const title = titleMatch
+        ? titleMatch[1].replace(/\s*-\s*Google\s+(Sheets|Tabellen)?\s*$/i, '').trim()
+        : 'Imported Sheet';
+
+      return [{ name: title, gid: null }];
     }
 
-    return 'Imported Sheet'; // Final fallback
+    return sheetsData;
   } catch (error) {
-    console.error('Error fetching sheet tab name:', error);
-    return 'Imported Sheet'; // Fallback
+    console.error('Error fetching sheet tabs:', error);
+    return [{ name: 'Imported Sheet', gid: null }];
   }
 }
 
@@ -173,7 +189,7 @@ function formatSheetAsText(rows, sheetTitle = 'Training Plan') {
 /**
  * Import Google Sheets data and return formatted preference data
  * @param {string} spreadsheetUrl - Google Sheets URL
- * @returns {Promise<Object>} Preference data object
+ * @returns {Promise<Array>} Array of preference data objects (one per tab)
  */
 async function importGoogleSheet(spreadsheetUrl) {
   try {
@@ -183,24 +199,33 @@ async function importGoogleSheet(spreadsheetUrl) {
       throw new Error('Invalid Google Sheets URL');
     }
 
-    // Fetch sheet tab name
-    const sheetTitle = await fetchGoogleSheetTabName(spreadsheetId);
+    // Fetch all sheet tabs
+    const tabs = await fetchAllSheetTabs(spreadsheetId);
+    console.log(`Found ${tabs.length} tab(s) in spreadsheet`);
 
-    // Fetch CSV data
-    const csvData = await fetchGoogleSheetCSV(spreadsheetId);
+    // Import each tab
+    const preferences = [];
+    for (const tab of tabs) {
+      console.log(`Importing tab: ${tab.name} (GID: ${tab.gid || 'default'})`);
 
-    // Parse CSV
-    const rows = parseCSV(csvData);
+      // Fetch CSV data for this tab
+      const csvData = await fetchGoogleSheetCSV(spreadsheetId, tab.gid);
 
-    // Format as text
-    const formattedText = formatSheetAsText(rows, sheetTitle);
+      // Parse CSV
+      const rows = parseCSV(csvData);
 
-    // Return preference data
-    return {
-      value: formattedText,
-      state: 'default',
-      collections: ['Training']
-    };
+      // Format as text
+      const formattedText = formatSheetAsText(rows, tab.name);
+
+      // Add to preferences array
+      preferences.push({
+        value: formattedText,
+        state: 'default',
+        collections: ['Training']
+      });
+    }
+
+    return preferences;
   } catch (error) {
     console.error('Error importing Google Sheet:', error);
     throw error;
@@ -211,7 +236,7 @@ async function importGoogleSheet(spreadsheetUrl) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     extractSpreadsheetId,
-    fetchGoogleSheetTabName,
+    fetchAllSheetTabs,
     fetchGoogleSheetCSV,
     parseCSV,
     formatSheetAsText,
