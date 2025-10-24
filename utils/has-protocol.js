@@ -29,13 +29,15 @@ function getTimestamp() {
  * @param {*} value - The field value
  * @param {string} assurance - Assurance level ('self_declared', 'derived', etc.)
  * @param {string} reliability - Reliability level ('authoritative', 'high', 'medium', 'low')
+ * @param {string} state - Optional state ('default', 'hidden')
  * @returns {object} Field object
  */
-function createField(value, assurance = 'self_declared', reliability = 'high') {
+function createField(value, assurance = 'self_declared', reliability = 'high', state = 'default') {
   return {
     value,
     assurance,
     reliability,
+    state,
     updated_at: getTimestamp()
   };
 }
@@ -78,6 +80,20 @@ function updateField(field, newValue) {
   return {
     ...field,
     value: newValue,
+    updated_at: getTimestamp()
+  };
+}
+
+/**
+ * Update a field's state and timestamp
+ * @param {object} field - Field object
+ * @param {string} newState - New state ('default', 'hidden')
+ * @returns {object} Updated field
+ */
+function updateFieldState(field, newState) {
+  return {
+    ...field,
+    state: newState,
     updated_at: getTimestamp()
   };
 }
@@ -202,7 +218,12 @@ function getUserIdentity(profile) {
     gender: identity.gender?.value || null,
     location: identity.location?.value || '',
     description: identity.description?.value || '',
-    languages: identity.languages?.value || []
+    descriptionState: identity.description?.state || 'default',
+    languages: identity.languages?.value || [],
+    emailState: identity.email?.state || 'default',
+    ageState: identity.age?.state || 'default',
+    genderState: identity.gender?.state || 'default',
+    locationState: identity.location?.state || 'default'
   };
 }
 
@@ -223,6 +244,28 @@ function updateUserIdentity(profile, fieldName, value) {
     updatedProfile.content.basic.identity[fieldName] = updateField(
       updatedProfile.content.basic.identity[fieldName],
       value
+    );
+  }
+
+  updatedProfile.updated_at = getTimestamp();
+  return updatedProfile;
+}
+
+/**
+ * Update user identity field state
+ * @param {object} profile - HAS v0.1 profile
+ * @param {string} fieldName - Field name (e.g., 'description', 'email')
+ * @param {string} state - New state ('default', 'hidden')
+ * @returns {object} Updated profile
+ */
+function updateUserIdentityState(profile, fieldName, state) {
+  // Deep clone to avoid mutating the original profile
+  const updatedProfile = JSON.parse(JSON.stringify(profile));
+
+  if (updatedProfile.content.basic.identity[fieldName]) {
+    updatedProfile.content.basic.identity[fieldName] = updateFieldState(
+      updatedProfile.content.basic.identity[fieldName],
+      state
     );
   }
 
@@ -361,10 +404,12 @@ if (typeof module !== 'undefined' && module.exports) {
     createField,
     createPreference,
     updateField,
+    updateFieldState,
     createInitialProfile,
     migrateLegacyState,
     getUserIdentity,
     updateUserIdentity,
+    updateUserIdentityState,
     addPreference,
     updatePreference,
     deletePreference,

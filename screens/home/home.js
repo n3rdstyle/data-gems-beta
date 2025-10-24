@@ -33,7 +33,9 @@ function createHome(options = {}) {
     onBackupData = null,
     onUpdateData = null,
     onClearData = null,
-    onThirdPartyData = null
+    onThirdPartyData = null,
+    onDescriptionToggle = null,
+    onPersonalInfoToggle = null
   } = options;
 
   // Create home container
@@ -74,14 +76,18 @@ function createHome(options = {}) {
       profileName: currentProfileData.profileName || currentProfileData.name,
       profileSubtitle: currentProfileData.profileSubtitle || currentProfileData.subtitle,
       profileDescription: currentProfileData.profileDescription || currentProfileData.description,
+      descriptionState: currentProfileData.descriptionState,
       avatarImage: currentProfileData.avatarImage,
       email: currentProfileData.email,
       age: currentProfileData.age,
       gender: currentProfileData.gender,
       location: currentProfileData.location,
       languages: currentProfileData.languages,
+      personalInfoState: currentProfileData.emailState || currentProfileData.ageState || currentProfileData.genderState || currentProfileData.locationState,
       onClose: closeProfile,
-      onSave: onProfileSave
+      onSave: onProfileSave,
+      onDescriptionToggle: onDescriptionToggle,
+      onPersonalInfoToggle: onPersonalInfoToggle
     });
 
     // Position profile screen centered

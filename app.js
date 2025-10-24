@@ -440,7 +440,19 @@ function renderCurrentScreen() {
           onBackupData: exportData,
           onUpdateData: importData,
           onClearData: clearAllData,
-          onThirdPartyData: importThirdPartyData
+          onThirdPartyData: importThirdPartyData,
+          onDescriptionToggle: async (state) => {
+            AppState = updateUserIdentityState(AppState, 'description', state);
+            await saveData();
+          },
+          onPersonalInfoToggle: async (state) => {
+            // Update all personal info fields to the same state
+            AppState = updateUserIdentityState(AppState, 'email', state);
+            AppState = updateUserIdentityState(AppState, 'age', state);
+            AppState = updateUserIdentityState(AppState, 'gender', state);
+            AppState = updateUserIdentityState(AppState, 'location', state);
+            await saveData();
+          }
         });
         break;
 
@@ -483,16 +495,30 @@ function renderCurrentScreen() {
           profileSubtitle: userData.subtitle || 'User',
           avatarImage: userData.avatarImage,
           profileDescription: userData.description,
+          descriptionState: userData.descriptionState,
           email: userData.email,
           age: userData.age,
           gender: userData.gender,
           location: userData.location,
           languages: userData.languages,
+          personalInfoState: (userData.emailState === 'hidden' && userData.ageState === 'hidden' && userData.genderState === 'hidden' && userData.locationState === 'hidden') ? 'hidden' : 'default',
           onClose: () => {
             AppState.metadata.currentScreen = 'home';
             renderCurrentScreen();
           },
-          onSave: profileOnSave
+          onSave: profileOnSave,
+          onDescriptionToggle: async (state) => {
+            AppState = updateUserIdentityState(AppState, 'description', state);
+            await saveData();
+          },
+          onPersonalInfoToggle: async (state) => {
+            // Update all personal info fields to the same state
+            AppState = updateUserIdentityState(AppState, 'email', state);
+            AppState = updateUserIdentityState(AppState, 'age', state);
+            AppState = updateUserIdentityState(AppState, 'gender', state);
+            AppState = updateUserIdentityState(AppState, 'location', state);
+            await saveData();
+          }
         });
         break;
 

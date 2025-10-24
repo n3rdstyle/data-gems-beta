@@ -16,9 +16,13 @@ function createProfile(options = {}) {
     gender = '',
     location = '',
     languages = [],
+    descriptionState = 'default',
+    personalInfoState = 'default',
     onClose = null,
     onUploadAvatar = null,
-    onSave = null
+    onSave = null,
+    onDescriptionToggle = null,
+    onPersonalInfoToggle = null
   } = options;
 
   // Track original values to detect changes
@@ -365,7 +369,12 @@ function createProfile(options = {}) {
 
   const personalDescCollapsible = createCollapsibleSection({
     title: 'Personal Description',
-    collapsed: false
+    collapsed: descriptionState === 'hidden',
+    onToggle: (isHidden) => {
+      if (onDescriptionToggle) {
+        onDescriptionToggle(isHidden ? 'hidden' : 'default');
+      }
+    }
   });
 
   const descriptionField = createInputField({
@@ -394,7 +403,12 @@ function createProfile(options = {}) {
 
   const profileInfoCollapsible = createCollapsibleSection({
     title: 'Profile Information',
-    collapsed: false
+    collapsed: personalInfoState === 'hidden',
+    onToggle: (isHidden) => {
+      if (onPersonalInfoToggle) {
+        onPersonalInfoToggle(isHidden ? 'hidden' : 'default');
+      }
+    }
   });
 
   const fieldsContainer = document.createElement('div');
