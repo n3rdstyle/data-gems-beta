@@ -32,20 +32,42 @@ async function fetchAllSheetTabs(spreadsheetId) {
     // Pattern: "sheets":[{"properties":{"sheetId":123,"title":"Tab Name",...
     const sheetsData = [];
 
-    // Try to find the sheets array in the embedded data
-    const sheetsMatch = html.match(/"sheets":\s*\[([^\]]+)\]/);
-    if (sheetsMatch) {
-      const sheetsJson = sheetsMatch[0];
+    // Try multiple patterns to extract sheet data
 
-      // Extract all sheet objects
-      const sheetPattern = /\{"properties":\{"sheetId":(\d+),"title":"([^"]+)"/g;
-      let match;
+    // Pattern 1: Look for sheets array in JSON
+    // Match the entire sheets array with proper nesting handling
+    let startIdx = html.indexOf('"sheets":[');
+    if (startIdx !== -1) {
+      // Find the closing bracket by counting nested brackets
+      let depth = 0;
+      let i = startIdx + 10; // Start after "sheets":[
+      let endIdx = -1;
 
-      while ((match = sheetPattern.exec(sheetsJson)) !== null) {
-        sheetsData.push({
-          name: match[2],
-          gid: match[1]
-        });
+      while (i < html.length && i < startIdx + 50000) { // Limit search to 50KB
+        if (html[i] === '[') depth++;
+        else if (html[i] === ']') {
+          if (depth === 0) {
+            endIdx = i;
+            break;
+          }
+          depth--;
+        }
+        i++;
+      }
+
+      if (endIdx !== -1) {
+        const sheetsJson = html.substring(startIdx, endIdx + 1);
+
+        // Extract sheet properties
+        const sheetPattern = /"sheetId":(\d+)[^}]*"title":"([^"]+)"/g;
+        let match;
+
+        while ((match = sheetPattern.exec(sheetsJson)) !== null) {
+          sheetsData.push({
+            name: match[2],
+            gid: match[1]
+          });
+        }
       }
     }
 
@@ -60,7 +82,7 @@ async function fetchAllSheetTabs(spreadsheetId) {
         if (tabName && tabName.length > 0 && !tabName.startsWith('<')) {
           sheetsData.push({
             name: tabName,
-            gid: null // GID unknown from tab bar
+            gid: null // GID unknown - will use brute-force discovery
           });
         }
       }
@@ -188,8 +210,9 @@ function formatSheetAsText(rows, sheetTitle = 'Training Plan') {
 
 /**
  * Import Google Sheets data and return formatted preference data
+ * Imports only the first/active tab - user must provide separate links for multiple tabs
  * @param {string} spreadsheetUrl - Google Sheets URL
- * @returns {Promise<Array>} Array of preference data objects (one per tab)
+ * @returns {Promise<Object>} Preference data object
  */
 async function importGoogleSheet(spreadsheetUrl) {
   try {
@@ -199,33 +222,30 @@ async function importGoogleSheet(spreadsheetUrl) {
       throw new Error('Invalid Google Sheets URL');
     }
 
-    // Fetch all sheet tabs
+    // Fetch all sheet tabs to get the first tab name
     const tabs = await fetchAllSheetTabs(spreadsheetId);
-    console.log(`Found ${tabs.length} tab(s) in spreadsheet`);
+    const tabName = tabs.length > 0 ? tabs[0].name : 'Imported Sheet';
 
-    // Import each tab
-    const preferences = [];
-    for (const tab of tabs) {
-      console.log(`Importing tab: ${tab.name} (GID: ${tab.gid || 'default'})`);
-
-      // Fetch CSV data for this tab
-      const csvData = await fetchGoogleSheetCSV(spreadsheetId, tab.gid);
-
-      // Parse CSV
-      const rows = parseCSV(csvData);
-
-      // Format as text
-      const formattedText = formatSheetAsText(rows, tab.name);
-
-      // Add to preferences array
-      preferences.push({
-        value: formattedText,
-        state: 'default',
-        collections: ['Training']
-      });
+    console.log(`Importing first tab: ${tabName}`);
+    if (tabs.length > 1) {
+      console.log(`Note: ${tabs.length} tabs found, but only importing the first one`);
     }
 
-    return preferences;
+    // Fetch CSV data for first tab (no GID = default/first tab)
+    const csvData = await fetchGoogleSheetCSV(spreadsheetId, null);
+
+    // Parse CSV
+    const rows = parseCSV(csvData);
+
+    // Format as text
+    const formattedText = formatSheetAsText(rows, tabName);
+
+    // Return single preference data
+    return {
+      value: formattedText,
+      state: 'default',
+      collections: ['Training']
+    };
   } catch (error) {
     console.error('Error importing Google Sheet:', error);
     throw error;
