@@ -4,13 +4,19 @@
  */
 
 /**
- * Extract spreadsheet ID from Google Sheets URL
+ * Extract spreadsheet ID and GID from Google Sheets URL
  * @param {string} url - Google Sheets URL
- * @returns {string|null} Spreadsheet ID or null if invalid
+ * @returns {object} Object with spreadsheetId and gid (gid may be null)
  */
 function extractSpreadsheetId(url) {
-  const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-  return match ? match[1] : null;
+  const idMatch = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  const spreadsheetId = idMatch ? idMatch[1] : null;
+
+  // Extract GID from URL fragment (e.g., #gid=123456)
+  const gidMatch = url.match(/[#&]gid=(\d+)/);
+  const gid = gidMatch ? gidMatch[1] : null;
+
+  return { spreadsheetId, gid };
 }
 
 /**
@@ -210,29 +216,39 @@ function formatSheetAsText(rows, sheetTitle = 'Training Plan') {
 
 /**
  * Import Google Sheets data and return formatted preference data
- * Imports only the first/active tab - user must provide separate links for multiple tabs
- * @param {string} spreadsheetUrl - Google Sheets URL
+ * Imports the tab specified by GID in URL, or first tab if no GID
+ * @param {string} spreadsheetUrl - Google Sheets URL (may include #gid=...)
  * @returns {Promise<Object>} Preference data object
  */
 async function importGoogleSheet(spreadsheetUrl) {
   try {
-    // Extract spreadsheet ID
-    const spreadsheetId = extractSpreadsheetId(spreadsheetUrl);
+    // Extract spreadsheet ID and GID from URL
+    const { spreadsheetId, gid } = extractSpreadsheetId(spreadsheetUrl);
     if (!spreadsheetId) {
       throw new Error('Invalid Google Sheets URL');
     }
 
-    // Fetch all sheet tabs to get the first tab name
+    // Fetch all sheet tabs to get tab names
     const tabs = await fetchAllSheetTabs(spreadsheetId);
-    const tabName = tabs.length > 0 ? tabs[0].name : 'Imported Sheet';
 
-    console.log(`Importing first tab: ${tabName}`);
-    if (tabs.length > 1) {
-      console.log(`Note: ${tabs.length} tabs found, but only importing the first one`);
+    // Determine which tab to import
+    let tabName = 'Imported Sheet';
+    if (gid) {
+      // Find the tab with matching GID
+      const matchingTab = tabs.find(t => t.gid === gid);
+      tabName = matchingTab ? matchingTab.name : `Sheet (GID: ${gid})`;
+      console.log(`Importing tab with GID ${gid}: ${tabName}`);
+    } else {
+      // Use first tab
+      tabName = tabs.length > 0 ? tabs[0].name : 'Imported Sheet';
+      console.log(`Importing first tab: ${tabName}`);
+      if (tabs.length > 1) {
+        console.log(`Note: ${tabs.length} tabs found, but no GID specified in URL`);
+      }
     }
 
-    // Fetch CSV data for first tab (no GID = default/first tab)
-    const csvData = await fetchGoogleSheetCSV(spreadsheetId, null);
+    // Fetch CSV data for the specified tab
+    const csvData = await fetchGoogleSheetCSV(spreadsheetId, gid);
 
     // Parse CSV
     const rows = parseCSV(csvData);

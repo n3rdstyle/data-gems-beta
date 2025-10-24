@@ -402,7 +402,7 @@ async function importThirdPartyData() {
     AppState.metadata.currentScreen = 'home';
     renderCurrentScreen();
 
-    alert('Google Sheet imported successfully!\n\nNote: Only the first/active tab was imported. To import additional tabs, please import them separately.');
+    alert('Google Sheet imported successfully!\n\nTip: To import a different tab, click on the tab in Google Sheets and copy the URL (which will include #gid=...), then import that URL.');
   } catch (error) {
     console.error('Error importing Google Sheet:', error);
     alert('Failed to import Google Sheet:\n' + error.message);
