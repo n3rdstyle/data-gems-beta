@@ -205,14 +205,11 @@ class DataList {
    * @param {string} collectionName - Collection name to filter by
    */
   filterByCollection(collectionName) {
-    console.log('Filtering by collection:', collectionName);
     this.cards.forEach(card => {
       const collections = card.collections || [];
-      console.log('Card:', card.getData(), 'Collections:', collections);
       const hasCollection = collections.some(c =>
         c.toLowerCase() === collectionName.toLowerCase()
       );
-      console.log('Has collection?', hasCollection);
       card.element.style.display = hasCollection ? '' : 'none';
     });
   }

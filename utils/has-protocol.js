@@ -45,10 +45,11 @@ function createField(value, assurance = 'self_declared', reliability = 'high') {
  * @param {string} value - Preference text
  * @param {string} state - State ('default', 'favorited', 'hidden')
  * @param {Array<string>} collections - Collection IDs
+ * @param {string} sourceUrl - Optional source URL (e.g., Google Sheets URL)
  * @returns {object} Preference object
  */
-function createPreference(value, state = 'default', collections = []) {
-  return {
+function createPreference(value, state = 'default', collections = [], sourceUrl = null) {
+  const pref = {
     id: generateId('pref'),
     value,
     assurance: 'self_declared',
@@ -58,6 +59,13 @@ function createPreference(value, state = 'default', collections = []) {
     created_at: getTimestamp(),
     updated_at: getTimestamp()
   };
+
+  // Only add source_url if provided
+  if (sourceUrl) {
+    pref.source_url = sourceUrl;
+  }
+
+  return pref;
 }
 
 /**
@@ -84,6 +92,7 @@ function createInitialProfile(userData = {}) {
   const identity = {};
   identity.name = createField(userData.name || '', 'self_declared', 'high');
   identity.subtitle = createField(userData.subtitle || '', 'self_declared', 'high');
+  identity.avatarImage = createField(userData.avatarImage || null, 'self_declared', 'high');
   identity.email = createField(userData.email || '', 'self_declared', 'high');
   identity.age = createField(userData.age || null, 'self_declared', 'medium');
   identity.gender = createField(userData.gender || null, 'self_declared', 'high');
@@ -131,7 +140,9 @@ function createInitialProfile(userData = {}) {
       schema_version: '0.1',
       extension_version: '2.0.0',
       total_preferences: 0,
-      last_backup: null
+      last_backup: null,
+      currentScreen: 'home',
+      usedRandomQuestions: []
     }
   };
 }
@@ -185,6 +196,7 @@ function getUserIdentity(profile) {
   return {
     name: identity.name?.value || '',
     subtitle: identity.subtitle?.value || '',
+    avatarImage: identity.avatarImage?.value || null,
     email: identity.email?.value || '',
     age: identity.age?.value || null,
     gender: identity.gender?.value || null,
@@ -255,9 +267,10 @@ function registerCollections(profile, collectionLabels) {
  * @param {string} value - Preference text
  * @param {string} state - State ('default', 'favorited', 'hidden')
  * @param {Array<string>} collections - Collection labels (e.g., ['Nutrition', 'Sports'])
+ * @param {string} sourceUrl - Optional source URL (e.g., Google Sheets URL)
  * @returns {object} Updated profile
  */
-function addPreference(profile, value, state = 'default', collections = []) {
+function addPreference(profile, value, state = 'default', collections = [], sourceUrl = null) {
   // Deep clone to avoid mutating the original profile
   let updatedProfile = JSON.parse(JSON.stringify(profile));
 
@@ -266,7 +279,7 @@ function addPreference(profile, value, state = 'default', collections = []) {
     updatedProfile = registerCollections(updatedProfile, collections);
   }
 
-  const newPref = createPreference(value, state, collections);
+  const newPref = createPreference(value, state, collections, sourceUrl);
 
   updatedProfile.content.preferences.items.push(newPref);
   updatedProfile.metadata.total_preferences = updatedProfile.content.preferences.items.length;
@@ -283,9 +296,6 @@ function addPreference(profile, value, state = 'default', collections = []) {
  * @returns {object} Updated profile
  */
 function updatePreference(profile, prefId, updates) {
-  console.log('🔧 updatePreference called:', { prefId, updates });
-  console.log('BEFORE:', profile.content.preferences.items.map(p => `[${p.state}] ${p.value.substring(0, 20)}`).join('\n'));
-
   // Deep clone to avoid mutating the original profile
   let updatedProfile = JSON.parse(JSON.stringify(profile));
   const prefIndex = updatedProfile.content.preferences.items.findIndex(p => p.id === prefId);
@@ -294,8 +304,6 @@ function updatePreference(profile, prefId, updates) {
     console.warn(`Preference with id ${prefId} not found`);
     return profile;
   }
-
-  console.log(`📍 Updating index ${prefIndex}`);
 
   // Register new collections if collections are being updated
   if (updates.collections && Array.isArray(updates.collections)) {
@@ -308,10 +316,21 @@ function updatePreference(profile, prefId, updates) {
     updated_at: getTimestamp()
   };
 
-  console.log('AFTER:', updatedProfile.content.preferences.items.map(p => `[${p.state}] ${p.value.substring(0, 20)}`).join('\n'));
-
   updatedProfile.updated_at = getTimestamp();
   return updatedProfile;
+}
+
+/**
+ * Find a preference by source URL
+ * @param {object} profile - HAS v0.1 profile
+ * @param {string} sourceUrl - Source URL to search for
+ * @returns {object|null} Preference object or null if not found
+ */
+function findPreferenceBySourceUrl(profile, sourceUrl) {
+  if (!sourceUrl) return null;
+
+  const items = profile?.content?.preferences?.items || [];
+  return items.find(pref => pref.source_url === sourceUrl) || null;
 }
 
 /**
@@ -321,19 +340,12 @@ function updatePreference(profile, prefId, updates) {
  * @returns {object} Updated profile
  */
 function deletePreference(profile, prefId) {
-  console.log('🗑️ deletePreference called:', { prefId });
-  console.log('📋 BEFORE delete:');
-  console.table(profile.content.preferences.items.map(p => ({ id: p.id, value: p.value.substring(0, 30), state: p.state })));
-
   // Deep clone to avoid mutating the original profile
   const updatedProfile = JSON.parse(JSON.stringify(profile));
 
   updatedProfile.content.preferences.items = updatedProfile.content.preferences.items.filter(
     p => p.id !== prefId
   );
-
-  console.log('📋 AFTER delete:');
-  console.table(updatedProfile.content.preferences.items.map(p => ({ id: p.id, value: p.value.substring(0, 30), state: p.state })));
 
   updatedProfile.metadata.total_preferences = updatedProfile.content.preferences.items.length;
   updatedProfile.updated_at = getTimestamp();
@@ -355,6 +367,7 @@ if (typeof module !== 'undefined' && module.exports) {
     updateUserIdentity,
     addPreference,
     updatePreference,
-    deletePreference
+    deletePreference,
+    findPreferenceBySourceUrl
   };
 }

@@ -249,7 +249,6 @@ class DataCard {
 
 // Factory function to create cards
 function createDataCard(options = {}) {
-  console.log('🎨 Creating data card:', { id: options.id, state: options.state, value: (options.value || options.data || '').substring(0, 20) });
 
   const card = document.createElement('div');
   card.className = 'data-card';

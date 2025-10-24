@@ -51,10 +51,17 @@ function createProfileTeaser(options = {}) {
     avatar.appendChild(initial);
   }
 
-  // Add upload icon if showUpload is true
+  // Add upload icon/overlay
+  let uploadIcon = null;
   if (showUpload) {
-    const uploadIcon = document.createElement('div');
+    uploadIcon = document.createElement('div');
     uploadIcon.className = 'profile-teaser__avatar-upload';
+
+    // If image exists, add hover-only class and overlay styling
+    if (avatarImage) {
+      uploadIcon.classList.add('profile-teaser__avatar-upload--hover');
+    }
+
     uploadIcon.innerHTML = typeof getIcon !== 'undefined' ? getIcon('upload') : '↑';
     uploadIcon.setAttribute('role', 'button');
     uploadIcon.setAttribute('aria-label', 'Upload profile picture');
@@ -146,12 +153,48 @@ function createProfileTeaser(options = {}) {
         img.src = imageUrl;
         img.alt = nameElement.textContent;
         avatar.appendChild(img);
+
+        // Add upload icon with hover style if showUpload is true
+        if (showUpload && onUploadClick) {
+          uploadIcon = document.createElement('div');
+          uploadIcon.className = 'profile-teaser__avatar-upload profile-teaser__avatar-upload--hover';
+          uploadIcon.innerHTML = typeof getIcon !== 'undefined' ? getIcon('upload') : '↑';
+          uploadIcon.setAttribute('role', 'button');
+          uploadIcon.setAttribute('aria-label', 'Upload profile picture');
+          uploadIcon.style.cursor = 'pointer';
+
+          uploadIcon.addEventListener('click', (e) => {
+            e.stopPropagation();
+            onUploadClick(e);
+          });
+
+          avatar.appendChild(uploadIcon);
+        } else {
+          uploadIcon = null;
+        }
       } else {
         // Fall back to initial
         const initial = document.createElement('div');
         initial.className = 'profile-teaser__avatar-initial';
         initial.textContent = nameElement.textContent.charAt(0).toUpperCase();
         avatar.appendChild(initial);
+
+        // Re-add upload icon (always visible when no image) if showUpload is true
+        if (showUpload && onUploadClick) {
+          uploadIcon = document.createElement('div');
+          uploadIcon.className = 'profile-teaser__avatar-upload';
+          uploadIcon.innerHTML = typeof getIcon !== 'undefined' ? getIcon('upload') : '↑';
+          uploadIcon.setAttribute('role', 'button');
+          uploadIcon.setAttribute('aria-label', 'Upload profile picture');
+          uploadIcon.style.cursor = 'pointer';
+
+          uploadIcon.addEventListener('click', (e) => {
+            e.stopPropagation();
+            onUploadClick(e);
+          });
+
+          avatar.appendChild(uploadIcon);
+        }
       }
     },
 

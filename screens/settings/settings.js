@@ -84,7 +84,11 @@ function createSettings(options = {}) {
     label: 'Backup your data',
     variant: 'cta',
     ctaLabel: 'Export',
-    onClick: onBackupData || (() => console.log('Backup data clicked'))
+    onClick: () => {
+      if (onBackupData) {
+        onBackupData();
+      }
+    }
   });
   dataCenterSection.appendChild(backupData.element);
 

@@ -7,18 +7,33 @@
 function createHome(options = {}) {
   const {
     profileName = 'Dennis',
-    profileSubtitle = 'Founder',
+    profileSubtitle = '',
+    profileDescription = '',
+    avatarImage = null,
+    email = '',
+    age = '',
+    gender = '',
+    location = '',
+    languages = [],
     preferencesTitle = 'My Preferences',
     preferencesData = [],
     preferenceOptionsButtons = [],
     onProfileClick = null,
+    onProfileSave = null,
+    getProfileData = null, // New: function to get current profile data
     onMenuButtonClick = null,
     onRandomQuestionClick = null,
     onPreferenceOptionClick = null,
     onPreferenceOptionsToggle = null,
     onPreferenceAdd = null,
     onPreferenceUpdate = null,
-    onPreferenceDelete = null
+    onPreferenceDelete = null,
+    onRandomQuestionUsed = null, // Callback when a random question is used
+    usedRandomQuestions = [], // Array of already used question texts
+    onBackupData = null,
+    onUpdateData = null,
+    onClearData = null,
+    onThirdPartyData = null
   } = options;
 
   // Create home container
@@ -38,11 +53,35 @@ function createHome(options = {}) {
       opacity: 0.5
     });
 
-    // Create profile screen
-    profileModal = createProfile({
+    // Get current profile data (if callback provided, otherwise use initial values)
+    let currentProfileData = {
       profileName: profileName,
       profileSubtitle: profileSubtitle,
-      onClose: closeProfile
+      profileDescription: profileDescription,
+      email: email,
+      age: age,
+      gender: gender,
+      location: location,
+      languages: languages
+    };
+
+    if (getProfileData) {
+      currentProfileData = getProfileData();
+    }
+
+    // Create profile screen with current data
+    profileModal = createProfile({
+      profileName: currentProfileData.profileName || currentProfileData.name,
+      profileSubtitle: currentProfileData.profileSubtitle || currentProfileData.subtitle,
+      profileDescription: currentProfileData.profileDescription || currentProfileData.description,
+      avatarImage: currentProfileData.avatarImage,
+      email: currentProfileData.email,
+      age: currentProfileData.age,
+      gender: currentProfileData.gender,
+      location: currentProfileData.location,
+      languages: currentProfileData.languages,
+      onClose: closeProfile,
+      onSave: onProfileSave
     });
 
     // Position profile screen centered
@@ -120,7 +159,11 @@ function createHome(options = {}) {
 
     // Create settings screen
     settingsScreen = createSettings({
-      onClose: closeSettings
+      onClose: closeSettings,
+      onBackupData: onBackupData,
+      onUpdateData: onUpdateData,
+      onClearData: onClearData,
+      onThirdPartyData: onThirdPartyData
     });
 
     // Add settings screen to parent
@@ -143,10 +186,10 @@ function createHome(options = {}) {
     profile: {
       name: profileName,
       subtitle: profileSubtitle,
+      avatarImage: avatarImage,
       onClick: openProfile
     },
     menuButtons: [
-      { icon: 'message', ariaLabel: 'Messages', onClick: openMessages },
       { icon: 'settings', ariaLabel: 'Settings', onClick: openSettings }
     ],
     onMenuButtonClick
@@ -186,7 +229,6 @@ function createHome(options = {}) {
       // Persist state changes from hover icon buttons
       if (onPreferenceUpdate) {
         const cardId = card.getId();
-        console.log('🔄 Card state changed via hover icon:', cardId, 'new state:', state);
         onPreferenceUpdate(cardId, {
           state: state
         });
@@ -210,8 +252,6 @@ function createHome(options = {}) {
         collections: card.getCollections(),
         existingTags: existingTags,
         onSave: (data) => {
-          console.log('💾 Data Editor onSave called with:', data);
-
           // Determine new state
           let newState = 'default';
           if (data.favorited) {
@@ -220,12 +260,9 @@ function createHome(options = {}) {
             newState = 'hidden';
           }
 
-          console.log('💾 Determined newState:', newState, '(hidden:', data.hidden, 'favorited:', data.favorited, ')');
-
           // Save to HAS protocol storage
           if (onPreferenceUpdate) {
             const cardId = card.getId();
-            console.log('💾 Calling onPreferenceUpdate for card:', cardId, 'with state:', newState);
             onPreferenceUpdate(cardId, {
               value: data.text,
               state: newState,
@@ -296,11 +333,14 @@ function createHome(options = {}) {
     { question: 'Which phone do you have?', tag: 'Technology' }
   ];
 
-  let currentQuestionIndex = 0;
+  // Track which questions have been used
+  let usedQuestions = randomQuestions.filter(q => usedRandomQuestions.includes(q.question));
+  let availableQuestions = randomQuestions.filter(q => !usedRandomQuestions.includes(q.question));
 
   // Create Preference Options component
   const preferenceOptions = createPreferenceOptions({
-    randomQuestionLabel: randomQuestions[0].question, // Start with first question
+    randomQuestionLabel: availableQuestions.length > 0 ? availableQuestions[0].question : 'New questions soon',
+    randomQuestionDisabled: availableQuestions.length === 0,
     buttons: preferenceOptionsButtons.length > 0 ? preferenceOptionsButtons : [
       {
         label: 'Add new preference',
@@ -371,8 +411,13 @@ function createHome(options = {}) {
     },
     onToggle: onPreferenceOptionsToggle,
     onRandomQuestionClick: () => {
-      // Get the current question object
-      const questionObj = randomQuestions[currentQuestionIndex];
+      // Check if there are available questions
+      if (availableQuestions.length === 0) {
+        return; // Button should be disabled, but double-check
+      }
+
+      // Get the first available question
+      const questionObj = availableQuestions[0];
 
       // Show modal with the question text
       preferenceOptions.showModal(questionObj.question);
@@ -380,8 +425,8 @@ function createHome(options = {}) {
     onModalSend: (answer, question) => {
       // When user sends an answer, create a new preference card
       if (answer && answer.trim()) {
-        // Find the question object to get the associated tag
-        const questionObj = randomQuestions[currentQuestionIndex];
+        // Get the current question object (first in available list)
+        const questionObj = availableQuestions[0];
 
         // Format: "Question: Answer"
         const cardText = `${question}\n${answer}`;
@@ -405,11 +450,24 @@ function createHome(options = {}) {
           updateCalibrationFromCards();
         }
 
-        // Move to next question (cycle back to 0 after last question)
-        currentQuestionIndex = (currentQuestionIndex + 1) % randomQuestions.length;
+        // Mark this question as used
+        const usedQuestion = availableQuestions.shift();
+        usedQuestions.push(usedQuestion);
 
-        // Update button label to show next question
-        preferenceOptions.setRandomQuestionLabel(randomQuestions[currentQuestionIndex].question);
+        // Save used questions to AppState via callback
+        if (onRandomQuestionUsed) {
+          onRandomQuestionUsed(usedQuestion.question);
+        }
+
+        // Update button label and state
+        if (availableQuestions.length > 0) {
+          // Show next available question
+          preferenceOptions.setRandomQuestionLabel(availableQuestions[0].question);
+        } else {
+          // All questions used - disable button
+          preferenceOptions.setRandomQuestionLabel('New questions soon');
+          preferenceOptions.setRandomQuestionDisabled(true);
+        }
       }
     }
   });
@@ -450,6 +508,13 @@ function createHome(options = {}) {
 
     updateCalibrationFromCards() {
       updateCalibrationFromCards();
+    },
+
+    updateHeaderProfile(profileData) {
+      // Update the profile teaser in the header
+      if (header && header.updateProfile) {
+        header.updateProfile(profileData);
+      }
     },
 
     showPreferenceOptions() {

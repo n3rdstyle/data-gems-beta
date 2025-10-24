@@ -51,10 +51,4 @@
   flex-shrink: 0;
 }
 
-/* Responsive */
-@media (max-width: 480px) {
-  .data-editor-modal {
-    max-width: 100%;
-    border-radius: 0;
-  }
-}
+/* Responsive - removed for Chrome Extension (fixed 400px width) */

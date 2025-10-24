@@ -109,10 +109,7 @@ function createContentPreferences(options = {}) {
       collections: card.getCollections()
     }));
 
-    console.log('updateTagCountsInternal - card collections:', data.map(d => d.collections));
-
     const newTags = calculateTagsFromData(data);
-    console.log('updateTagCountsInternal - newTags:', newTags);
 
     // Update existing tags with new counts
     const tagList = dataSearch.getTagList();
@@ -202,10 +199,7 @@ function createContentPreferences(options = {}) {
       existingTag.getCount() === 0
     );
 
-    console.log('Tags to remove:', tagsToRemove.map(t => t.getLabel()));
-
     tagsToRemove.forEach(tag => {
-      console.log('Removing tag:', tag.getLabel());
       tagList.removeTag(tag);
     });
   };

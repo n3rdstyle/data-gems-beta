@@ -149,6 +149,20 @@
   transform: scale(0.98);
 }
 
+.preference-options__random-button--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.preference-options__random-button--disabled:hover {
+  opacity: 0.5;
+}
+
+.preference-options__random-button--disabled:active {
+  transform: none;
+}
+
 .preference-options__trigger {
   pointer-events: auto;
 }

@@ -68,3 +68,81 @@
 .profile__field-row > * {
   flex: 1;
 }
+
+/* Personal Description textarea - max height 2/3 of screen width */
+.profile__description-field .input-field__textarea {
+  max-height: 267px; /* 2/3 of 400px */
+  overflow-y: auto;
+}
+
+/* Avatar Editor Modal - similar to data-editor-modal */
+.overlay:has(.avatar-editor-modal) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.avatar-editor-modal {
+  background-color: var(--color-secondary-10);
+  border: 1px solid var(--color-neutral-30);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 400px;
+  padding: var(--spacing-sm); /* 16px padding on all sides */
+  gap: var(--spacing-screen-internal); /* 24px between sections */
+}
+
+.avatar-editor-modal__content {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: 0;
+}
+
+.avatar-editor-modal__preview {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-component-internal); /* 16px */
+}
+
+.avatar-editor-modal__image {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--color-neutral-30);
+}
+
+/* Placeholder styling (when no image) */
+.avatar-editor-modal__placeholder {
+  background-color: var(--color-neutral-30);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-editor-modal__initial {
+  font-size: 80px;
+  font-weight: 500;
+  color: var(--color-neutral-80);
+  line-height: 1;
+}
+
+.avatar-editor-modal__buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-element-internal); /* 8px */
+  box-sizing: border-box;
+  flex-shrink: 0;
+}

@@ -5,10 +5,12 @@
  */
 
 function createProfile(options = {}) {
+
   const {
     profileName = 'Dennis',
-    profileSubtitle = 'Founder',
+    profileSubtitle = '',
     profileDescription = '',
+    avatarImage = null,
     email = '',
     age = '',
     gender = '',
@@ -18,6 +20,24 @@ function createProfile(options = {}) {
     onUploadAvatar = null,
     onSave = null
   } = options;
+
+  // Track original values to detect changes
+  const originalValues = {
+    name: profileName,
+    subtitle: profileSubtitle,
+    description: profileDescription,
+    email: email,
+    age: age,
+    gender: gender,
+    location: location,
+    languages: JSON.stringify(languages)
+  };
+
+  let hasChanges = false;
+  let saveButton = null;
+
+  // Track current avatar image (mutable)
+  let currentAvatarImage = avatarImage;
 
   // Create main container
   const screenElement = document.createElement('div');
@@ -33,15 +53,305 @@ function createProfile(options = {}) {
   });
   headerWrapper.appendChild(header.element);
 
+  // Function to check if values have changed
+  const checkForChanges = () => {
+    const currentValues = {
+      name: nameField.getValue(),
+      description: descriptionField.getValue(),
+      email: emailField.getValue(),
+      age: ageDropdown.getValue(),
+      gender: genderDropdown.getValue(),
+      location: locationField.getValue()
+    };
+
+    const changed =
+      currentValues.name !== originalValues.name ||
+      currentValues.description !== originalValues.description ||
+      currentValues.email !== originalValues.email ||
+      currentValues.age !== originalValues.age ||
+      currentValues.gender !== originalValues.gender ||
+      currentValues.location !== originalValues.location;
+
+    if (changed && !hasChanges) {
+      // Changes detected - show Save button
+      hasChanges = true;
+      showSaveButton();
+    } else if (!changed && hasChanges) {
+      // No changes anymore - show Close button
+      hasChanges = false;
+      showCloseButton();
+    }
+  };
+
+  // Function to replace close button with save button
+  const showSaveButton = () => {
+    const closeButtonElement = header.getCloseButton();
+    if (closeButtonElement && closeButtonElement.element) {
+      // Hide close button
+      closeButtonElement.element.style.display = 'none';
+
+      // Create save button (tertiary button with text)
+      saveButton = createTertiaryButton({
+        text: 'Save',
+        onClick: handleSave,
+        ariaLabel: 'Save changes'
+      });
+      saveButton.element.classList.add('header__close');
+
+      // Insert save button after close button
+      closeButtonElement.element.parentNode.insertBefore(
+        saveButton.element,
+        closeButtonElement.element.nextSibling
+      );
+    }
+  };
+
+  // Function to replace save button with close button
+  const showCloseButton = () => {
+    const closeButtonElement = header.getCloseButton();
+    if (closeButtonElement && closeButtonElement.element) {
+      // Show close button
+      closeButtonElement.element.style.display = '';
+
+      // Remove save button
+      if (saveButton && saveButton.element) {
+        saveButton.element.remove();
+        saveButton = null;
+      }
+    }
+  };
+
+  // Function to handle save
+  const handleSave = async () => {
+    if (onSave) {
+      const profileData = {
+        name: nameField.getValue(),
+        description: descriptionField.getValue(),
+        email: emailField.getValue(),
+        age: ageDropdown.getValue(),
+        gender: genderDropdown.getValue(),
+        location: locationField.getValue()
+      };
+
+      await onSave(profileData);
+
+      // Close profile and return to home screen
+      if (onClose) {
+        onClose();
+      }
+    }
+  };
+
+  // Function to handle avatar upload/change/remove
+  const handleAvatarUpload = () => {
+    // Use closure variable to track state within modal
+    let modalAvatarImage = currentAvatarImage;
+
+    // Show modal with options (similar to data-editor-modal)
+    const modalOverlay = createOverlay({
+      blur: false,
+      opacity: 'default',
+      visible: false,
+      onClick: () => {
+        closeModal();
+      }
+    });
+
+    // Create modal container
+    const modalElement = document.createElement('div');
+    modalElement.className = 'avatar-editor-modal';
+
+    // Function to render avatar preview (image or initial)
+    const renderAvatarPreview = () => {
+      const imagePreview = document.createElement('div');
+      imagePreview.className = 'avatar-editor-modal__preview';
+
+      if (modalAvatarImage) {
+        // Show image
+        const img = document.createElement('img');
+        img.src = modalAvatarImage;
+        img.alt = 'Profile Picture';
+        img.className = 'avatar-editor-modal__image';
+        imagePreview.appendChild(img);
+      } else {
+        // Show initial placeholder
+        const placeholder = document.createElement('div');
+        placeholder.className = 'avatar-editor-modal__image avatar-editor-modal__placeholder';
+        const initial = document.createElement('div');
+        initial.className = 'avatar-editor-modal__initial';
+        initial.textContent = profileName.charAt(0).toUpperCase();
+        placeholder.appendChild(initial);
+        imagePreview.appendChild(placeholder);
+      }
+
+      return imagePreview;
+    };
+
+    // Create header (simple-delete variant if image exists, simple variant if no image)
+    const headerSection = createHeader({
+      variant: modalAvatarImage ? 'simple-delete' : 'simple',
+      title: 'Profile Picture',
+      onClose: () => {
+        closeModal();
+      },
+      onDelete: modalAvatarImage ? async () => {
+        // Remove avatar image
+        modalAvatarImage = null;
+        currentAvatarImage = null; // Update outer variable
+        profile.setAvatarImage(null);
+
+        // Save to profile data
+        if (onSave) {
+          await onSave({ avatarImage: null });
+        }
+
+        // Close modal after delete
+        closeModal();
+      } : undefined
+    });
+
+    // Create content container with image preview
+    const contentContainer = document.createElement('div');
+    contentContainer.className = 'avatar-editor-modal__content';
+    contentContainer.appendChild(renderAvatarPreview());
+
+    // Create buttons section
+    const buttonsSection = document.createElement('div');
+    buttonsSection.className = 'avatar-editor-modal__buttons';
+
+    const uploadButton = createPrimaryButton({
+      label: modalAvatarImage ? 'Change Image' : 'Upload Image',
+      variant: 'v2',
+      onClick: () => {
+        openImageUploadForModal();
+      }
+    });
+
+    const cancelButton = createTertiaryButton({
+      text: 'Cancel',
+      onClick: () => {
+        closeModal();
+      }
+    });
+
+    buttonsSection.appendChild(uploadButton.element);
+    buttonsSection.appendChild(cancelButton.element);
+
+    // Assemble modal
+    modalElement.appendChild(headerSection.element);
+    modalElement.appendChild(contentContainer);
+    modalElement.appendChild(buttonsSection);
+
+    // Assemble overlay with modal
+    modalOverlay.element.appendChild(modalElement);
+
+    const closeModal = () => {
+      modalOverlay.hide();
+      setTimeout(() => {
+        modalOverlay.element.remove();
+      }, 300);
+    };
+
+    // Function to update modal content after upload/delete
+    const updateModalContent = () => {
+      // Clear and re-render content
+      contentContainer.innerHTML = '';
+      contentContainer.appendChild(renderAvatarPreview());
+
+      // Update button label
+      uploadButton.setLabel(modalAvatarImage ? 'Change Image' : 'Upload Image');
+
+      // Update header delete button visibility
+      // Recreate header with appropriate variant
+      const newHeaderSection = createHeader({
+        variant: modalAvatarImage ? 'simple-delete' : 'simple',
+        title: 'Profile Picture',
+        onClose: () => {
+          closeModal();
+        },
+        onDelete: modalAvatarImage ? async () => {
+          // Remove avatar image
+          modalAvatarImage = null;
+          currentAvatarImage = null; // Update outer variable
+          profile.setAvatarImage(null);
+
+          // Save to profile data
+          if (onSave) {
+            await onSave({ avatarImage: null });
+          }
+
+          // Close modal after delete
+          closeModal();
+        } : undefined
+      });
+
+      // Replace header
+      modalElement.replaceChild(newHeaderSection.element, headerSection.element);
+      headerSection.element = newHeaderSection.element;
+    };
+
+    // Function to open file dialog for image upload (modal version)
+    const openImageUploadForModal = () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/png, image/jpeg, image/jpg, image/gif, image/webp';
+
+      input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+          // Check file size (max 2MB)
+          if (file.size > 2 * 1024 * 1024) {
+            alert('Image size must be less than 2MB');
+            return;
+          }
+
+          // Read file as data URL
+          const reader = new FileReader();
+          reader.onload = async (event) => {
+            const dataUrl = event.target.result;
+
+            // Update current state
+            modalAvatarImage = dataUrl;
+            currentAvatarImage = dataUrl; // Update outer variable
+
+            // Update profile teaser image
+            profile.setAvatarImage(dataUrl);
+
+            // Save to profile data
+            if (onSave) {
+              await onSave({ avatarImage: dataUrl });
+            }
+
+            // Close modal after upload
+            closeModal();
+          };
+          reader.readAsDataURL(file);
+        } catch (error) {
+          console.error('Error uploading avatar:', error);
+          alert('Failed to upload image: ' + error.message);
+        }
+      };
+
+      input.click();
+    };
+
+    // Add to screen and show
+    screenElement.appendChild(modalOverlay.element);
+    modalOverlay.show();
+  };
+
   // Create profile section
   const profileWrapper = document.createElement('div');
   profileWrapper.className = 'profile__profile';
   const profile = createProfileTeaser({
     name: profileName,
     subtitle: profileSubtitle,
+    avatarImage: avatarImage,
     variant: 'large',
     showUpload: true,
-    onUploadClick: onUploadAvatar || (() => console.log('Upload avatar clicked'))
+    onUploadClick: handleAvatarUpload
   });
   profileWrapper.appendChild(profile.element);
 
@@ -62,8 +372,14 @@ function createProfile(options = {}) {
     type: 'textarea',
     placeholder: 'Describe yourself here ...',
     value: profileDescription,
-    autoResize: true
+    autoResize: true,
+    onInput: () => {
+      checkForChanges();
+    }
   });
+
+  // Add CSS class for max-height constraint
+  descriptionField.element.classList.add('profile__description-field');
 
   personalDescCollapsible.addContent(descriptionField.element);
   personalDescSection.appendChild(personalDescCollapsible.element);
@@ -92,7 +408,10 @@ function createProfile(options = {}) {
   nameLabel.textContent = 'Name';
   const nameField = createInputField({
     type: 'text',
-    value: profileName
+    value: profileName,
+    onInput: () => {
+      checkForChanges();
+    }
   });
   nameFieldGroup.appendChild(nameLabel);
   nameFieldGroup.appendChild(nameField.element);
@@ -105,7 +424,10 @@ function createProfile(options = {}) {
   emailLabel.textContent = 'Email';
   const emailField = createInputField({
     type: 'text',
-    value: email
+    value: email,
+    onInput: () => {
+      checkForChanges();
+    }
   });
   emailFieldGroup.appendChild(emailLabel);
   emailFieldGroup.appendChild(emailField.element);
@@ -123,7 +445,10 @@ function createProfile(options = {}) {
   const ageDropdown = createDropdown({
     value: age,
     placeholder: 'Select age',
-    options: ageOptions
+    options: ageOptions,
+    onChange: (selectedValue) => {
+      checkForChanges();
+    }
   });
   ageFieldGroup.appendChild(ageLabel);
   ageFieldGroup.appendChild(ageDropdown.element);
@@ -142,7 +467,10 @@ function createProfile(options = {}) {
       { value: 'female', label: 'Female' },
       { value: 'other', label: 'Other' },
       { value: 'prefer-not-to-say', label: 'Prefer not to say' }
-    ]
+    ],
+    onChange: (selectedValue) => {
+      checkForChanges();
+    }
   });
   genderFieldGroup.appendChild(genderLabel);
   genderFieldGroup.appendChild(genderDropdown.element);
@@ -155,7 +483,10 @@ function createProfile(options = {}) {
   locationLabel.textContent = 'Location';
   const locationField = createInputField({
     type: 'text',
-    value: location
+    value: location,
+    onInput: () => {
+      checkForChanges();
+    }
   });
   locationFieldGroup.appendChild(locationLabel);
   locationFieldGroup.appendChild(locationField.element);
@@ -237,17 +568,9 @@ function createProfile(options = {}) {
   const divider2 = createDivider();
   profileInfoSection.appendChild(divider2.element);
 
-  // "Enter more Information" action button
-  const expandButton = createActionButton({
-    label: 'Enter more Information',
-    variant: 'navigation',
-    onClick: () => console.log('Enter more Information clicked')
-  });
-
   // Assemble content
   contentWrapper.appendChild(personalDescSection);
   contentWrapper.appendChild(profileInfoSection);
-  contentWrapper.appendChild(expandButton.element);
 
   // Assemble screen
   screenElement.appendChild(headerWrapper);

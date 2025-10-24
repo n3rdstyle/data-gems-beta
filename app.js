@@ -3,7 +3,7 @@
  * Main application logic - HAS Protocol v0.1
  */
 
-console.log('Data Gems app.js loaded');
+console.log('✅ Data Gems app.js loaded - VERSION 2024-10-24-EXPORT-FIX');
 
 // State management - HAS Protocol v0.1
 let AppState = null;
@@ -12,7 +12,7 @@ let AppState = null;
 function initializeDefaultProfile() {
   return createInitialProfile({
     name: 'Dennis',
-    subtitle: 'Founder',
+    subtitle: '',
     email: '',
     age: '',
     gender: '',
@@ -30,12 +30,11 @@ async function loadData() {
     // Check if we have new HAS format
     if (result.hasProfile) {
       AppState = result.hasProfile;
-      console.log('Loaded HAS v0.1 profile from storage');
-      console.log('📥 Loaded preferences:', AppState.content.preferences.items.map(p => `[${p.state}] ${p.value.substring(0, 20)}`).join('\n'));
+      console.log('✅ Loaded HAS v0.1 profile from storage');
     }
     // Legacy format - migrate it
     else if (result.userData || result.preferences) {
-      console.log('Legacy data detected - migrating to HAS v0.1...');
+      console.log('⚠️ Legacy data detected - migrating to HAS v0.1...');
       const legacyState = {
         userData: result.userData || {},
         preferences: result.preferences || []
@@ -44,16 +43,16 @@ async function loadData() {
 
       // Save migrated data
       await saveData();
-      console.log('Migration complete');
+      console.log('✅ Migration complete');
     }
     // No data - create fresh profile
     else {
-      console.log('No existing data - creating fresh profile');
+      console.log('📝 No existing data - creating fresh profile');
       AppState = initializeDefaultProfile();
       await saveData();
     }
   } catch (error) {
-    console.log('Error loading data:', error);
+    console.error('❌ Error loading data:', error);
     AppState = initializeDefaultProfile();
   }
 }
@@ -63,20 +62,12 @@ async function saveData() {
   try {
     AppState.updated_at = getTimestamp();
 
-    console.log('💾 About to save...');
-    try {
-      const prefsLog = AppState.content.preferences.items.map(p => `[${p.state}] ${p.value.substring(0, 20)}`).join('\n');
-      console.log('💾 Saving preferences:\n' + prefsLog);
-    } catch (logErr) {
-      console.error('Error logging preferences:', logErr);
-    }
-
     await chrome.storage.local.set({
       hasProfile: AppState
     });
-    console.log('✅ HAS v0.1 profile saved to storage');
+    console.log('💾 Data saved');
   } catch (error) {
-    console.error('Error saving data:', error);
+    console.error('❌ Error saving data:', error);
   }
 }
 
@@ -89,154 +80,17 @@ function getUserData() {
 // Transforms HAS format to UI format
 function getPreferences() {
   const items = AppState?.content?.preferences?.items || [];
-  console.log('📦 getPreferences - AppState items:', items.map(i => ({ id: i.id, value: i.value, state: i.state })));
   const mapped = items.map(item => ({
     id: item.id,
     name: item.value,  // UI expects 'name', HAS has 'value'
     state: item.state,
     collections: item.collections
   }));
-  console.log('📦 getPreferences - Mapped for UI:', mapped);
-  return mapped;
+  // Reverse to show newest first (newest at top)
+  return [...mapped].reverse();
 }
 
-// Render current screen
-function renderCurrentScreen() {
-  const appContainer = document.getElementById('app');
-  if (!appContainer) {
-    console.error('App container not found');
-    return;
-  }
-
-  const currentScreen = AppState?.metadata?.currentScreen || 'home';
-  appContainer.innerHTML = '';
-  let screenComponent;
-
-  try {
-    const userData = getUserData();
-    const preferences = getPreferences();
-
-    switch (currentScreen) {
-      case 'home':
-        screenComponent = createHome({
-          profileName: userData.name,
-          profileSubtitle: userData.subtitle || 'User',
-          preferencesData: preferences,
-          onProfileClick: () => {
-            AppState.metadata.currentScreen = 'profile';
-            renderCurrentScreen();
-          },
-          onMenuButtonClick: (button, index) => {
-            if (index === 1) { // Settings button
-              AppState.metadata.currentScreen = 'settings';
-              renderCurrentScreen();
-            }
-          },
-          onPreferenceAdd: async (value, state, collections) => {
-            AppState = addPreference(AppState, value, state, collections);
-            await saveData();
-            renderCurrentScreen();
-          },
-          onPreferenceUpdate: async (prefId, updates) => {
-            console.log('🔄 onPreferenceUpdate called in app.js:', { prefId, updates });
-            console.log('🔍 Updates object:', JSON.stringify(updates, null, 2));
-            console.log('BEFORE:', AppState.content.preferences.items.map(p => `[${p.state}] ${p.value.substring(0, 20)}`).join('\n'));
-            AppState = updatePreference(AppState, prefId, updates);
-            console.log('AFTER:', AppState.content.preferences.items.map(p => `[${p.state}] ${p.value.substring(0, 20)}`).join('\n'));
-            await saveData();
-            console.log('💾 Data saved, about to re-render');
-            renderCurrentScreen();
-          },
-          onPreferenceDelete: async (prefId) => {
-            console.log('🗑️ onPreferenceDelete called in app.js:', { prefId });
-            console.log('🗑️ AppState BEFORE delete:');
-            console.table(AppState.content.preferences.items.map(p => ({ id: p.id, value: p.value.substring(0, 30), state: p.state })));
-            AppState = deletePreference(AppState, prefId);
-            console.log('🗑️ AppState AFTER delete:');
-            console.table(AppState.content.preferences.items.map(p => ({ id: p.id, value: p.value.substring(0, 30), state: p.state })));
-            await saveData();
-            console.log('💾 Data saved, about to re-render');
-            renderCurrentScreen();
-          }
-        });
-        break;
-
-      case 'profile':
-        screenComponent = createProfile({
-          profileName: userData.name,
-          profileSubtitle: userData.subtitle || 'User',
-          profileDescription: userData.description,
-          email: userData.email,
-          age: userData.age,
-          gender: userData.gender,
-          location: userData.location,
-          languages: userData.languages,
-          onClose: () => {
-            AppState.metadata.currentScreen = 'home';
-            renderCurrentScreen();
-          },
-          onSave: async (profileData) => {
-            // Update each field in HAS structure
-            if (profileData.name !== undefined) {
-              AppState = updateUserIdentity(AppState, 'name', profileData.name);
-            }
-            if (profileData.subtitle !== undefined) {
-              AppState = updateUserIdentity(AppState, 'subtitle', profileData.subtitle);
-            }
-            if (profileData.email !== undefined) {
-              AppState = updateUserIdentity(AppState, 'email', profileData.email);
-            }
-            if (profileData.age !== undefined) {
-              AppState = updateUserIdentity(AppState, 'age', profileData.age);
-            }
-            if (profileData.gender !== undefined) {
-              AppState = updateUserIdentity(AppState, 'gender', profileData.gender);
-            }
-            if (profileData.location !== undefined) {
-              AppState = updateUserIdentity(AppState, 'location', profileData.location);
-            }
-            if (profileData.description !== undefined) {
-              AppState = updateUserIdentity(AppState, 'description', profileData.description);
-            }
-            if (profileData.languages !== undefined) {
-              AppState = updateUserIdentity(AppState, 'languages', profileData.languages);
-            }
-
-            await saveData();
-            console.log('Profile updated');
-          }
-        });
-        break;
-
-      case 'settings':
-        screenComponent = createSettings({
-          onClose: () => {
-            AppState.metadata.currentScreen = 'home';
-            renderCurrentScreen();
-          },
-          onBackupData: exportData,
-          onUpdateData: importData,
-          onClearData: clearAllData,
-          onThirdPartyData: importThirdPartyData
-        });
-        break;
-
-      default:
-        AppState.metadata.currentScreen = 'home';
-        renderCurrentScreen();
-        return;
-    }
-
-    if (screenComponent && screenComponent.element) {
-      appContainer.appendChild(screenComponent.element);
-      console.log('Screen rendered:', currentScreen);
-    }
-  } catch (error) {
-    console.error('Error rendering screen:', error);
-  }
-}
-
-// Export data (HAS v0.1 format)
+// Export data (HAS v0.1 format) - defined before renderCurrentScreen
 function exportData() {
   // Clean metadata - remove internal fields
   const cleanMetadata = {
@@ -251,6 +105,7 @@ function exportData() {
   const source = AppState.content.basic.identity;
   identity.name = source.name;
   identity.subtitle = source.subtitle;
+  identity.avatarImage = source.avatarImage;
   identity.email = source.email;
   identity.age = source.age;
   identity.gender = source.gender;
@@ -298,11 +153,117 @@ function exportData() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-
-  console.log('HAS v0.1 profile exported');
 }
 
-// Import data
+// Import/Export helper functions declared before renderCurrentScreen
+function hasValue(field) {
+  if (!field || !field.value) return false;
+  if (typeof field.value === 'string' && field.value.trim() === '') return false;
+  if (Array.isArray(field.value) && field.value.length === 0) return false;
+  if (field.value === null) return false;
+  return true;
+}
+
+async function mergeImportedData(importedData) {
+  const conflicts = [];
+  const additions = [];
+
+  // Check identity fields for conflicts
+  const identityFields = ['name', 'subtitle', 'avatarImage', 'email', 'age', 'gender', 'location', 'description', 'languages'];
+  identityFields.forEach(fieldName => {
+    const existingField = AppState.content.basic.identity[fieldName];
+    const importedField = importedData.content.basic.identity[fieldName];
+
+    if (hasValue(existingField) && hasValue(importedField)) {
+      // Both have values - potential conflict
+      if (JSON.stringify(existingField.value) !== JSON.stringify(importedField.value)) {
+        conflicts.push({
+          field: fieldName,
+          existing: existingField.value,
+          imported: importedField.value
+        });
+      }
+    } else if (!hasValue(existingField) && hasValue(importedField)) {
+      // Only imported has value - add it
+      additions.push(fieldName);
+    }
+  });
+
+  // Check preferences for conflicts
+  const existingPrefs = AppState.content.preferences.items || [];
+  const importedPrefs = importedData.content.preferences.items || [];
+
+  importedPrefs.forEach(importedPref => {
+    const existingPref = existingPrefs.find(p => p.value === importedPref.value);
+    if (!existingPref) {
+      additions.push(`preference: ${importedPref.value.substring(0, 50)}...`);
+    }
+  });
+
+  // Show confirmation dialog if there are conflicts
+  if (conflicts.length > 0) {
+    const conflictDetails = conflicts.map(c => {
+      const existingStr = typeof c.existing === 'string' ? c.existing : JSON.stringify(c.existing);
+      const importedStr = typeof c.imported === 'string' ? c.imported : JSON.stringify(c.imported);
+      return `\n• ${c.field}:\n  Current: "${existingStr}"\n  Import: "${importedStr}"`;
+    }).join('\n');
+
+    const confirmed = confirm(
+      `⚠️ The following fields already have values:\n${conflictDetails}\n\n` +
+      `Do you want to OVERWRITE these ${conflicts.length} field(s)?\n\n` +
+      `Click OK to overwrite, or Cancel to keep your existing data and only import new fields.`
+    );
+
+    if (!confirmed) {
+      // Only merge non-conflicting data
+      identityFields.forEach(fieldName => {
+        const existingField = AppState.content.basic.identity[fieldName];
+        const importedField = importedData.content.basic.identity[fieldName];
+
+        if (!hasValue(existingField) && hasValue(importedField)) {
+          AppState.content.basic.identity[fieldName] = importedField;
+        }
+      });
+
+      // Add new preferences only
+      importedPrefs.forEach(importedPref => {
+        const existingPref = existingPrefs.find(p => p.value === importedPref.value);
+        if (!existingPref) {
+          AppState.content.preferences.items.push(importedPref);
+        }
+      });
+
+      return 'merged';
+    } else {
+      // Overwrite everything
+      return 'overwrite';
+    }
+  } else if (additions.length > 0) {
+    // No conflicts, just additions
+    identityFields.forEach(fieldName => {
+      const existingField = AppState.content.basic.identity[fieldName];
+      const importedField = importedData.content.basic.identity[fieldName];
+
+      if (!hasValue(existingField) && hasValue(importedField)) {
+        AppState.content.basic.identity[fieldName] = importedField;
+      }
+    });
+
+    // Add new preferences
+    importedPrefs.forEach(importedPref => {
+      const existingPref = existingPrefs.find(p => p.value === importedPref.value);
+      if (!existingPref) {
+        AppState.content.preferences.items.push(importedPref);
+      }
+    });
+
+    return 'merged';
+  } else {
+    // No changes needed
+    return 'no-changes';
+  }
+}
+
 function importData() {
   const input = document.createElement('input');
   input.type = 'file';
@@ -315,103 +276,256 @@ function importData() {
       const text = await file.text();
       const data = JSON.parse(text);
 
+      let importedData;
+
       // Check if it's HAS format
       if (data.has && data.content) {
-        AppState = data;
-        console.log('Imported HAS v0.1 profile');
+        console.log('✅ HAS format detected');
+        importedData = data;
+      } else {
+        console.log('❌ Unknown format');
+        alert('Unknown format. Please import a valid HAS v0.1 profile.');
+        return;
       }
-      // Legacy format
-      else if (data.userData || data.preferences) {
-        console.log('Legacy format detected - migrating...');
-        AppState = migrateLegacyState(data);
-      }
-      else {
-        throw new Error('Invalid data format');
+
+      // Merge imported data with existing data (with conflict detection)
+      const mergeResult = await mergeImportedData(importedData);
+
+      if (mergeResult === 'overwrite') {
+        // User chose to overwrite - use imported data directly
+        AppState = importedData;
+        AppState.metadata.currentScreen = 'home';
+      } else if (mergeResult === 'merged') {
+        // Data was merged - AppState already updated in mergeImportedData
+        AppState.metadata.currentScreen = 'home';
+      } else if (mergeResult === 'no-changes') {
+        alert('No new data to import.');
+        return;
       }
 
       await saveData();
       renderCurrentScreen();
-      alert('Data imported successfully!');
+      alert('✅ Data imported successfully!');
     } catch (error) {
       console.error('Error importing data:', error);
-      alert('Failed to import data: ' + error.message);
+      alert('❌ Error importing data: ' + error.message);
     }
   };
-  document.body.appendChild(input);
   input.click();
-  document.body.removeChild(input);
 }
 
-// Clear all data
-async function clearAllData() {
-  const confirmed = confirm(
-    'Are you sure you want to delete all your data?\n\n' +
-    'This action cannot be undone. All preferences and profile information will be permanently deleted.'
-  );
-
+function clearAllData() {
+  const confirmed = confirm('⚠️ Are you sure you want to clear all data? This cannot be undone.');
   if (confirmed) {
-    try {
-      await chrome.storage.local.clear();
-      console.log('All data cleared');
-
-      // Reset to fresh profile
-      AppState = initializeDefaultProfile();
-      await saveData();
-
-      // Go to home screen
-      AppState.metadata.currentScreen = 'home';
-      renderCurrentScreen();
-
-      alert('All data has been deleted successfully.');
-    } catch (error) {
-      console.error('Error clearing data:', error);
-      alert('Failed to clear data: ' + error.message);
-    }
+    AppState = initializeDefaultProfile();
+    saveData();
+    renderCurrentScreen();
+    alert('✅ All data cleared successfully!');
   }
 }
 
-// Import third party data (Google Sheets)
-async function importThirdPartyData() {
-  const url = prompt(
-    'Import from Google Sheets\n\n' +
-    'Please enter the Google Sheets URL:\n' +
-    '(The sheet must be accessible to anyone with the link)'
-  );
+function importThirdPartyData() {
+  alert('Third-party data import is not yet implemented.');
+}
 
-  if (!url) return; // User cancelled
+// Render current screen
+function renderCurrentScreen() {
+  const appContainer = document.getElementById('app');
+  if (!appContainer) {
+    console.error('App container not found');
+    return;
+  }
+
+  const currentScreen = AppState?.metadata?.currentScreen || 'home';
+  appContainer.innerHTML = '';
+  let screenComponent;
 
   try {
-    // Show loading message
-    console.log('Importing Google Sheet...');
+    const userData = getUserData();
+    const preferences = getPreferences();
 
-    // Import the sheet (imports first/active tab only)
-    const preferenceData = await importGoogleSheet(url);
+    switch (currentScreen) {
+      case 'home':
+        screenComponent = createHome({
+          profileName: userData.name,
+          profileSubtitle: userData.subtitle || '',
+          profileDescription: userData.description,
+          avatarImage: userData.avatarImage,
+          email: userData.email,
+          age: userData.age,
+          gender: userData.gender,
+          location: userData.location,
+          languages: userData.languages,
+          preferencesData: preferences,
+          usedRandomQuestions: AppState?.metadata?.usedRandomQuestions || [],
+          onProfileClick: () => {
+            AppState.metadata.currentScreen = 'profile';
+            renderCurrentScreen();
+          },
+          getProfileData: () => {
+            // Return current profile data from AppState
+            return getUserData();
+          },
+          onProfileSave: async (profileData) => {
+            // Update each field in HAS structure
+            if (profileData.name !== undefined) {
+              AppState = updateUserIdentity(AppState, 'name', profileData.name);
+            }
+            if (profileData.subtitle !== undefined) {
+              AppState = updateUserIdentity(AppState, 'subtitle', profileData.subtitle);
+            }
+            if (profileData.avatarImage !== undefined) {
+              AppState = updateUserIdentity(AppState, 'avatarImage', profileData.avatarImage);
+            }
+            if (profileData.email !== undefined) {
+              AppState = updateUserIdentity(AppState, 'email', profileData.email);
+            }
+            if (profileData.age !== undefined) {
+              AppState = updateUserIdentity(AppState, 'age', profileData.age);
+            }
+            if (profileData.gender !== undefined) {
+              AppState = updateUserIdentity(AppState, 'gender', profileData.gender);
+            }
+            if (profileData.location !== undefined) {
+              AppState = updateUserIdentity(AppState, 'location', profileData.location);
+            }
+            if (profileData.description !== undefined) {
+              AppState = updateUserIdentity(AppState, 'description', profileData.description);
+            }
+            if (profileData.languages !== undefined) {
+              AppState = updateUserIdentity(AppState, 'languages', profileData.languages);
+            }
 
-    // Add to AppState
-    AppState = addPreference(
-      AppState,
-      preferenceData.value,
-      preferenceData.state,
-      preferenceData.collections
-    );
+            await saveData();
 
-    // Save to storage
-    await saveData();
+            // Update header profile teaser
+            const updatedUserData = getUserData();
+            screenComponent.updateHeaderProfile({
+              name: updatedUserData.name,
+              subtitle: updatedUserData.subtitle,
+              avatarImage: updatedUserData.avatarImage
+            });
+          },
+          onMenuButtonClick: (button, index) => {
+            if (index === 1) { // Settings button
+              AppState.metadata.currentScreen = 'settings';
+              renderCurrentScreen();
+            }
+          },
+          onPreferenceAdd: async (value, state, collections) => {
+            AppState = addPreference(AppState, value, state, collections);
+            await saveData();
+            renderCurrentScreen();
+          },
+          onPreferenceUpdate: async (prefId, updates) => {
+            AppState = updatePreference(AppState, prefId, updates);
+            await saveData();
+            renderCurrentScreen();
+          },
+          onPreferenceDelete: async (prefId) => {
+            AppState = deletePreference(AppState, prefId);
+            await saveData();
+            renderCurrentScreen();
+          },
+          onRandomQuestionUsed: async (questionText) => {
+            // Add to used questions array
+            if (!AppState.metadata.usedRandomQuestions) {
+              AppState.metadata.usedRandomQuestions = [];
+            }
+            if (!AppState.metadata.usedRandomQuestions.includes(questionText)) {
+              AppState.metadata.usedRandomQuestions.push(questionText);
+              await saveData();
+            }
+          },
+          onBackupData: exportData,
+          onUpdateData: importData,
+          onClearData: clearAllData,
+          onThirdPartyData: importThirdPartyData
+        });
+        break;
 
-    // Go to home screen to show the new card
-    AppState.metadata.currentScreen = 'home';
-    renderCurrentScreen();
+      case 'profile':
+        const profileOnSave = async (profileData) => {
+          // Update each field in HAS structure
+          if (profileData.name !== undefined) {
+            AppState = updateUserIdentity(AppState, 'name', profileData.name);
+          }
+          if (profileData.subtitle !== undefined) {
+            AppState = updateUserIdentity(AppState, 'subtitle', profileData.subtitle);
+          }
+          if (profileData.avatarImage !== undefined) {
+            AppState = updateUserIdentity(AppState, 'avatarImage', profileData.avatarImage);
+          }
+          if (profileData.email !== undefined) {
+            AppState = updateUserIdentity(AppState, 'email', profileData.email);
+          }
+          if (profileData.age !== undefined) {
+            AppState = updateUserIdentity(AppState, 'age', profileData.age);
+          }
+          if (profileData.gender !== undefined) {
+            AppState = updateUserIdentity(AppState, 'gender', profileData.gender);
+          }
+          if (profileData.location !== undefined) {
+            AppState = updateUserIdentity(AppState, 'location', profileData.location);
+          }
+          if (profileData.description !== undefined) {
+            AppState = updateUserIdentity(AppState, 'description', profileData.description);
+          }
+          if (profileData.languages !== undefined) {
+            AppState = updateUserIdentity(AppState, 'languages', profileData.languages);
+          }
 
-    alert('Google Sheet imported successfully!\n\nTip: To import a different tab, click on the tab in Google Sheets and copy the URL (which will include #gid=...), then import that URL.');
+          await saveData();
+        };
+
+        screenComponent = createProfile({
+          profileName: userData.name,
+          profileSubtitle: userData.subtitle || 'User',
+          avatarImage: userData.avatarImage,
+          profileDescription: userData.description,
+          email: userData.email,
+          age: userData.age,
+          gender: userData.gender,
+          location: userData.location,
+          languages: userData.languages,
+          onClose: () => {
+            AppState.metadata.currentScreen = 'home';
+            renderCurrentScreen();
+          },
+          onSave: profileOnSave
+        });
+        break;
+
+      case 'settings':
+        screenComponent = createSettings({
+          onClose: () => {
+            AppState.metadata.currentScreen = 'home';
+            renderCurrentScreen();
+          },
+          onBackupData: () => exportData(),
+          onUpdateData: () => importData(),
+          onClearData: () => clearAllData(),
+          onThirdPartyData: () => importThirdPartyData()
+        });
+        break;
+
+      default:
+        AppState.metadata.currentScreen = 'home';
+        renderCurrentScreen();
+        return;
+    }
+
+    if (screenComponent && screenComponent.element) {
+      appContainer.appendChild(screenComponent.element);
+    }
   } catch (error) {
-    console.error('Error importing Google Sheet:', error);
-    alert('Failed to import Google Sheet:\n' + error.message);
+    console.error('Error rendering screen:', error);
   }
 }
 
 // Initialize
 async function init() {
-  console.log('Initializing Data Gems with HAS Protocol v0.1...');
+  console.log('🚀 Initializing Data Gems with HAS Protocol v0.1...');
   await loadData();
 
   // Initialize currentScreen in metadata if not present
@@ -424,12 +538,11 @@ async function init() {
       currentScreen: 'home'
     };
   }
-  if (!AppState.metadata.currentScreen) {
-    AppState.metadata.currentScreen = 'home';
-  }
+  // Always reset to home screen on extension load
+  AppState.metadata.currentScreen = 'home';
 
   renderCurrentScreen();
-  console.log('Data Gems initialized successfully!');
+  console.log('✅ Data Gems initialized successfully!');
 }
 
 // Start

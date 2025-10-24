@@ -20,6 +20,67 @@ function extractSpreadsheetId(url) {
 }
 
 /**
+ * Fetch sheet tab name by GID
+ * Extracts the actual tab name from the Google Sheets HTML
+ * @param {string} spreadsheetId - Google Sheets ID
+ * @param {string} gid - Sheet GID
+ * @returns {Promise<string>} Sheet tab name
+ */
+async function fetchSheetTabNameByGid(spreadsheetId, gid) {
+  try {
+    // Fetch the HTML with the specific GID in the URL
+    const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit#gid=${gid}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      return null;
+    }
+    const html = await response.text();
+
+    // Extract tab name using the correct CSS class: docs-sheet-tab-caption
+    // Pattern: <div class="goog-inline-block docs-sheet-tab-caption">Tab Name</div>
+    const tabCaptionPattern = /<div class="[^"]*docs-sheet-tab-caption[^"]*">([^<]+)<\/div>/g;
+    const matches = [];
+    let match;
+
+    while ((match = tabCaptionPattern.exec(html)) !== null) {
+      const tabName = match[1].trim();
+      if (tabName && tabName.length > 0) {
+        matches.push(tabName);
+      }
+    }
+
+    // If we found matches, we need to determine which one corresponds to our GID
+    // The HTML structure shows the active tab, so we'll look for all tabs
+    // and try to match based on the GID in the URL
+    if (matches.length > 0) {
+      // For now, return the first match as the page loads with the specific GID
+      // The active tab should be the one we're looking for
+      console.log(`Found ${matches.length} tab name(s):`, matches);
+
+      // Try to find the tab name that appears near our GID in the HTML
+      const gidPattern = new RegExp(`gid=${gid}[^>]*>[^<]*<[^>]*>([^<]+)`);
+      const gidMatch = html.match(gidPattern);
+      if (gidMatch) {
+        const nearbyText = gidMatch[1].trim();
+        const foundTab = matches.find(name => nearbyText.includes(name) || name.includes(nearbyText));
+        if (foundTab) {
+          console.log(`Found matching tab name near GID: ${foundTab}`);
+          return foundTab;
+        }
+      }
+
+      // Fallback: return the last match (active tab is often rendered last)
+      return matches[matches.length - 1];
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error fetching tab name by GID:', error);
+    return null;
+  }
+}
+
+/**
  * Fetch all sheet tabs (name + GID) from Google Sheets
  * @param {string} spreadsheetId - Google Sheets ID
  * @returns {Promise<Array>} Array of {name, gid} objects
@@ -79,13 +140,13 @@ async function fetchAllSheetTabs(spreadsheetId) {
 
     // Fallback: try to extract tab names from the tab bar HTML
     if (sheetsData.length === 0) {
-      // Look for tab names in the sheet tab bar
-      const tabBarPattern = />([^<]+)<\/div><div class="goog-inline-block docs-sheet-tab-dropdown"/g;
+      // Look for tab names using the correct CSS class: docs-sheet-tab-caption
+      const tabCaptionPattern = /<div class="[^"]*docs-sheet-tab-caption[^"]*">([^<]+)<\/div>/g;
       let match;
 
-      while ((match = tabBarPattern.exec(html)) !== null) {
+      while ((match = tabCaptionPattern.exec(html)) !== null) {
         const tabName = match[1].trim();
-        if (tabName && tabName.length > 0 && !tabName.startsWith('<')) {
+        if (tabName && tabName.length > 0) {
           sheetsData.push({
             name: tabName,
             gid: null // GID unknown - will use brute-force discovery
@@ -218,7 +279,7 @@ function formatSheetAsText(rows, sheetTitle = 'Training Plan') {
  * Import Google Sheets data and return formatted preference data
  * Imports the tab specified by GID in URL, or first tab if no GID
  * @param {string} spreadsheetUrl - Google Sheets URL (may include #gid=...)
- * @returns {Promise<Object>} Preference data object
+ * @returns {Promise<Object>} Preference data object with source_url
  */
 async function importGoogleSheet(spreadsheetUrl) {
   try {
@@ -231,15 +292,18 @@ async function importGoogleSheet(spreadsheetUrl) {
     // Fetch all sheet tabs to get tab names
     const tabs = await fetchAllSheetTabs(spreadsheetId);
 
-    // Determine which tab to import
+    // Fetch CSV data for the specified tab first
+    const csvData = await fetchGoogleSheetCSV(spreadsheetId, gid);
+
+    // Determine tab name based on whether GID is specified
     let tabName = 'Imported Sheet';
     if (gid) {
-      // Find the tab with matching GID
-      const matchingTab = tabs.find(t => t.gid === gid);
-      tabName = matchingTab ? matchingTab.name : `Sheet (GID: ${gid})`;
+      // Fetch the actual tab name from HTML using the GID
+      const fetchedName = await fetchSheetTabNameByGid(spreadsheetId, gid);
+      tabName = fetchedName || `Sheet (GID: ${gid})`;
       console.log(`Importing tab with GID ${gid}: ${tabName}`);
     } else {
-      // Use first tab
+      // Use first tab name from HTML
       tabName = tabs.length > 0 ? tabs[0].name : 'Imported Sheet';
       console.log(`Importing first tab: ${tabName}`);
       if (tabs.length > 1) {
@@ -247,20 +311,21 @@ async function importGoogleSheet(spreadsheetUrl) {
       }
     }
 
-    // Fetch CSV data for the specified tab
-    const csvData = await fetchGoogleSheetCSV(spreadsheetId, gid);
-
     // Parse CSV
     const rows = parseCSV(csvData);
 
     // Format as text
     const formattedText = formatSheetAsText(rows, tabName);
 
-    // Return single preference data
+    // Normalize URL for consistent comparison (use spreadsheet ID + GID)
+    const normalizedUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}${gid ? `#gid=${gid}` : ''}`;
+
+    // Return single preference data with source URL
     return {
       value: formattedText,
       state: 'default',
-      collections: ['Training']
+      collections: ['Training'],
+      sourceUrl: normalizedUrl
     };
   } catch (error) {
     console.error('Error importing Google Sheet:', error);
@@ -272,6 +337,7 @@ async function importGoogleSheet(spreadsheetUrl) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     extractSpreadsheetId,
+    fetchSheetTabNameByGid,
     fetchAllSheetTabs,
     fetchGoogleSheetCSV,
     parseCSV,

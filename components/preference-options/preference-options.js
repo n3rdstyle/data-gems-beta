@@ -8,6 +8,7 @@ function createPreferenceOptions(options = {}) {
   const {
     buttons = [],
     randomQuestionLabel = 'Random Question',
+    randomQuestionDisabled = false,
     onButtonClick = null,
     onRandomQuestionClick = null,
     onToggle = null,
@@ -17,6 +18,7 @@ function createPreferenceOptions(options = {}) {
   let isActive = false;
   let isModalActive = false;
   let currentQuestion = '';
+  let isRandomQuestionDisabled = randomQuestionDisabled;
 
   // Create main container
   const preferenceOptionsElement = document.createElement('div');
@@ -135,6 +137,18 @@ function createPreferenceOptions(options = {}) {
   }
 
   function show() {
+    // If there's only one button and it's "Add new preference", trigger it directly
+    if (buttonElements.length === 1 && buttons.length === 1) {
+      const singleButton = buttons[0];
+      if ((singleButton.label || singleButton) === 'Add new preference') {
+        // Call the button click handler directly without showing the overlay
+        if (onButtonClick) {
+          onButtonClick(singleButton.label || singleButton, 0);
+        }
+        return; // Don't show the overlay
+      }
+    }
+
     isActive = true;
     preferenceOptionsElement.classList.add('active');
     overlayComponent.show();
@@ -195,7 +209,19 @@ function createPreferenceOptions(options = {}) {
   randomQuestionButton.className = 'preference-options__random-button text-style-body-medium';
   randomQuestionButton.textContent = randomQuestionLabel;
   randomQuestionButton.type = 'button';
+  randomQuestionButton.disabled = isRandomQuestionDisabled;
+
+  // Add disabled class if needed
+  if (isRandomQuestionDisabled) {
+    randomQuestionButton.classList.add('preference-options__random-button--disabled');
+  }
+
   randomQuestionButton.addEventListener('click', () => {
+    // Don't do anything if disabled
+    if (isRandomQuestionDisabled) {
+      return;
+    }
+
     // Call user callback if provided
     if (onRandomQuestionClick) {
       onRandomQuestionClick();
@@ -268,6 +294,17 @@ function createPreferenceOptions(options = {}) {
     },
     setRandomQuestionLabel(label) {
       randomQuestionButton.textContent = label;
+    },
+
+    setRandomQuestionDisabled(disabled) {
+      isRandomQuestionDisabled = disabled;
+      randomQuestionButton.disabled = disabled;
+
+      if (disabled) {
+        randomQuestionButton.classList.add('preference-options__random-button--disabled');
+      } else {
+        randomQuestionButton.classList.remove('preference-options__random-button--disabled');
+      }
     }
   };
 }
