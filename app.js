@@ -384,8 +384,8 @@ async function importThirdPartyData() {
     // Show loading message
     console.log('Importing Google Sheet...');
 
-    // Import the sheet
-    const preferenceData = await importGoogleSheet(url, 'Training Plan');
+    // Import the sheet (title will be fetched automatically)
+    const preferenceData = await importGoogleSheet(url);
 
     // Add to AppState
     AppState = addPreference(

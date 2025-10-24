@@ -14,6 +14,35 @@ function extractSpreadsheetId(url) {
 }
 
 /**
+ * Fetch spreadsheet title from Google Sheets
+ * @param {string} spreadsheetId - Google Sheets ID
+ * @returns {Promise<string>} Spreadsheet title
+ */
+async function fetchGoogleSheetTitle(spreadsheetId) {
+  try {
+    const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      return 'Imported Sheet'; // Fallback
+    }
+    const html = await response.text();
+
+    // Try to extract title from HTML
+    const titleMatch = html.match(/<title>([^<]+)<\/title>/);
+    if (titleMatch) {
+      // Remove " - Google Sheets" or similar suffix
+      let title = titleMatch[1].replace(/\s*-\s*Google\s+(Sheets|Tabellen)?\s*$/i, '').trim();
+      return title || 'Imported Sheet';
+    }
+
+    return 'Imported Sheet'; // Fallback
+  } catch (error) {
+    console.error('Error fetching sheet title:', error);
+    return 'Imported Sheet'; // Fallback
+  }
+}
+
+/**
  * Fetch CSV data from Google Sheets
  * @param {string} spreadsheetId - Google Sheets ID
  * @param {string} gid - Sheet GID (optional, defaults to first sheet)
@@ -119,16 +148,18 @@ function formatSheetAsText(rows, sheetTitle = 'Training Plan') {
 /**
  * Import Google Sheets data and return formatted preference data
  * @param {string} spreadsheetUrl - Google Sheets URL
- * @param {string} sheetTitle - Title for the preference card
  * @returns {Promise<Object>} Preference data object
  */
-async function importGoogleSheet(spreadsheetUrl, sheetTitle = 'Training Plan') {
+async function importGoogleSheet(spreadsheetUrl) {
   try {
     // Extract spreadsheet ID
     const spreadsheetId = extractSpreadsheetId(spreadsheetUrl);
     if (!spreadsheetId) {
       throw new Error('Invalid Google Sheets URL');
     }
+
+    // Fetch spreadsheet title
+    const sheetTitle = await fetchGoogleSheetTitle(spreadsheetId);
 
     // Fetch CSV data
     const csvData = await fetchGoogleSheetCSV(spreadsheetId);
@@ -155,6 +186,7 @@ async function importGoogleSheet(spreadsheetUrl, sheetTitle = 'Training Plan') {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     extractSpreadsheetId,
+    fetchGoogleSheetTitle,
     fetchGoogleSheetCSV,
     parseCSV,
     formatSheetAsText,
