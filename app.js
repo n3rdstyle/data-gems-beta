@@ -32,6 +32,15 @@ async function loadData() {
       AppState = result.hasProfile;
       console.log('✅ Loaded HSP v0.1 profile from storage');
 
+      // Migrate 'has' property to 'hsp' if needed
+      if (AppState.has && !AppState.hsp) {
+        console.log('⚠️ Migrating property "has" to "hsp"...');
+        AppState.hsp = AppState.has;
+        delete AppState.has;
+        await saveData();
+        console.log('✅ Property migration complete');
+      }
+
       // Migrate third-party assurance if needed
       const migratedProfile = migrateThirdPartyAssurance(AppState);
       if (migratedProfile !== AppState) {
@@ -297,10 +306,17 @@ function importData() {
 
       let importedData;
 
-      // Check if it's HSP format
-      if (data.hsp && data.content) {
+      // Check if it's HSP format (accept both 'hsp' and legacy 'has')
+      if ((data.hsp || data.has) && data.content) {
         console.log('✅ HSP format detected');
         importedData = data;
+
+        // Migrate 'has' to 'hsp' if needed
+        if (importedData.has && !importedData.hsp) {
+          console.log('⚠️ Migrating imported property "has" to "hsp"...');
+          importedData.hsp = importedData.has;
+          delete importedData.has;
+        }
       } else {
         console.log('❌ Unknown format');
         alert('Unknown format. Please import a valid HSP v0.1 profile.');
