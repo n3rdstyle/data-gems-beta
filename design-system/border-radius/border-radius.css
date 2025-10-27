@@ -20,6 +20,7 @@
 
   /* Sharp */
   --radius-none: 0;
+  --radius-thin: 1px;     /* Very subtle rounding for progress bars, thin lines */
 
   /* Subtle rounding */
   --radius-xs: 4px;       /* Tiny elements, badges */

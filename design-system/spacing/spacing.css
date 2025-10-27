@@ -42,6 +42,9 @@
   --spacing-icon-text: var(--spacing-xs);             /* 8px - Icon next to text */
   --spacing-stack-items: var(--spacing-sm);           /* 16px - Stacked items */
   --spacing-sections: var(--spacing-md);              /* 24px - Major sections */
+
+  /* Special cases */
+  --spacing-input-vertical: 12px;                     /* 12px - Vertical padding for inputs (between 8px and 16px for optimal visual balance) */
 }
 
 /* ============================================

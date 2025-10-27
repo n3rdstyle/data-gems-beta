@@ -30,6 +30,10 @@
   --shadow-none: none;
   --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.06);
 
+  /* Bottom sheet shadows (upward shadows for modals sliding from bottom) */
+  --shadow-bottom-sheet: 0 -4px 24px rgba(0, 0, 0, 0.15);
+  --shadow-bottom-sheet-dark: 0 -4px 24px rgba(0, 0, 0, 0.25);
+
   /* ============================================
      SEMANTIC ALIASES
      For clearer intent in code

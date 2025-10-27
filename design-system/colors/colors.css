@@ -48,6 +48,9 @@
   --gradient-mist: linear-gradient(to bottom, #f5fcff, #f3e8ff);
   --gradient-sundown: linear-gradient(133deg, #F9D8A3 16.05%, #F57464 76.12%);
 
+  /* Utility gradients - Fades */
+  --gradient-fade-to-secondary: linear-gradient(180deg, rgba(254, 251, 246, 0) 0%, var(--color-secondary-10) 20%, var(--color-secondary-10) 100%);
+
   /* Semantic Color Mappings */
   --color-primary: var(--color-primary-60);
   --color-primary-light: var(--color-primary-40);

@@ -2,10 +2,16 @@
  * Tertiary Button Component
  * Minimal button for tertiary actions
  * Supports both icon and text variants
+ *
  * Icon variant sizes:
  *  - Default: 40x40px circular button with 24px icon
  *  - Small: 24x24px circular button with 16px icon
+ *
  * Text variant: Auto-width button with 16px horizontal padding
+ *
+ * Background variants:
+ *  - Transparent: Default transparent background with neutral-20 hover (default)
+ *  - Filled: Permanent neutral-80 background with neutral-70 hover
  */
 
 .button-tertiary {
@@ -39,12 +45,27 @@
   gap: var(--spacing-xs);
 }
 
+/* Default hover states */
 .button-tertiary:hover {
   background-color: var(--color-neutral-20);
 }
 
 .button-tertiary:active {
   background-color: var(--color-neutral-30);
+}
+
+/* Filled variant with permanent background */
+.button-tertiary--filled {
+  background-color: var(--color-neutral-80);
+  color: var(--color-neutral-10);
+}
+
+.button-tertiary--filled:hover {
+  background-color: var(--color-neutral-70);
+}
+
+.button-tertiary--filled:active {
+  background-color: var(--color-neutral-90);
 }
 
 .button-tertiary__icon {
@@ -101,4 +122,38 @@
 
 .button-tertiary:disabled:hover {
   background-color: transparent;
+}
+
+/* ============================================
+   SIZE VARIANTS FOR TEXT VARIANT
+   Icon variants already have size control
+   ============================================ */
+
+/* Large text button: 48px height */
+.button-tertiary--text.button-tertiary--large {
+  height: 48px;
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.button-tertiary--text.button-tertiary--large .button-tertiary__text {
+  font-size: var(--font-size-16);
+  line-height: 24px;
+}
+
+/* Medium text button: 40px height - default for text variant */
+.button-tertiary--text.button-tertiary--medium,
+.button-tertiary--text:not(.button-tertiary--large):not(.button-tertiary--small) {
+  height: 40px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+}
+
+/* Small text button: 32px height */
+.button-tertiary--text.button-tertiary--small {
+  height: 32px;
+  padding: var(--spacing-xxs) var(--spacing-sm);
+}
+
+.button-tertiary--text.button-tertiary--small .button-tertiary__text {
+  font-size: var(--font-size-14);
+  line-height: 20px;
 }
