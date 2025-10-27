@@ -11,20 +11,22 @@ const PLATFORMS = {
     hostPatterns: ['chat.openai.com', 'chatgpt.com'],
     selectors: {
       promptInput: '#prompt-textarea, textarea[data-id], div[contenteditable="true"][data-testid="textbox"]',
-      inputContainer: 'main'
+      inputContainer: 'main',
+      uploadButton: 'button[aria-label*="attach" i], button[aria-label*="upload" i], input[type="file"]'
     },
     isContentEditable: true,
-    injectionMethod: 'file' // ChatGPT supports file attachments
+    injectionMethod: 'file' // Try file attachment first, fall back to text if fails
   },
   CLAUDE: {
     name: 'Claude',
     hostPatterns: ['claude.ai'],
     selectors: {
       promptInput: 'div[contenteditable="true"][data-placeholder*="message"], div.ProseMirror[contenteditable="true"]',
-      inputContainer: 'div[class*="InputContainer"], fieldset'
+      inputContainer: 'div[class*="InputContainer"], fieldset',
+      uploadButton: 'button[aria-label*="attach" i], button[aria-label*="Add content" i], input[type="file"]'
     },
     isContentEditable: true,
-    injectionMethod: 'text' // Claude: inject as text
+    injectionMethod: 'file' // Claude: attach JSON file
   },
   GEMINI: {
     name: 'Gemini',
@@ -67,19 +69,25 @@ let injectionButton = null;
 let promptElement = null;
 let hasProfile = null;
 let observerActive = false;
+let autoInjectEnabled = false;
+let hasAutoInjected = false; // Track if we've already auto-injected for this page
+let lastAutoInjectUrl = ''; // Track URL to detect new chats
 
 /**
  * Detect current platform
  */
 function detectPlatform() {
   const hostname = window.location.hostname;
+  console.log('[Data Gems] Detecting platform for hostname:', hostname);
 
   for (const [key, platform] of Object.entries(PLATFORMS)) {
     if (platform.hostPatterns.some(pattern => hostname.includes(pattern))) {
+      console.log('[Data Gems] ✅ Platform detected:', platform.name);
       return platform;
     }
   }
 
+  console.log('[Data Gems] ❌ No platform detected for hostname:', hostname);
   return null;
 }
 
@@ -91,6 +99,12 @@ function findPromptElement(platform) {
 
   const selector = platform.selectors.promptInput;
   const element = document.querySelector(selector);
+
+  if (element) {
+    console.log('[Data Gems] ✅ Prompt element found for', platform.name);
+  } else {
+    console.log('[Data Gems] ❌ Prompt element NOT found for', platform.name, 'using selector:', selector);
+  }
 
   return element;
 }
@@ -182,6 +196,9 @@ function createInjectionButton() {
  * Show the injection button
  */
 function showInjectionButton() {
+  // Don't show button if auto-inject is enabled
+  if (autoInjectEnabled) return;
+
   if (injectionButton || !promptElement) return;
 
   // Create wrapper div for center alignment
@@ -265,9 +282,12 @@ async function handleInjection() {
     return;
   }
 
+  console.log('[Data Gems] Starting injection for platform:', currentPlatform.name, 'Method:', currentPlatform.injectionMethod);
+
   // Check injection method for current platform
   if (currentPlatform.injectionMethod === 'file') {
-    // Try file attachment method first (ChatGPT, Gemini)
+    console.log('[Data Gems] Using FILE injection method');
+    // Try file attachment method first (ChatGPT, Gemini, Claude)
     const profileData = formatProfileAsJSON(hasProfile);
     const blob = new Blob([profileData], { type: 'application/json' });
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
@@ -277,12 +297,18 @@ async function handleInjection() {
     const success = await attachFileToChat(file);
 
     if (success) {
+      console.log('[Data Gems] ✅ File injection successful, hiding button');
       hideInjectionButton();
       return;
+    } else {
+      console.log('[Data Gems] ❌ File injection failed, falling back to text');
     }
+  } else {
+    console.log('[Data Gems] Using TEXT injection method');
   }
 
-  // Text injection method (used for Claude, Grok, or as fallback)
+  // Text injection method (used for Grok, or as fallback if file fails)
+  console.log('[Data Gems] Injecting as text (fallback or text-only platform)');
   const profileText = formatProfileForInjection(hasProfile, {
     includeHidden: false,
     includeMetadata: false,
@@ -347,57 +373,10 @@ function formatProfileAsJSON(hasProfile) {
  * Attach file to chat (ChatGPT, Gemini, etc.)
  */
 async function attachFileToChat(file) {
+  console.log('[Data Gems] Attempting to attach file:', file.name, 'Platform:', currentPlatform.name);
 
-  // Method 0: Try to click upload button first (for platforms like Gemini)
-  if (currentPlatform.selectors?.uploadButton) {
-    const uploadButton = document.querySelector(currentPlatform.selectors.uploadButton);
-
-    if (uploadButton) {
-
-      // Click the upload button
-      uploadButton.click();
-
-      // Wait for file input to appear
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Now try to find the file input that appeared
-      const fileInputs = document.querySelectorAll('input[type="file"]');
-
-      for (const input of fileInputs) {
-        try {
-
-          // Create DataTransfer object with our file
-          const dataTransfer = new DataTransfer();
-          dataTransfer.items.add(file);
-
-          // Set files property
-          input.files = dataTransfer.files;
-
-          // Trigger change event
-          const changeEvent = new Event('change', { bubbles: true });
-          input.dispatchEvent(changeEvent);
-
-          // Also trigger input event
-          const inputEvent = new Event('input', { bubbles: true });
-          input.dispatchEvent(inputEvent);
-
-
-          // Wait to see if attachment appears in UI
-          await new Promise(resolve => setTimeout(resolve, 2000));
-
-          // Check if file was attached by looking for file name in DOM
-          const bodyText = document.body.textContent;
-          if (bodyText.includes(file.name) || bodyText.includes('json')) {
-            return true;
-          }
-
-        } catch (error) {
-          console.error('[Data Gems] Error with upload button method:', error);
-        }
-      }
-    } else {
-    }
-  }
+  // Method 0: DON'T click upload button (opens file picker which requires user activation)
+  // Instead, directly find and set the file input element
 
   // Method 1: Try to find and use file input directly
   const fileInputs = document.querySelectorAll('input[type="file"]');
@@ -410,11 +389,16 @@ async function attachFileToChat(file) {
     }
 
     try {
+      // Take snapshot BEFORE attaching to detect changes
+      const beforeAttachments = document.querySelectorAll('[class*="attachment"], [class*="file-"], [data-testid*="file"], [data-testid*="attachment"]').length;
+      const beforeBodyText = document.body.textContent.toLowerCase();
+      const fileNameLower = file.name.toLowerCase();
+
       // Create DataTransfer object with our file
       const dataTransfer = new DataTransfer();
       dataTransfer.items.add(file);
 
-      // Set files property
+      // Set files property (this doesn't require user activation!)
       input.files = dataTransfer.files;
 
       // Trigger change event
@@ -425,26 +409,34 @@ async function attachFileToChat(file) {
       const inputEvent = new Event('input', { bubbles: true });
       input.dispatchEvent(inputEvent);
 
-
       // Wait to see if attachment appears in UI
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      // Check if file was attached by looking for common attachment UI patterns
-      const attachmentSelectors = [
-        '[class*="attachment"]',
-        '[class*="file-"]',
-        '[data-testid*="file"]',
-        '[class*="upload"]',
-        '[aria-label*="attached"]',
-        'img[alt*="' + file.name.split('.')[0] + '"]'
-      ];
+      // Take snapshot AFTER to compare
+      const afterAttachments = document.querySelectorAll('[class*="attachment"], [class*="file-"], [data-testid*="file"], [data-testid*="attachment"]').length;
+      const afterBodyText = document.body.textContent.toLowerCase();
 
-      for (const selector of attachmentSelectors) {
-        const attachment = document.querySelector(selector);
-        if (attachment && attachment.textContent.includes(file.name.split('-').pop())) {
-          return true;
-        }
+      // Only report success if there's a CLEAR NEW CHANGE
+      // Check 1: Attachment element count increased
+      if (afterAttachments > beforeAttachments) {
+        console.log('[Data Gems] ✅ File attached successfully: attachment count increased from', beforeAttachments, 'to', afterAttachments, '(Method 1)');
+        return true;
       }
+
+      // Check 2: File name appears in DOM (and wasn't there before)
+      if (!beforeBodyText.includes(fileNameLower) && afterBodyText.includes(fileNameLower)) {
+        console.log('[Data Gems] ✅ File attached successfully: file name appeared in DOM (Method 1)');
+        return true;
+      }
+
+      // Check 3: "data-gems-profile" appears in DOM (and wasn't there before)
+      if (!beforeBodyText.includes('data-gems-profile') && afterBodyText.includes('data-gems-profile')) {
+        console.log('[Data Gems] ✅ File attached successfully: data-gems indicator appeared in DOM (Method 1)');
+        return true;
+      }
+
+      // If we reach here, attachment didn't work with this input
+      console.log('[Data Gems] ⚠️ No change detected after setting files on input (Method 1)');
 
     } catch (error) {
       console.error('[Data Gems] Error with file input method:', error);
@@ -483,15 +475,25 @@ async function attachFileToChat(file) {
         await new Promise(resolve => setTimeout(resolve, 2000));
 
         // Check for attachment UI - more robust verification
-        const afterAttachments = document.querySelectorAll('[class*="attachment"], [class*="file-"], [data-testid*="file"]').length;
-        const afterBodyText = document.body.textContent;
+        const afterAttachments = document.querySelectorAll('[class*="attachment"], [class*="file-"], [data-testid*="file"], [data-testid*="attachment"]').length;
+        const afterBodyText = document.body.textContent.toLowerCase();
+        const beforeBodyTextLower = beforeBodyText.toLowerCase();
+        const fileNameLower = file.name.toLowerCase();
 
         // Check if attachment count increased OR if file name appears in DOM
         if (afterAttachments > beforeAttachments) {
+          console.log('[Data Gems] ✅ File attachment detected: attachment count increased (Method 2)');
           return true;
         }
 
-        if (!beforeBodyText.includes(file.name) && afterBodyText.includes(file.name)) {
+        if (!beforeBodyTextLower.includes(fileNameLower) && afterBodyText.includes(fileNameLower)) {
+          console.log('[Data Gems] ✅ File attachment detected: file name in DOM (Method 2)');
+          return true;
+        }
+
+        // Also check for generic file indicators
+        if (!beforeBodyTextLower.includes('data-gems-profile') && afterBodyText.includes('data-gems-profile')) {
+          console.log('[Data Gems] ✅ File attachment detected: data-gems indicator in DOM (Method 2)');
           return true;
         }
 
@@ -501,6 +503,7 @@ async function attachFileToChat(file) {
     }
   }
 
+  console.log('[Data Gems] ❌ All file attachment methods failed for', currentPlatform.name);
   return false;
 }
 
@@ -527,13 +530,16 @@ function updateButtonVisibility() {
  * Initialize profile injection
  */
 async function initializeProfileInjection() {
+  console.log('[Data Gems] Initializing profile injection...');
+
   // Detect platform
   currentPlatform = detectPlatform();
   if (!currentPlatform) {
+    console.log('[Data Gems] ⚠️ Cannot initialize: No platform detected');
     return;
   }
 
-  // Load profile from storage
+  // Load profile and settings from storage
   try {
     const result = await chrome.storage.local.get(['hasProfile']);
     hasProfile = result.hasProfile;
@@ -541,6 +547,9 @@ async function initializeProfileInjection() {
     if (!hasProfile) {
       return;
     }
+
+    // Load auto-inject setting
+    autoInjectEnabled = hasProfile?.settings?.injection?.auto_inject || false;
   } catch (error) {
     console.error('[Data Gems] Error loading profile:', error);
     return;
@@ -553,8 +562,24 @@ async function initializeProfileInjection() {
     if (promptElement) {
       clearInterval(waitForPrompt);
 
-      // Initial visibility check
-      updateButtonVisibility();
+      // Check if this is a new chat (URL changed)
+      const currentUrl = window.location.href;
+      if (currentUrl !== lastAutoInjectUrl) {
+        hasAutoInjected = false;
+        lastAutoInjectUrl = currentUrl;
+      }
+
+      // If auto-inject is enabled and we haven't injected yet, do it now
+      if (autoInjectEnabled && !hasAutoInjected) {
+        // Wait a bit for page to fully load
+        setTimeout(async () => {
+          await handleInjection();
+          hasAutoInjected = true;
+        }, 1500);
+      } else {
+        // Show button only if auto-inject is disabled
+        updateButtonVisibility();
+      }
 
       // Monitor input changes
       setupInputMonitoring();
@@ -600,7 +625,9 @@ function setupInputMonitoring() {
     if (currentUrl !== lastUrl) {
       lastUrl = currentUrl;
 
-      // Reset state
+      // Reset state for new chat
+      hasAutoInjected = false;
+      lastAutoInjectUrl = currentUrl;
       hideInjectionButton();
       promptElement = null;
       observerActive = false;
@@ -730,30 +757,38 @@ function hasInjectableData(hasProfile) {
   return hasIdentityData || hasPreferences;
 }
 
-/**
- * Listen for auto-inject messages from background script
- */
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'autoInject') {
+// Old auto-inject via background script messages - REMOVED
+// Auto-inject is now handled directly on page load (see initializeProfileInjection)
+// This is simpler and prevents multiple injection attempts
 
-    // Update hasProfile with the profile from the message
-    hasProfile = request.profile;
+// Listen for changes to storage (e.g., when user toggles auto-inject in settings)
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === 'local' && changes.hasProfile) {
+    const newProfile = changes.hasProfile.newValue;
+    const oldAutoInject = autoInjectEnabled;
+    const newAutoInject = newProfile?.settings?.injection?.auto_inject || false;
 
-    // Wait a moment for the page to stabilize, then check if we should auto-inject
-    setTimeout(() => {
-      if (!promptElement) {
-        // If prompt element isn't found yet, try to find it
-        promptElement = findPromptElement(currentPlatform);
+    // Update auto-inject state
+    autoInjectEnabled = newAutoInject;
+    hasProfile = newProfile;
+
+    // If auto-inject was turned off, show button
+    if (oldAutoInject && !newAutoInject && promptElement && !injectionButton) {
+      showInjectionButton();
+    }
+
+    // If auto-inject was turned on, hide button and potentially auto-inject
+    if (!oldAutoInject && newAutoInject) {
+      hideInjectionButton();
+
+      // Auto-inject if we haven't already for this page
+      if (promptElement && !hasAutoInjected) {
+        setTimeout(async () => {
+          await handleInjection();
+          hasAutoInjected = true;
+        }, 500);
       }
-
-      if (promptElement && isNewChat()) {
-        handleInjection();
-      } else {
-      }
-    }, 1500); // Wait 1.5 seconds for page to be ready
-
-    sendResponse({ success: true });
-    return true;
+    }
   }
 });
 
@@ -763,3 +798,11 @@ if (document.readyState === 'loading') {
 } else {
   initializeProfileInjection();
 }
+
+// TEMPORARY: Export for testing in console
+window.__dataGems_test = {
+  attachFileToChat,
+  handleInjection,
+  currentPlatform: () => currentPlatform,
+  hasProfile: () => hasProfile
+};
