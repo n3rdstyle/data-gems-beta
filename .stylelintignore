@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# Design System (these define the tokens, so they're exempt)
+design-system/**/*.css
+
+# Build output
+dist/
+build/
+
+# Third-party
+vendor/

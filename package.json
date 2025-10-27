@@ -1,0 +1,20 @@
+{
+  "name": "data-gems-browser-extension",
+  "version": "0.1.0",
+  "description": "Data Gems Browser Extension with Design System",
+  "private": true,
+  "scripts": {
+    "lint:css": "stylelint \"**/*.css\" --ignore-path .stylelintignore",
+    "lint:css:fix": "stylelint \"**/*.css\" --fix --ignore-path .stylelintignore",
+    "lint:css:report": "stylelint \"**/*.css\" --ignore-path .stylelintignore --formatter verbose"
+  },
+  "devDependencies": {
+    "stylelint": "^16.0.0",
+    "stylelint-config-standard": "^36.0.0"
+  },
+  "keywords": [
+    "browser-extension",
+    "design-system",
+    "chrome-extension"
+  ]
+}

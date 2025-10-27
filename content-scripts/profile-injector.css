@@ -1,0 +1,102 @@
+/**
+ * Data Gems Profile Injector Styles
+ * Button styling for AI chat injection
+ */
+
+/* Main injection button */
+.data-gems-inject-button {
+  /* Layout */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  height: 40px;
+  z-index: 9999;
+
+  /* Appearance */
+  background: linear-gradient(133deg, #F9D8A3 16.05%, #F57464 76.12%);
+  border: none;
+  border-radius: 32px;
+  color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+  /* Interaction */
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
+}
+
+.data-gems-inject-button:hover {
+  opacity: 0.9;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.data-gems-inject-button:active {
+  transform: scale(0.98);
+}
+
+.data-gems-inject-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(249, 216, 163, 0.3);
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 768px) {
+  .data-gems-inject-button {
+    padding: 6px 12px;
+    height: 36px;
+    font-size: 13px;
+  }
+}
+
+/* Animation for button appearance */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.data-gems-inject-button {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .data-gems-inject-button {
+    border: 2px solid #ffffff;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .data-gems-inject-button {
+    transition: none;
+    animation: none;
+  }
+
+  .data-gems-inject-button:active {
+    transform: none;
+  }
+}
+
+/* Dark mode support (for platforms that have it) */
+@media (prefers-color-scheme: dark) {
+  .data-gems-inject-button {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .data-gems-inject-button:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  }
+}

@@ -6,7 +6,7 @@
 
 .tag-list {
   display: flex;
-  gap: 8px;
+  gap: var(--spacing-xs);
   align-items: center;
   flex-wrap: nowrap;
   overflow-x: auto;

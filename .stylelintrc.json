@@ -1,0 +1,75 @@
+{
+  "extends": "stylelint-config-standard",
+  "rules": {
+    "comment-empty-line-before": null,
+    "custom-property-empty-line-before": null,
+    "declaration-empty-line-before": null,
+    "rule-empty-line-before": null,
+    "no-descending-specificity": null,
+
+    "declaration-property-value-disallowed-list": {
+      "border-radius": [
+        "/^\\d+px$/",
+        "/^\\d+%$/",
+        "/^\\d+rem$/",
+        {
+          "message": "Use border-radius tokens (var(--radius-*)) instead of hardcoded values. Examples: var(--radius-sm), var(--radius-pill), var(--radius-full)"
+        }
+      ],
+      "/^(padding|margin|gap|padding-top|padding-right|padding-bottom|padding-left|margin-top|margin-right|margin-bottom|margin-left)$/": [
+        "/^\\d+px$/",
+        "/^\\d+rem$/",
+        {
+          "message": "Use spacing tokens (var(--spacing-*)) instead of hardcoded values. Examples: var(--spacing-xs), var(--spacing-sm), var(--spacing-md). For non-standard values (10px, 12px), add a comment explaining why."
+        }
+      ],
+      "font-size": [
+        "/^\\d+(px|rem)$/",
+        {
+          "message": "Use font-size tokens (var(--font-size-*)) instead of hardcoded values. Examples: var(--font-size-14), var(--font-size-16), var(--font-size-20)"
+        }
+      ],
+      "font-weight": [
+        "/^\\d+$/",
+        {
+          "message": "Use font-weight tokens (var(--font-weight-*)) instead of hardcoded values. Examples: var(--font-weight-regular), var(--font-weight-medium), var(--font-weight-bold)"
+        }
+      ],
+      "color": [
+        "/^#([0-9a-fA-F]{3,8})$/",
+        "/^rgba?\\(/",
+        {
+          "message": "Use color tokens (var(--color-*)) instead of hardcoded colors. Examples: var(--color-primary), var(--color-text-primary), var(--color-neutral-80)"
+        }
+      ],
+      "background": [
+        "/^#([0-9a-fA-F]{3,8})$/",
+        "/^rgba?\\(/",
+        {
+          "message": "Use color tokens (var(--color-*)) or gradient tokens (var(--gradient-*)) instead of hardcoded values"
+        }
+      ],
+      "background-color": [
+        "/^#([0-9a-fA-F]{3,8})$/",
+        "/^rgba?\\(/",
+        {
+          "message": "Use color tokens (var(--color-*)) instead of hardcoded colors"
+        }
+      ],
+      "border-color": [
+        "/^#([0-9a-fA-F]{3,8})$/",
+        "/^rgba?\\(/",
+        {
+          "message": "Use color tokens (var(--color-*)) instead of hardcoded colors"
+        }
+      ]
+    },
+
+    "comment-pattern": [
+      "^(?:Non-standard:|TODO:|FIXME:|NOTE:|HACK:|XXX:|\\*|\\s*eslint|\\s*stylelint|\\s*prettier|.*)",
+      {
+        "message": "When using non-standard values (like 12px or 10px), start your comment with 'Non-standard:' to document the deliberate choice"
+      }
+    ]
+  }
+}

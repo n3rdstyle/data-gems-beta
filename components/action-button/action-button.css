@@ -20,7 +20,7 @@
 .action-button__label-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 10px; /* Custom spacing between label and caption - between 8px and 16px */
+  gap: 10px; /* Non-standard: 10px provides optimal balance between label and caption */
   flex: 1;
 }
 

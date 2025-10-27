@@ -325,7 +325,67 @@ function clearAllData() {
 }
 
 function importThirdPartyData() {
-  alert('Third-party data import is not yet implemented.');
+  AppState.metadata.currentScreen = 'third-party-data';
+  renderCurrentScreen();
+}
+
+async function handleGoogleSheetsImport(url) {
+  try {
+    console.log('Importing Google Sheet:', url);
+
+    // Import the sheet data
+    const preferenceData = await importGoogleSheet(url);
+
+    // Check if this sheet has already been imported (by URL)
+    const existingPrefs = AppState.content.preferences.items || [];
+    const alreadyImported = existingPrefs.find(p => p.sourceUrl === preferenceData.sourceUrl);
+
+    if (alreadyImported) {
+      // Update existing preference
+      const prefIndex = existingPrefs.findIndex(p => p.sourceUrl === preferenceData.sourceUrl);
+      AppState.content.preferences.items[prefIndex] = {
+        ...preferenceData,
+        id: alreadyImported.id, // Keep original ID
+        created_at: alreadyImported.created_at // Keep original timestamp
+      };
+      console.log('Updated existing imported sheet');
+    } else {
+      // Add as new preference
+      AppState = addPreference(
+        AppState,
+        preferenceData.value,
+        preferenceData.state,
+        preferenceData.collections,
+        preferenceData.sourceUrl
+      );
+      console.log('Added new imported sheet');
+    }
+
+    await saveData();
+
+    // Refresh the screen to show updated list
+    renderCurrentScreen();
+
+    alert('✅ Google Sheet imported successfully!');
+  } catch (error) {
+    console.error('Error importing Google Sheet:', error);
+    throw error;
+  }
+}
+
+function getImportedSheets() {
+  const preferences = AppState.content.preferences.items || [];
+  return preferences
+    .filter(p => p.sourceUrl && p.sourceUrl.includes('docs.google.com/spreadsheets'))
+    .map(p => {
+      // Extract title from the value (first line)
+      const title = p.value.split('\n')[0] || 'Untitled Sheet';
+      return {
+        url: p.sourceUrl,
+        title: title,
+        id: p.id
+      };
+    });
 }
 
 // Render current screen
@@ -532,6 +592,19 @@ function renderCurrentScreen() {
           onUpdateData: () => importData(),
           onClearData: () => clearAllData(),
           onThirdPartyData: () => importThirdPartyData()
+        });
+        break;
+
+      case 'third-party-data':
+        screenComponent = createThirdPartyData({
+          onClose: () => {
+            AppState.metadata.currentScreen = 'settings';
+            renderCurrentScreen();
+          },
+          onImport: async (url) => {
+            await handleGoogleSheetsImport(url);
+          },
+          importedSheets: getImportedSheets()
         });
         break;
 

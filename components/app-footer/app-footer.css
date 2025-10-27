@@ -13,27 +13,27 @@
 .app-footer__version {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--spacing-xxs);
   font-family: var(--font-family);
-  font-size: 16px;
+  font-size: var(--font-size-16);
   line-height: 1.2;
   color: var(--color-neutral-80);
 }
 
 .app-footer__app-name {
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   font-variation-settings: 'wdth' 100;
 }
 
 .app-footer__version-number {
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   font-variation-settings: 'wdth' 100;
 }
 
 .app-footer__social {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-xs);
 }
 
 .app-footer__social-link {

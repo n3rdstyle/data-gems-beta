@@ -6,14 +6,14 @@
 .profile-teaser {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--spacing-sm);
 }
 
 /* Avatar */
 .profile-teaser__avatar {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   background-color: var(--color-neutral-30);
   display: flex;
   align-items: center;
@@ -23,8 +23,8 @@
 }
 
 .profile-teaser__avatar-initial {
-  font-size: 16px;
-  font-weight: 500;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-medium);
   color: var(--color-neutral-80);
   line-height: 1;
 }
@@ -53,7 +53,7 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   background-color: rgba(0, 0, 0, 0.5);
   color: var(--color-neutral-10);
 }
@@ -76,13 +76,13 @@
 .profile-teaser__info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--spacing-xxs);
   min-width: 0; /* Allow text truncation */
 }
 
 .profile-teaser__name {
-  font-size: 16px;
-  font-weight: 500;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-medium);
   color: var(--color-neutral-80);
   line-height: 1.25;
   white-space: nowrap;
@@ -91,8 +91,8 @@
 }
 
 .profile-teaser__subtitle {
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
   color: var(--color-neutral-60);
   line-height: 1.33;
   white-space: nowrap;
@@ -104,7 +104,7 @@
 .profile-teaser__avatar-image {
   width: 100%;
   height: 100%;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   object-fit: cover;
 }
 
@@ -125,18 +125,18 @@
 }
 
 .profile-teaser--large .profile-teaser__avatar-initial {
-  font-size: 32px;
+  font-size: var(--font-size-32);
 }
 
 .profile-teaser--large .profile-teaser__name {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-bold);
 }
 
 .profile-teaser--large .profile-teaser__subtitle {
-  font-size: 20px;
+  font-size: var(--font-size-20);
 }
 
 .profile-teaser--large .profile-teaser__info {
-  gap: 8px;
+  gap: var(--spacing-xs);
 }

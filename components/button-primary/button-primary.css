@@ -7,9 +7,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-radius: 32px;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-pill);
   background: var(--gradient-sundown);
   border: none;
   color: var(--color-neutral-10);
@@ -88,8 +88,8 @@
 .button-primary--v2 {
   background: var(--color-primary-90);
   color: var(--color-secondary-10);
-  border-radius: 32px;
-  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  padding: var(--spacing-xs) var(--spacing-sm);
   height: 40px;
   transition: background 0.2s, transform 0.1s;
   opacity: 1;
@@ -115,6 +115,6 @@
 
 /* Small variant - for compact contexts like action buttons */
 .button-primary--v2.button-primary--small {
-  padding: 8px 16px;
+  padding: var(--spacing-xs) var(--spacing-sm);
   height: auto;
 }

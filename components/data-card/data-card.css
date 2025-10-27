@@ -9,7 +9,7 @@
   position: relative;
   width: 368px;
   min-height: 56px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   border: 1px solid;
   transition: all 0.2s ease-in-out;
   cursor: pointer;
@@ -19,7 +19,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 16px;
+  padding: var(--spacing-sm);
   min-height: 56px;
   border-radius: inherit;
   position: relative;
@@ -29,7 +29,7 @@
   margin: 0;
   flex: 1;
   white-space: pre-wrap;
-  padding-right: 8px;
+  padding-right: var(--spacing-xs);
   min-width: 0;
   word-wrap: break-word;
   overflow-wrap: break-word;
@@ -38,7 +38,7 @@
 /* Action icons container */
 .data-card__actions {
   display: flex;
-  gap: 4px;
+  gap: var(--spacing-xxs);
   align-items: flex-start;
   opacity: 0;
   transition: opacity 0.2s ease-in-out;

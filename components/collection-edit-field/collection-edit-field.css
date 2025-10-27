@@ -7,7 +7,7 @@
 .collection-edit-field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding-bottom: 24px;
+  gap: var(--spacing-xs);
+  padding-bottom: var(--spacing-md);
   box-sizing: border-box;
 }

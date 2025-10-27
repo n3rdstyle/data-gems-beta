@@ -7,14 +7,14 @@
 .data-search {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 12px; /* Non-standard: 12px provides optimal visual balance between 8px and 16px */
   width: 100%;
 }
 
 /* Top row: search field + expand button */
 .data-search__top-row {
   display: flex;
-  gap: 8px;
+  gap: var(--spacing-xs);
   align-items: center;
   width: 100%;
 }
@@ -27,7 +27,7 @@
 /* Bottom row: add button + tag list */
 .data-search__bottom-row {
   display: flex;
-  gap: 8px;
+  gap: var(--spacing-xs);
   align-items: center;
   transition: all 0.2s ease-in-out;
 }

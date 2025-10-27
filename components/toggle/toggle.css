@@ -6,7 +6,7 @@
 .toggle {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-xs);
   cursor: pointer;
   user-select: none;
 }
@@ -15,7 +15,7 @@
   width: 44px;
   height: 24px;
   background-color: var(--color-neutral-40);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   position: relative;
   transition: background-color 0.2s ease;
 }
@@ -49,8 +49,8 @@
 /* Label */
 .toggle__label {
   font-family: var(--font-family);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
   color: var(--color-neutral-80);
   line-height: 1.2;
 }
