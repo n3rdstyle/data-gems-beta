@@ -1,6 +1,6 @@
 /**
  * Calibration Component
- * Progress bar showing calibration status
+ * Progress bar showing calibration status with hover tooltip
  */
 
 .calibration {
@@ -8,8 +8,20 @@
   height: 2px;
   position: relative;
   background-color: var(--color-neutral-30);
-  border-radius: 1px;
-  overflow: hidden;
+  border-radius: var(--radius-thin);
+  overflow: visible;
+  cursor: help;
+}
+
+/* Invisible hover area to make it easier to trigger tooltip */
+.calibration::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 0;
+  right: 0;
+  bottom: -8px;
+  z-index: 1;
 }
 
 .calibration__progress {
@@ -19,7 +31,14 @@
   height: 100%;
   background: var(--gradient-sundown);
   transition: width 0.3s ease;
-  border-radius: 1px;
+  border-radius: var(--radius-thin);
+}
+
+/* Calibration-specific tooltip styling */
+.tooltip-container .tooltip.tooltip--calibration {
+  white-space: normal;
+  max-width: 200px;
+  text-align: center;
 }
 
 /* Variant: with percentage display */

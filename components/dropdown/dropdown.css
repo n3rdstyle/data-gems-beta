@@ -13,7 +13,7 @@
   background-color: var(--color-neutral-10);
   border: 1px solid var(--color-neutral-40);
   border-radius: var(--radius-sm);
-  padding: 12px var(--spacing-sm); /* 12px vertical is non-standard, keeping for visual balance */
+  padding: var(--spacing-input-vertical) var(--spacing-sm);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -76,7 +76,7 @@
 }
 
 .dropdown__option {
-  padding: 12px var(--spacing-sm); /* 12px vertical is non-standard, keeping for consistency */
+  padding: var(--spacing-input-vertical) var(--spacing-sm);
   color: var(--color-neutral-80);
   cursor: pointer;
   transition: background-color 0.2s;

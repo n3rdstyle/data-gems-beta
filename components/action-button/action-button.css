@@ -20,12 +20,24 @@
 .action-button__label-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 10px; /* Non-standard: 10px provides optimal balance between label and caption */
+  gap: var(--spacing-xs);
   flex: 1;
 }
 
 .action-button__caption {
   color: var(--color-neutral-80);
+}
+
+/* Caption row for toggle variant */
+.action-button__caption-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-xs); /* 8px */
+}
+
+.action-button__caption-row .action-button__caption {
+  flex: 1;
 }
 
 /* Navigation variant (internal link with chevron) */

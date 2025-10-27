@@ -19,7 +19,7 @@
   width: 100%;
   padding: var(--spacing-sm);
   font-family: var(--font-family);
-  font-size: 18px; /* Non-standard: 18px provides optimal input size */
+  font-size: var(--font-size-16);
   font-weight: var(--font-weight-regular);
   line-height: 150%;
   color: var(--color-neutral-100);
