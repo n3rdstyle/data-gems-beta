@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Data Gems",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "Your personal AI companion for collecting and organizing data gems",
   "author": "Data Gems Team",
   "action": {
