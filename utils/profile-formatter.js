@@ -1,11 +1,11 @@
 /**
  * Profile Formatter for AI Injection
- * Formats HAS Protocol v0.1 profile for injection into AI chat interfaces
+ * Formats HSP Protocol v0.1 profile for injection into AI chat interfaces
  */
 
 /**
- * Format HAS profile for AI injection
- * @param {object} hasProfile - HAS v0.1 profile object
+ * Format HSP profile for AI injection
+ * @param {object} hasProfile - HSP v0.1 profile object
  * @param {object} options - Formatting options
  * @param {boolean} options.includeHidden - Include fields with state "hidden" (default: false)
  * @param {boolean} options.includeMetadata - Include profile metadata (default: false)
@@ -100,7 +100,7 @@ function formatProfileForInjection(hasProfile, options = {}) {
     ? JSON.stringify(filteredProfile, null, 2)
     : JSON.stringify(filteredProfile);
 
-  const injectionText = `Here is my Data Gems profile in HAS Protocol v${hasProfile.has} format:
+  const injectionText = `Here is my Data Gems profile in HSP Protocol v${hasProfile.has} format:
 
 \`\`\`json
 ${jsonString}
@@ -113,7 +113,7 @@ Please use this information as context for our conversation.`;
 
 /**
  * Get a human-readable summary of the profile
- * @param {object} hasProfile - HAS v0.1 profile object
+ * @param {object} hasProfile - HSP v0.1 profile object
  * @returns {string} Human-readable profile summary
  */
 function getProfileSummary(hasProfile) {
@@ -132,7 +132,7 @@ function getProfileSummary(hasProfile) {
 
 /**
  * Check if profile has sufficient data for injection
- * @param {object} hasProfile - HAS v0.1 profile object
+ * @param {object} hasProfile - HSP v0.1 profile object
  * @returns {boolean} True if profile has data worth injecting
  */
 function hasInjectableData(hasProfile) {

@@ -2,7 +2,7 @@
 
 ## Übersicht
 
-Das Profile Injection Feature ermöglicht es Benutzern, ihr Data Gems Profil (im HAS Protocol v0.1 Format) mit einem Klick in gängige KI-Chatbots zu injizieren.
+Das Profile Injection Feature ermöglicht es Benutzern, ihr Data Gems Profil (im HSP Protocol v0.1 Format) mit einem Klick in gängige KI-Chatbots zu injizieren.
 
 ## Unterstützte Plattformen
 
@@ -25,7 +25,7 @@ Das Profile Injection Feature ermöglicht es Benutzern, ihr Data Gems Profil (im
 - Verschwindet automatisch nach erfolgreicher Injection
 
 ### 3. Profil-Format
-Das injizierte Profil nutzt das **HAS Protocol v0.1** Format:
+Das injizierte Profil nutzt das **HSP Protocol v0.1** Format:
 
 ```json
 {
@@ -65,7 +65,7 @@ Das injizierte Profil nutzt das **HAS Protocol v0.1** Format:
 - ✅ Alle sichtbaren Identity-Felder (Name, Email, Age, Gender, Location, Description, Languages)
 - ✅ Alle sichtbaren Preferences (nicht hidden)
 - ✅ Collections-Metadaten
-- ✅ HAS Protocol Metadaten (Assurance, Reliability, Timestamps)
+- ✅ HSP Protocol Metadaten (Assurance, Reliability, Timestamps)
 
 ## Installation & Testing
 
@@ -133,7 +133,7 @@ chrome.storage.local.get(['hasProfile'], (result) => {
   └── profile-injector.css   # Button-Styling
 
 /utils/
-  └── profile-formatter.js   # HAS-Profil-Formatierung
+  └── profile-formatter.js   # HSP-Profil-Formatierung
 
 manifest.json                # Content Scripts registriert
 ```
@@ -142,7 +142,7 @@ manifest.json                # Content Scripts registriert
 ```
 1. detectPlatform()           → Erkennt ChatGPT/Claude/etc.
 2. findPromptElement()        → Findet Eingabefeld
-3. loadProfile()              → Lädt HAS-Profil aus Storage
+3. loadProfile()              → Lädt HSP-Profil aus Storage
 4. isNewChat()                → Prüft ob Eingabe leer
 5. showInjectionButton()      → Zeigt Button
 6. handleInjection()          → Formatiert & injiziert Profil
@@ -183,8 +183,8 @@ PLATFORMS = {
 
 ## Technische Details
 
-### HAS Protocol v0.1
-Das Feature nutzt die vollständige HAS-Struktur:
+### HSP Protocol v0.1
+Das Feature nutzt die vollständige HSP-Struktur:
 - **Assurance Levels**: `self_declared`, `derived`, etc.
 - **Reliability Levels**: `authoritative`, `high`, `medium`, `low`
 - **Timestamps**: `created_at`, `updated_at`

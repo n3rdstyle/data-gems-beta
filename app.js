@@ -1,14 +1,14 @@
 /**
  * Data Gems Chrome Extension
- * Main application logic - HAS Protocol v0.1
+ * Main application logic - HSP Protocol v0.1
  */
 
 console.log('✅ Data Gems app.js loaded - VERSION 2024-10-24-EXPORT-FIX');
 
-// State management - HAS Protocol v0.1
+// State management - HSP Protocol v0.1
 let AppState = null;
 
-// Initialize with default HAS profile
+// Initialize with default HSP profile
 function initializeDefaultProfile() {
   return createInitialProfile({
     name: 'Dennis',
@@ -27,14 +27,21 @@ async function loadData() {
   try {
     const result = await chrome.storage.local.get(['hasProfile', 'userData', 'preferences']);
 
-    // Check if we have new HAS format
+    // Check if we have new HSP format
     if (result.hasProfile) {
       AppState = result.hasProfile;
-      console.log('✅ Loaded HAS v0.1 profile from storage');
+      console.log('✅ Loaded HSP v0.1 profile from storage');
+
+      // Migrate third-party assurance if needed
+      const migratedProfile = migrateThirdPartyAssurance(AppState);
+      if (migratedProfile !== AppState) {
+        AppState = migratedProfile;
+        await saveData();
+      }
     }
     // Legacy format - migrate it
     else if (result.userData || result.preferences) {
-      console.log('⚠️ Legacy data detected - migrating to HAS v0.1...');
+      console.log('⚠️ Legacy data detected - migrating to HSP v0.1...');
       const legacyState = {
         userData: result.userData || {},
         preferences: result.preferences || []
@@ -77,20 +84,32 @@ function getUserData() {
 }
 
 // Get preferences (helper for backward compatibility)
-// Transforms HAS format to UI format
+// Transforms HSP format to UI format
 function getPreferences() {
   const items = AppState?.content?.preferences?.items || [];
-  const mapped = items.map(item => ({
-    id: item.id,
-    name: item.value,  // UI expects 'name', HAS has 'value'
-    state: item.state,
-    collections: item.collections
-  }));
+  const mapped = items.map(item => {
+    const pref = {
+      id: item.id,
+      name: item.value,  // UI expects 'name', HSP has 'value'
+      state: item.state,
+      collections: item.collections
+    };
+
+    // Add source info if sourceUrl exists
+    if (item.source_url) {
+      pref.source = {
+        type: 'google',
+        url: item.source_url
+      };
+    }
+
+    return pref;
+  });
   // Reverse to show newest first (newest at top)
   return [...mapped].reverse();
 }
 
-// Export data (HAS v0.1 format) - defined before renderCurrentScreen
+// Export data (HSP v0.1 format) - defined before renderCurrentScreen
 function exportData() {
   // Clean metadata - remove internal fields
   const cleanMetadata = {
@@ -113,7 +132,7 @@ function exportData() {
   identity.description = source.description;
   identity.languages = source.languages;
 
-  // Build data in correct HAS v0.1 field order
+  // Build data in correct HSP v0.1 field order
   const data = {
     // Header fields (in order)
     id: AppState.id,
@@ -278,13 +297,13 @@ function importData() {
 
       let importedData;
 
-      // Check if it's HAS format
+      // Check if it's HSP format
       if (data.has && data.content) {
-        console.log('✅ HAS format detected');
+        console.log('✅ HSP format detected');
         importedData = data;
       } else {
         console.log('❌ Unknown format');
-        alert('Unknown format. Please import a valid HAS v0.1 profile.');
+        alert('Unknown format. Please import a valid HSP v0.1 profile.');
         return;
       }
 
@@ -338,15 +357,18 @@ async function handleGoogleSheetsImport(url) {
 
     // Check if this sheet has already been imported (by URL)
     const existingPrefs = AppState.content.preferences.items || [];
-    const alreadyImported = existingPrefs.find(p => p.sourceUrl === preferenceData.sourceUrl);
+    const alreadyImported = existingPrefs.find(p => p.source_url === preferenceData.sourceUrl);
 
     if (alreadyImported) {
       // Update existing preference
-      const prefIndex = existingPrefs.findIndex(p => p.sourceUrl === preferenceData.sourceUrl);
+      const prefIndex = existingPrefs.findIndex(p => p.source_url === preferenceData.sourceUrl);
       AppState.content.preferences.items[prefIndex] = {
-        ...preferenceData,
-        id: alreadyImported.id, // Keep original ID
-        created_at: alreadyImported.created_at // Keep original timestamp
+        ...alreadyImported,
+        value: preferenceData.value,
+        state: preferenceData.state,
+        collections: preferenceData.collections,
+        source_url: preferenceData.sourceUrl,
+        updated_at: getTimestamp()
       };
       console.log('Updated existing imported sheet');
     } else {
@@ -376,12 +398,12 @@ async function handleGoogleSheetsImport(url) {
 function getImportedSheets() {
   const preferences = AppState.content.preferences.items || [];
   return preferences
-    .filter(p => p.sourceUrl && p.sourceUrl.includes('docs.google.com/spreadsheets'))
+    .filter(p => p.source_url && p.source_url.includes('docs.google.com/spreadsheets'))
     .map(p => {
       // Extract title from the value (first line)
       const title = p.value.split('\n')[0] || 'Untitled Sheet';
       return {
-        url: p.sourceUrl,
+        url: p.source_url,
         title: title,
         id: p.id
       };
@@ -427,7 +449,7 @@ function renderCurrentScreen() {
             return getUserData();
           },
           onProfileSave: async (profileData) => {
-            // Update each field in HAS structure
+            // Update each field in HSP structure
             if (profileData.name !== undefined) {
               AppState = updateUserIdentity(AppState, 'name', profileData.name);
             }
@@ -518,7 +540,7 @@ function renderCurrentScreen() {
 
       case 'profile':
         const profileOnSave = async (profileData) => {
-          // Update each field in HAS structure
+          // Update each field in HSP structure
           if (profileData.name !== undefined) {
             AppState = updateUserIdentity(AppState, 'name', profileData.name);
           }
@@ -624,7 +646,7 @@ function renderCurrentScreen() {
 
 // Initialize
 async function init() {
-  console.log('🚀 Initializing Data Gems with HAS Protocol v0.1...');
+  console.log('🚀 Initializing Data Gems with HSP Protocol v0.1...');
   await loadData();
 
   // Initialize currentScreen in metadata if not present

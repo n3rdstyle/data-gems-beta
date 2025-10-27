@@ -1,5 +1,5 @@
 /**
- * HAS Protocol Utilities
+ * HSP Protocol Utilities
  * Helper functions for MVP v0.1 data structure
  */
 
@@ -25,7 +25,7 @@ function getTimestamp() {
 }
 
 /**
- * Create a field object with HAS protocol metadata
+ * Create a field object with HSP protocol metadata
  * @param {*} value - The field value
  * @param {string} assurance - Assurance level ('self_declared', 'derived', etc.)
  * @param {string} reliability - Reliability level ('authoritative', 'high', 'medium', 'low')
@@ -54,7 +54,7 @@ function createPreference(value, state = 'default', collections = [], sourceUrl 
   const pref = {
     id: generateId('pref'),
     value,
-    assurance: 'self_declared',
+    assurance: sourceUrl ? 'third_party' : 'self_declared',
     reliability: 'authoritative',
     state,
     collections,
@@ -99,9 +99,9 @@ function updateFieldState(field, newState) {
 }
 
 /**
- * Create initial HAS profile structure
+ * Create initial HSP profile structure
  * @param {object} userData - Legacy user data
- * @returns {object} HAS v0.1 profile
+ * @returns {object} HSP v0.1 profile
  */
 function createInitialProfile(userData = {}) {
   // Create identity fields in correct order
@@ -164,9 +164,9 @@ function createInitialProfile(userData = {}) {
 }
 
 /**
- * Migrate legacy AppState to HAS v0.1
+ * Migrate legacy AppState to HSP v0.1
  * @param {object} legacyState - Old AppState format
- * @returns {object} HAS v0.1 profile
+ * @returns {object} HSP v0.1 profile
  */
 function migrateLegacyState(legacyState) {
   let profile = createInitialProfile(legacyState.userData);
@@ -204,7 +204,7 @@ function migrateLegacyState(legacyState) {
 
 /**
  * Get user identity data (for backward compatibility with UI)
- * @param {object} profile - HAS v0.1 profile
+ * @param {object} profile - HSP v0.1 profile
  * @returns {object} User identity object
  */
 function getUserIdentity(profile) {
@@ -229,7 +229,7 @@ function getUserIdentity(profile) {
 
 /**
  * Update user identity field
- * @param {object} profile - HAS v0.1 profile
+ * @param {object} profile - HSP v0.1 profile
  * @param {string} fieldName - Field name (e.g., 'name', 'email')
  * @param {*} value - New value
  * @returns {object} Updated profile
@@ -253,7 +253,7 @@ function updateUserIdentity(profile, fieldName, value) {
 
 /**
  * Update user identity field state
- * @param {object} profile - HAS v0.1 profile
+ * @param {object} profile - HSP v0.1 profile
  * @param {string} fieldName - Field name (e.g., 'description', 'email')
  * @param {string} state - New state ('default', 'hidden')
  * @returns {object} Updated profile
@@ -275,7 +275,7 @@ function updateUserIdentityState(profile, fieldName, state) {
 
 /**
  * Register new collections in the collections array
- * @param {object} profile - HAS v0.1 profile
+ * @param {object} profile - HSP v0.1 profile
  * @param {Array<string>} collectionLabels - Array of collection labels (e.g., ['Nutrition', 'Sports'])
  * @returns {object} Updated profile
  */
@@ -306,7 +306,7 @@ function registerCollections(profile, collectionLabels) {
 
 /**
  * Add a preference to the profile
- * @param {object} profile - HAS v0.1 profile
+ * @param {object} profile - HSP v0.1 profile
  * @param {string} value - Preference text
  * @param {string} state - State ('default', 'favorited', 'hidden')
  * @param {Array<string>} collections - Collection labels (e.g., ['Nutrition', 'Sports'])
@@ -333,7 +333,7 @@ function addPreference(profile, value, state = 'default', collections = [], sour
 
 /**
  * Update a preference
- * @param {object} profile - HAS v0.1 profile
+ * @param {object} profile - HSP v0.1 profile
  * @param {string} prefId - Preference ID
  * @param {object} updates - Fields to update (can include 'collections')
  * @returns {object} Updated profile
@@ -365,7 +365,7 @@ function updatePreference(profile, prefId, updates) {
 
 /**
  * Find a preference by source URL
- * @param {object} profile - HAS v0.1 profile
+ * @param {object} profile - HSP v0.1 profile
  * @param {string} sourceUrl - Source URL to search for
  * @returns {object|null} Preference object or null if not found
  */
@@ -378,7 +378,7 @@ function findPreferenceBySourceUrl(profile, sourceUrl) {
 
 /**
  * Delete a preference
- * @param {object} profile - HAS v0.1 profile
+ * @param {object} profile - HSP v0.1 profile
  * @param {string} prefId - Preference ID
  * @returns {object} Updated profile
  */
@@ -394,6 +394,36 @@ function deletePreference(profile, prefId) {
   updatedProfile.updated_at = getTimestamp();
 
   return updatedProfile;
+}
+
+/**
+ * Migrate existing preferences: Set assurance to 'third_party' for items with source_url
+ * @param {object} profile - HSP v0.1 profile
+ * @returns {object} Updated profile (or original if no changes needed)
+ */
+function migrateThirdPartyAssurance(profile) {
+  // Deep clone to avoid mutating the original profile
+  const updatedProfile = JSON.parse(JSON.stringify(profile));
+  let hasChanges = false;
+
+  const items = updatedProfile.content.preferences.items || [];
+
+  items.forEach(item => {
+    // If item has source_url but assurance is not 'third_party', update it
+    if (item.source_url && item.assurance !== 'third_party') {
+      item.assurance = 'third_party';
+      item.updated_at = getTimestamp();
+      hasChanges = true;
+    }
+  });
+
+  if (hasChanges) {
+    updatedProfile.updated_at = getTimestamp();
+    console.log('✅ Migrated third-party assurance for existing preferences');
+    return updatedProfile;
+  }
+
+  return profile; // Return original if no changes
 }
 
 // Export for use in other modules
@@ -413,6 +443,7 @@ if (typeof module !== 'undefined' && module.exports) {
     addPreference,
     updatePreference,
     deletePreference,
-    findPreferenceBySourceUrl
+    findPreferenceBySourceUrl,
+    migrateThirdPartyAssurance
   };
 }

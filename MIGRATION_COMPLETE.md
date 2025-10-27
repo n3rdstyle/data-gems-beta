@@ -1,8 +1,8 @@
-# HAS Protocol v0.1 Migration - COMPLETE ✅
+# HSP Protocol v0.1 Migration - COMPLETE ✅
 
 **Date:** 2025-10-24
 **Status:** Migration completed successfully
-**Version:** Data Gems 2.0.0 → HAS Protocol v0.1
+**Version:** Data Gems 2.0.0 → HSP Protocol v0.1
 
 ---
 
@@ -17,7 +17,7 @@ AppState = {
 }
 ```
 
-**After (HAS v0.1):**
+**After (HSP v0.1):**
 ```javascript
 AppState = {
   id: "profile_...",
@@ -53,8 +53,8 @@ AppState = {
 <script src="utils/has-protocol.js"></script>
 ```
 
-### 2. `/utils/has-protocol.js` ✅ NEW FILE
-**Created:** Complete utility library for HAS v0.1
+### 2. `/utils/hsp-protocol.js` ✅ NEW FILE
+**Created:** Complete utility library for HSP v0.1
 
 **Key Functions:**
 - `generateId(prefix)` - UUID generation
@@ -69,10 +69,10 @@ AppState = {
 
 ### 3. `/app.js` ✅ MAJOR REFACTOR
 **Changes:**
-- ✅ AppState is now HAS v0.1 profile structure
+- ✅ AppState is now HSP v0.1 profile structure
 - ✅ Automatic legacy data migration on first load
 - ✅ Storage key changed from `userData`/`preferences` → `hasProfile`
-- ✅ Export/Import now uses HAS format
+- ✅ Export/Import now uses HSP format
 - ✅ Helper functions `getUserData()` and `getPreferences()` for backward compatibility
 - ✅ Profile updates use `updateUserIdentity()` helper
 
@@ -86,7 +86,7 @@ AppState = {
 
 ### 4. `/components/data-card/data-card.js` ✅
 **Changes:**
-- ✅ `this.data` → `this.value` (HAS compliant)
+- ✅ `this.data` → `this.value` (HSP compliant)
 - ✅ Added `this.id` for preference tracking
 - ✅ `setValue()` / `getValue()` methods
 - ✅ `setData()` / `getData()` kept for backward compatibility (deprecated)
@@ -97,7 +97,7 @@ AppState = {
 ## 🔄 Backward Compatibility
 
 ### Automatic Migration ✅
-- **First load:** Existing `userData` and `preferences` are automatically migrated to HAS v0.1
+- **First load:** Existing `userData` and `preferences` are automatically migrated to HSP v0.1
 - **No data loss:** All existing user data is preserved
 - **Seamless:** User doesn't notice the migration
 
@@ -127,9 +127,9 @@ Every preference now has:
 - `assurance` / `reliability` - Data quality metadata
 
 ### 3. **Export/Import**
-- Exports full HAS v0.1 profile (with metadata)
+- Exports full HSP v0.1 profile (with metadata)
 - Imports support both HAS and legacy formats
-- File naming: `data-gems-has-profile-{timestamp}.json`
+- File naming: `data-gems-hsp-profile-{timestamp}.json`
 
 ### 4. **Future-Proof Structure**
 Ready for Phase 2-6 additions:
@@ -144,20 +144,20 @@ Ready for Phase 2-6 additions:
 ### Manual Testing
 - [ ] Load extension with NO existing data → Fresh profile created
 - [ ] Load extension with LEGACY data → Auto-migration works
-- [ ] Load extension with HAS data → Loads correctly
+- [ ] Load extension with HSP data → Loads correctly
 - [ ] Create new preference → Saved with ID + timestamps
 - [ ] Update preference state → `updated_at` changes
-- [ ] Export profile → HAS v0.1 JSON downloaded
+- [ ] Export profile → HSP v0.1 JSON downloaded
 - [ ] Import legacy backup → Migration works
-- [ ] Import HAS backup → Loads correctly
-- [ ] Edit profile (name, email, etc.) → Updates HAS structure
+- [ ] Import HSP backup → Loads correctly
+- [ ] Edit profile (name, email, etc.) → Updates HSP structure
 - [ ] Check Chrome DevTools → `hasProfile` in storage
 
 ### Console Checks
 Open Chrome DevTools and verify:
 ```javascript
 chrome.storage.local.get(['hasProfile'], (result) => {
-  console.log('HAS Profile:', result.hasProfile);
+  console.log('HSP Profile:', result.hasProfile);
   console.log('Version:', result.hasProfile.has); // Should be "0.1"
   console.log('Preferences:', result.hasProfile.content.preferences.items);
 });
@@ -178,7 +178,7 @@ chrome.storage.local.get(['hasProfile'], (result) => {
 }
 ```
 
-### After (HAS v0.1 - ~450 bytes)
+### After (HSP v0.1 - ~450 bytes)
 ```json
 {
   "id": "profile_lz8x9k2a1b",
@@ -254,4 +254,4 @@ If migration issues occur:
 **COMPLETED:** 2025-10-24
 **Next Milestone:** Phase 2 (Semantic Grouping) - TBD
 
-🎉 **HAS Protocol v0.1 is now live!**
+🎉 **HSP Protocol v0.1 is now live!**

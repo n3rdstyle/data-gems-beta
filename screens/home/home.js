@@ -224,13 +224,26 @@ function createHome(options = {}) {
     }
   };
 
+  // Store reference to preference options (created later)
+  let preferenceOptions = null;
+
   // Create content preferences
   const contentWrapper = document.createElement('div');
   contentWrapper.className = 'home__content';
   const contentPreferences = createContentPreferences({
     title: preferencesTitle,
-    data: preferencesData, // Use real data from HAS protocol (empty array on first install)
+    data: preferencesData, // Use real data from HSP protocol (empty array on first install)
     modalContainer: screenElement,
+    onSearchStateChange: (isActive) => {
+      // Show/hide preference options based on search state
+      if (preferenceOptions) {
+        if (isActive) {
+          preferenceOptions.element.style.display = 'none';
+        } else {
+          preferenceOptions.element.style.display = '';
+        }
+      }
+    },
     onCardStateChange: (card, state) => {
       // Persist state changes from hover icon buttons
       if (onPreferenceUpdate) {
@@ -266,7 +279,7 @@ function createHome(options = {}) {
             newState = 'hidden';
           }
 
-          // Save to HAS protocol storage
+          // Save to HSP protocol storage
           if (onPreferenceUpdate) {
             const cardId = card.getId();
             onPreferenceUpdate(cardId, {
@@ -303,7 +316,7 @@ function createHome(options = {}) {
           }
         },
         onDelete: () => {
-          // Save to HAS protocol storage
+          // Save to HSP protocol storage
           if (onPreferenceDelete) {
             const cardId = card.getId();
             onPreferenceDelete(cardId);
@@ -327,6 +340,14 @@ function createHome(options = {}) {
   });
   contentWrapper.appendChild(contentPreferences.element);
 
+  // Add scroll listener to hide preference options when scrolling
+  contentWrapper.addEventListener('scroll', () => {
+    // Hide preference options when scrolling
+    if (preferenceOptions && preferenceOptions.isOpen()) {
+      preferenceOptions.hide();
+    }
+  });
+
   // Initialize calibration with current card count
   updateCalibrationFromCards();
 
@@ -344,7 +365,7 @@ function createHome(options = {}) {
   let availableQuestions = randomQuestions.filter(q => !usedRandomQuestions.includes(q.question));
 
   // Create Preference Options component
-  const preferenceOptions = createPreferenceOptions({
+  preferenceOptions = createPreferenceOptions({
     randomQuestionLabel: availableQuestions.length > 0 ? availableQuestions[0].question : 'New questions soon',
     randomQuestionDisabled: availableQuestions.length === 0,
     buttons: preferenceOptionsButtons.length > 0 ? preferenceOptionsButtons : [
@@ -386,7 +407,7 @@ function createHome(options = {}) {
                   state = 'hidden';
                 }
 
-                // Save to HAS protocol storage
+                // Save to HSP protocol storage
                 if (onPreferenceAdd) {
                   onPreferenceAdd(data.text, state, data.collections);
                   // Note: renderCurrentScreen() in app.js will rebuild the UI
@@ -437,7 +458,7 @@ function createHome(options = {}) {
         // Format: "Question: Answer"
         const cardText = `${question}\n${answer}`;
 
-        // Save to HAS protocol storage
+        // Save to HSP protocol storage
         if (onPreferenceAdd) {
           onPreferenceAdd(cardText, 'default', [questionObj.tag]);
           // Note: renderCurrentScreen() in app.js will rebuild the UI

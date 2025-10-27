@@ -84,7 +84,7 @@
 In DevTools Console:
 ```javascript
 chrome.storage.local.get(['hasProfile'], (result) => {
-  console.log('=== HAS PROFILE ===');
+  console.log('=== HSP PROFILE ===');
   console.log(JSON.stringify(result.hasProfile, null, 2));
   console.log('Preferences:', result.hasProfile?.content?.preferences?.items);
 });
@@ -121,7 +121,7 @@ chrome.storage.local.get(['hasProfile'], (result) => {
 - [ ] Daten bleiben nach Browser Restart erhalten
 - [ ] Edit funktioniert & wird gespeichert
 - [ ] Delete funktioniert & wird gespeichert
-- [ ] Storage nutzt HAS v0.1 Format
+- [ ] Storage nutzt HSP v0.1 Format
 
 ---
 

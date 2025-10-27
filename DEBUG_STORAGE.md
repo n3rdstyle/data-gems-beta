@@ -20,9 +20,9 @@
 **Was du sehen solltest:**
 ```
 Data Gems app.js loaded
-Initializing Data Gems with HAS Protocol v0.1...
+Initializing Data Gems with HSP Protocol v0.1...
 🆕 No existing data - creating fresh profile
-✅ HAS v0.1 profile saved to storage
+✅ HSP v0.1 profile saved to storage
 ✅ Total preferences: 0
 ✅ Fresh profile created and saved
 Screen rendered: home
@@ -43,7 +43,7 @@ Data Gems initialized successfully!
 ```
 🔵 onPreferenceAdd called: {value: "Test Preference", state: "default", collections: []}
 🔵 AppState after add: [{id: "pref_...", value: "Test Preference", ...}]
-✅ HAS v0.1 profile saved to storage
+✅ HSP v0.1 profile saved to storage
 ✅ Total preferences: 1
 🔵 Data saved to storage
 ```
@@ -84,8 +84,8 @@ Full data: {id: "profile_...", has: "0.1", content: {...}}
 **Was du in Console sehen solltest:**
 ```
 Data Gems app.js loaded
-Initializing Data Gems with HAS Protocol v0.1...
-✅ Loaded HAS v0.1 profile from storage
+Initializing Data Gems with HSP Protocol v0.1...
+✅ Loaded HSP v0.1 profile from storage
 ✅ Preferences loaded: 1
 Screen rendered: home
 Data Gems initialized successfully!

@@ -530,7 +530,7 @@ function formatProfileForInjection(hasProfile, options = {}) {
     ? JSON.stringify(filteredProfile, null, 2)
     : JSON.stringify(filteredProfile);
 
-  const injectionText = `Here is my Data Gems profile in HAS Protocol v${hasProfile.has} format:
+  const injectionText = `Here is my Data Gems profile in HSP Protocol v${hasProfile.has} format:
 
 \`\`\`json
 ${jsonString}
