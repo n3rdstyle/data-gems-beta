@@ -10,6 +10,9 @@ class Tag {
     this.type = options.type || element.getAttribute('data-type') || 'collection';
     this.state = options.state || element.getAttribute('data-state') || 'inactive';
     this.size = options.size || element.getAttribute('data-size') || 'default';
+    this.variant = options.variant || element.getAttribute('data-variant') || 'default';
+    this.showIcon = options.showIcon || false;
+    this.iconName = options.iconName || null;
     this.label = options.label || 'Collection';
     this.count = options.count !== undefined ? options.count : 0;
     this.onStateChange = options.onStateChange || null;
@@ -23,6 +26,10 @@ class Tag {
     this.element.setAttribute('data-type', this.type);
     this.element.setAttribute('data-state', this.state);
     this.element.setAttribute('data-size', this.size);
+    this.element.setAttribute('data-variant', this.variant);
+    if (this.showIcon) {
+      this.element.setAttribute('data-show-icon', 'true');
+    }
 
     // Set initial content
     this.updateContent();
@@ -49,8 +56,13 @@ class Tag {
 
     if (countSpan) {
       countSpan.textContent = this.count;
-      // Hide count if it's 0
-      countSpan.style.display = this.count > 0 ? '' : 'none';
+      // For card variant, always show count (even if 0)
+      // For other variants, hide count if it's 0
+      if (this.variant === 'card') {
+        countSpan.style.display = '';
+      } else {
+        countSpan.style.display = this.count > 0 ? '' : 'none';
+      }
     }
 
     // Icon is handled by CSS based on type
@@ -63,7 +75,6 @@ class Tag {
   setState(state) {
     const validStates = ['active', 'inactive'];
     if (!validStates.includes(state)) {
-      console.warn(`Invalid state: ${state}. Using 'inactive'.`);
       state = 'inactive';
     }
 
@@ -99,7 +110,6 @@ class Tag {
   setType(type) {
     const validTypes = ['collection', 'favorites', 'hidden'];
     if (!validTypes.includes(type)) {
-      console.warn(`Invalid type: ${type}. Using 'collection'.`);
       type = 'collection';
     }
 
@@ -237,11 +247,27 @@ function createTag(options = {}) {
   tag.setAttribute('data-type', options.type || 'collection');
   tag.setAttribute('data-state', options.state || 'inactive');
   tag.setAttribute('data-size', options.size || 'default');
+  tag.setAttribute('data-variant', options.variant || 'default');
+
+  if (options.showIcon) {
+    tag.setAttribute('data-show-icon', 'true');
+  }
 
   // Small tags don't have icon or count
   if (options.size === 'small') {
     tag.innerHTML = `
       <span class="tag__label text-style-body">${options.label || 'Collection'}</span>
+    `;
+  } else if (options.variant === 'card') {
+    // Card variant: count always visible, optional icon
+    const iconHTML = options.showIcon && options.iconName
+      ? `<span class="tag__icon">${getIcon(options.iconName)}</span>`
+      : '<span class="tag__icon"></span>';
+
+    tag.innerHTML = `
+      ${iconHTML}
+      <span class="tag__count">${options.count !== undefined ? options.count : 0}</span>
+      <span class="tag__label">${options.label || 'Status'}</span>
     `;
   } else {
     tag.innerHTML = `

@@ -79,16 +79,13 @@ let lastAutoInjectUrl = ''; // Track URL to detect new chats
  */
 function detectPlatform() {
   const hostname = window.location.hostname;
-  console.log('[Data Gems] Detecting platform for hostname:', hostname);
 
   for (const [key, platform] of Object.entries(PLATFORMS)) {
     if (platform.hostPatterns.some(pattern => hostname.includes(pattern))) {
-      console.log('[Data Gems] ✅ Platform detected:', platform.name);
       return platform;
     }
   }
 
-  console.log('[Data Gems] ❌ No platform detected for hostname:', hostname);
   return null;
 }
 
@@ -100,12 +97,6 @@ function findPromptElement(platform) {
 
   const selector = platform.selectors.promptInput;
   const element = document.querySelector(selector);
-
-  if (element) {
-    console.log('[Data Gems] ✅ Prompt element found for', platform.name);
-  } else {
-    console.log('[Data Gems] ❌ Prompt element NOT found for', platform.name, 'using selector:', selector);
-  }
 
   return element;
 }
@@ -279,15 +270,11 @@ function hideInjectionButton() {
  */
 async function handleInjection() {
   if (!hasProfile) {
-    console.error('[Data Gems] No profile data available');
     return;
   }
 
-  console.log('[Data Gems] Starting injection for platform:', currentPlatform.name, 'Method:', currentPlatform.injectionMethod);
-
   // Check injection method for current platform
   if (currentPlatform.injectionMethod === 'file') {
-    console.log('[Data Gems] Using FILE injection method');
     // Try file attachment method first (ChatGPT, Gemini, Claude)
     const profileData = formatProfileAsJSON(hasProfile);
     const blob = new Blob([profileData], { type: 'application/json' });
@@ -298,18 +285,12 @@ async function handleInjection() {
     const success = await attachFileToChat(file);
 
     if (success) {
-      console.log('[Data Gems] ✅ File injection successful, hiding button');
       hideInjectionButton();
       return;
-    } else {
-      console.log('[Data Gems] ❌ File injection failed, falling back to text');
     }
-  } else {
-    console.log('[Data Gems] Using TEXT injection method');
   }
 
   // Text injection method (used for Grok, or as fallback if file fails)
-  console.log('[Data Gems] Injecting as text (fallback or text-only platform)');
   const profileText = formatProfileForInjection(hasProfile, {
     includeHidden: false,
     includeMetadata: false,
@@ -374,8 +355,6 @@ function formatProfileAsJSON(hasProfile) {
  * Attach file to chat (ChatGPT, Gemini, etc.)
  */
 async function attachFileToChat(file) {
-  console.log('[Data Gems] Attempting to attach file:', file.name, 'Platform:', currentPlatform.name);
-
   // Method 0: DON'T click upload button (opens file picker which requires user activation)
   // Instead, directly find and set the file input element
 
@@ -420,27 +399,21 @@ async function attachFileToChat(file) {
       // Only report success if there's a CLEAR NEW CHANGE
       // Check 1: Attachment element count increased
       if (afterAttachments > beforeAttachments) {
-        console.log('[Data Gems] ✅ File attached successfully: attachment count increased from', beforeAttachments, 'to', afterAttachments, '(Method 1)');
         return true;
       }
 
       // Check 2: File name appears in DOM (and wasn't there before)
       if (!beforeBodyText.includes(fileNameLower) && afterBodyText.includes(fileNameLower)) {
-        console.log('[Data Gems] ✅ File attached successfully: file name appeared in DOM (Method 1)');
         return true;
       }
 
       // Check 3: "data-gems-profile" appears in DOM (and wasn't there before)
       if (!beforeBodyText.includes('data-gems-profile') && afterBodyText.includes('data-gems-profile')) {
-        console.log('[Data Gems] ✅ File attached successfully: data-gems indicator appeared in DOM (Method 1)');
         return true;
       }
 
-      // If we reach here, attachment didn't work with this input
-      console.log('[Data Gems] ⚠️ No change detected after setting files on input (Method 1)');
-
     } catch (error) {
-      console.error('[Data Gems] Error with file input method:', error);
+      // Silent error handling
     }
   }
 
@@ -483,28 +456,24 @@ async function attachFileToChat(file) {
 
         // Check if attachment count increased OR if file name appears in DOM
         if (afterAttachments > beforeAttachments) {
-          console.log('[Data Gems] ✅ File attachment detected: attachment count increased (Method 2)');
           return true;
         }
 
         if (!beforeBodyTextLower.includes(fileNameLower) && afterBodyText.includes(fileNameLower)) {
-          console.log('[Data Gems] ✅ File attachment detected: file name in DOM (Method 2)');
           return true;
         }
 
         // Also check for generic file indicators
         if (!beforeBodyTextLower.includes('data-gems-profile') && afterBodyText.includes('data-gems-profile')) {
-          console.log('[Data Gems] ✅ File attachment detected: data-gems indicator in DOM (Method 2)');
           return true;
         }
 
       } catch (error) {
-        console.error('[Data Gems] Error with drop method:', error);
+        // Silent error handling
       }
     }
   }
 
-  console.log('[Data Gems] ❌ All file attachment methods failed for', currentPlatform.name);
   return false;
 }
 
@@ -531,12 +500,9 @@ function updateButtonVisibility() {
  * Initialize profile injection
  */
 async function initializeProfileInjection() {
-  console.log('[Data Gems] Initializing profile injection...');
-
   // Detect platform
   currentPlatform = detectPlatform();
   if (!currentPlatform) {
-    console.log('[Data Gems] ⚠️ Cannot initialize: No platform detected');
     return;
   }
 
@@ -552,7 +518,6 @@ async function initializeProfileInjection() {
     // Load auto-inject setting
     autoInjectEnabled = hasProfile?.settings?.injection?.auto_inject || false;
   } catch (error) {
-    console.error('[Data Gems] Error loading profile:', error);
     return;
   }
 

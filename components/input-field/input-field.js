@@ -25,7 +25,8 @@ function createInputField(options = {}) {
     onInput = null,
     onFocus = null,
     onBlur = null,
-    onKeyPress = null
+    onKeyPress = null,
+    onKeyDown = null
   } = options;
 
   // Generate unique ID if not provided
@@ -126,6 +127,10 @@ function createInputField(options = {}) {
 
   if (onKeyPress) {
     inputElement.addEventListener('keypress', (e) => onKeyPress(e));
+  }
+
+  if (onKeyDown) {
+    inputElement.addEventListener('keydown', (e) => onKeyDown(e));
   }
 
   wrapper.appendChild(inputElement);
@@ -243,6 +248,10 @@ function createInputField(options = {}) {
 
     getInputElement() {
       return inputElement;
+    },
+
+    setPlaceholder(newPlaceholder) {
+      inputElement.placeholder = newPlaceholder;
     }
   };
 }

@@ -24,6 +24,7 @@ function createTagList(options = {}) {
       count: tagConfig.count || 0,
       state: tagConfig.state || 'inactive',
       size: tagConfig.size || 'default',
+      variant: tagConfig.variant || 'default',
       onClick: (clickedTag) => {
         if (onTagClick) {
           onTagClick(clickedTag);
@@ -46,6 +47,7 @@ function createTagList(options = {}) {
         count: tagConfig.count || 0,
         state: tagConfig.state || 'inactive',
         size: tagConfig.size || 'default',
+        variant: tagConfig.variant || 'default',
         onClick: (clickedTag) => {
           if (onTagClick) {
             onTagClick(clickedTag);
@@ -65,6 +67,7 @@ function createTagList(options = {}) {
         count: tagConfig.count || 0,
         state: tagConfig.state || 'inactive',
         size: tagConfig.size || 'default',
+        variant: tagConfig.variant || 'default',
         onClick: (clickedTag) => {
           if (onTagClick) {
             onTagClick(clickedTag);

@@ -204,7 +204,10 @@ function createPreferenceOptions(options = {}) {
     buttonsContainer.appendChild(button);
   });
 
-  // Create Random Question button (primary button) - after showModal is defined
+  // Create Random Question button with tooltip - after showModal is defined
+  const randomQuestionContainer = document.createElement('div');
+  randomQuestionContainer.className = 'tooltip-container';
+
   const randomQuestionButton = document.createElement('button');
   randomQuestionButton.className = 'preference-options__random-button text-style-body-medium';
   randomQuestionButton.textContent = randomQuestionLabel;
@@ -230,8 +233,17 @@ function createPreferenceOptions(options = {}) {
     showModal(randomQuestionButton.textContent);
   });
 
+  // Create tooltip for Random Question button
+  const randomQuestionTooltip = document.createElement('div');
+  randomQuestionTooltip.className = 'tooltip tooltip--top tooltip--random-question';
+  randomQuestionTooltip.textContent = 'Answer quick questions to build your profile faster and get better AI recommendations.';
+
+  // Assemble tooltip container
+  randomQuestionContainer.appendChild(randomQuestionButton);
+  randomQuestionContainer.appendChild(randomQuestionTooltip);
+
   triggerButtonWrapper.appendChild(triggerButton.element);
-  bottomBar.appendChild(randomQuestionButton);
+  bottomBar.appendChild(randomQuestionContainer);
   bottomBar.appendChild(triggerButtonWrapper);
 
   // Assemble component
@@ -274,6 +286,10 @@ function createPreferenceOptions(options = {}) {
     return buttonElements;
   }
 
+  // Track empty state
+  let isEmpty = false;
+  let primaryButton = null;
+
   // Public API
   return {
     element: preferenceOptionsElement,
@@ -304,6 +320,36 @@ function createPreferenceOptions(options = {}) {
         randomQuestionButton.classList.add('preference-options__random-button--disabled');
       } else {
         randomQuestionButton.classList.remove('preference-options__random-button--disabled');
+      }
+    },
+
+    setEmptyState(isEmptyState) {
+      isEmpty = isEmptyState;
+
+      if (isEmpty) {
+        // Hide random question button
+        randomQuestionContainer.style.display = 'none';
+
+        // Replace tertiary button with primary button
+        triggerButtonWrapper.innerHTML = '';
+        triggerButtonWrapper.classList.add('preference-options__trigger--empty');
+        primaryButton = createPrimaryButton({
+          label: 'Add your first preference',
+          variant: 'default'
+        });
+        primaryButton.element.addEventListener('click', () => {
+          toggle();
+        });
+        triggerButtonWrapper.appendChild(primaryButton.element);
+      } else {
+        // Show random question button
+        randomQuestionContainer.style.display = '';
+
+        // Restore tertiary button
+        triggerButtonWrapper.innerHTML = '';
+        triggerButtonWrapper.classList.remove('preference-options__trigger--empty');
+        triggerButtonWrapper.appendChild(triggerButton.element);
+        primaryButton = null;
       }
     }
   };

@@ -56,7 +56,7 @@ function createProfile(options = {}) {
   const header = createHeader({
     variant: 'simple',
     title: 'Profile',
-    onClose: onClose || (() => console.log('Close clicked'))
+    onClose: onClose || (() => {})
   });
   headerWrapper.appendChild(header.element);
 
@@ -398,7 +398,6 @@ function createProfile(options = {}) {
           };
           reader.readAsDataURL(file);
         } catch (error) {
-          console.error('Error uploading avatar:', error);
           alert('Failed to upload image: ' + error.message);
         }
       };
@@ -612,9 +611,17 @@ function createProfile(options = {}) {
               // Uncheck selector
               const selector = row.querySelector('.profile__language-selector');
               if (selector) {
-                selector.checked = false;
+                // Reset visual state
                 selector.style.backgroundColor = 'transparent';
                 selector.style.borderColor = 'var(--color-neutral-60)';
+                selector.style.width = '0';
+                selector.style.marginRight = '0';
+                selector.style.opacity = '0';
+                // Hide check icon
+                const checkIcon = selector.querySelector('div');
+                if (checkIcon) {
+                  checkIcon.style.display = 'none';
+                }
               }
             } else {
               // Remove other rows
@@ -676,8 +683,7 @@ function createProfile(options = {}) {
     row.style.position = 'relative';
 
     // Selector checkbox (hidden by default, shown on hover)
-    const selector = document.createElement('input');
-    selector.type = 'checkbox';
+    const selector = document.createElement('div');
     selector.className = 'profile__language-selector';
     selector.style.width = '0';
     selector.style.height = '24px';
@@ -688,19 +694,46 @@ function createProfile(options = {}) {
     selector.style.margin = '0';
     selector.style.marginRight = '0';
     selector.style.borderRadius = '50%';
-    selector.style.appearance = 'none';
-    selector.style.border = '1px solid var(--color-neutral-60)';
+    selector.style.border = '1.5px solid var(--color-neutral-60)';
     selector.style.backgroundColor = 'transparent';
     selector.style.overflow = 'hidden';
+    selector.style.display = 'flex';
+    selector.style.alignItems = 'center';
+    selector.style.justifyContent = 'center';
+    selector.style.position = 'relative';
 
-    selector.addEventListener('change', () => {
-      if (selector.checked) {
+    // Track checked state
+    let isChecked = false;
+
+    // Create check icon (hidden by default)
+    const checkIcon = document.createElement('div');
+    checkIcon.innerHTML = ICONS.check || '';
+    checkIcon.style.display = 'none';
+    checkIcon.style.color = 'var(--color-secondary-10)';
+    checkIcon.style.width = '16px';
+    checkIcon.style.height = '16px';
+    const checkSvg = checkIcon.querySelector('svg');
+    if (checkSvg) {
+      checkSvg.style.width = '16px';
+      checkSvg.style.height = '16px';
+      checkSvg.style.display = 'block';
+    }
+    selector.appendChild(checkIcon);
+
+    selector.addEventListener('click', () => {
+      isChecked = !isChecked;
+
+      if (isChecked) {
         // Add this row to selection
         if (!selectedLanguageRows.includes(row)) {
           selectedLanguageRows.push(row);
         }
         selector.style.backgroundColor = 'var(--color-primary-70)';
         selector.style.borderColor = 'var(--color-primary-70)';
+        selector.style.width = '24px';
+        selector.style.marginRight = '8px';
+        selector.style.opacity = '1';
+        checkIcon.style.display = 'flex';
       } else {
         // Remove this row from selection
         const index = selectedLanguageRows.indexOf(row);
@@ -709,6 +742,7 @@ function createProfile(options = {}) {
         }
         selector.style.backgroundColor = 'transparent';
         selector.style.borderColor = 'var(--color-neutral-60)';
+        checkIcon.style.display = 'none';
       }
       updateHeaderIcon();
     });
@@ -752,7 +786,7 @@ function createProfile(options = {}) {
       }
     };
     const hideSelector = () => {
-      if (!selector.checked) {
+      if (!isChecked) {
         selector.style.width = '0';
         selector.style.marginRight = '0';
         selector.style.opacity = '0';

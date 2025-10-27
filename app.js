@@ -3,8 +3,6 @@
  * Main application logic - HSP Protocol v0.1
  */
 
-console.log('✅ Data Gems app.js loaded - VERSION 2024-10-24-EXPORT-FIX');
-
 // State management - HSP Protocol v0.1
 let AppState = null;
 
@@ -37,7 +35,7 @@ async function loadBackupState() {
       BackupState = result.backupState;
     }
   } catch (error) {
-    console.error('❌ Error loading backup state:', error);
+    // Silent error handling
   }
 }
 
@@ -48,7 +46,7 @@ async function saveBackupState() {
       backupState: BackupState
     });
   } catch (error) {
-    console.error('❌ Error saving backup state:', error);
+    // Silent error handling
   }
 }
 
@@ -60,15 +58,12 @@ async function loadData() {
     // Check if we have new HSP format
     if (result.hasProfile) {
       AppState = result.hasProfile;
-      console.log('✅ Loaded HSP v0.1 profile from storage');
 
       // Migrate 'has' property to 'hsp' if needed
       if (AppState.has && !AppState.hsp) {
-        console.log('⚠️ Migrating property "has" to "hsp"...');
         AppState.hsp = AppState.has;
         delete AppState.has;
         await saveData();
-        console.log('✅ Property migration complete');
       }
 
       // Migrate third-party assurance if needed
@@ -80,7 +75,6 @@ async function loadData() {
     }
     // Legacy format - migrate it
     else if (result.userData || result.preferences) {
-      console.log('⚠️ Legacy data detected - migrating to HSP v0.1...');
       const legacyState = {
         userData: result.userData || {},
         preferences: result.preferences || []
@@ -89,16 +83,13 @@ async function loadData() {
 
       // Save migrated data
       await saveData();
-      console.log('✅ Migration complete');
     }
     // No data - create fresh profile
     else {
-      console.log('📝 No existing data - creating fresh profile');
       AppState = initializeDefaultProfile();
       await saveData();
     }
   } catch (error) {
-    console.error('❌ Error loading data:', error);
     AppState = initializeDefaultProfile();
   }
 }
@@ -111,9 +102,8 @@ async function saveData() {
     await chrome.storage.local.set({
       hasProfile: AppState
     });
-    console.log('💾 Data saved');
   } catch (error) {
-    console.error('❌ Error saving data:', error);
+    // Silent error handling
   }
 }
 
@@ -149,7 +139,7 @@ function getPreferences() {
 }
 
 // Export data (HSP v0.1 format) - defined before renderCurrentScreen
-function exportData() {
+async function exportData() {
   // Clean metadata - remove internal fields
   const cleanMetadata = {
     schema_version: AppState.metadata.schema_version,
@@ -216,7 +206,6 @@ function exportData() {
   const currentCount = AppState?.metadata?.total_preferences || 0;
   BackupState.lastBackupCount = currentCount;
   await saveBackupState();
-  console.log('💾 Backup count updated:', currentCount);
 }
 
 // Check if backup reminder should be shown (after 10 preferences, only once)
@@ -241,11 +230,15 @@ async function checkAutoBackup() {
   const currentCount = AppState?.metadata?.total_preferences || 0;
   const lastBackupCount = BackupState.lastBackupCount || 0;
 
-  // Trigger auto-backup at 50 and then every 50 entries
+  // Trigger auto-backup at 50 and then every 50 entries (50, 100, 150, 200, ...)
   if (currentCount >= 50) {
-    const shouldBackup = (currentCount - lastBackupCount) >= 50;
-    if (shouldBackup) {
-      console.log('🔄 Auto-backup triggered at', currentCount, 'entries');
+    // Calculate the current milestone (e.g., 450 -> 450, 437 -> 400)
+    const currentMilestone = Math.floor(currentCount / 50) * 50;
+    // Calculate the last milestone we backed up
+    const lastMilestone = Math.floor(lastBackupCount / 50) * 50;
+
+    // Trigger backup if we've reached a new milestone
+    if (currentMilestone > lastMilestone) {
       exportData();
       // exportData updates lastBackupCount internally
     }
@@ -259,7 +252,6 @@ function showBackupReminderModal() {
     onClose: async (autoBackupState) => {
       BackupState.autoBackupEnabled = autoBackupState;
       await saveBackupState();
-      console.log('Backup reminder closed, auto-backup:', autoBackupState);
     },
     onExport: () => {
       exportData();
@@ -267,7 +259,6 @@ function showBackupReminderModal() {
     onAutoBackupToggle: async (isActive) => {
       BackupState.autoBackupEnabled = isActive;
       await saveBackupState();
-      console.log('Auto-backup toggled:', isActive);
     }
   });
 
@@ -415,17 +406,14 @@ function importData() {
 
       // Check if it's HSP format (accept both 'hsp' and legacy 'has')
       if ((data.hsp || data.has) && data.content) {
-        console.log('✅ HSP format detected');
         importedData = data;
 
         // Migrate 'has' to 'hsp' if needed
         if (importedData.has && !importedData.hsp) {
-          console.log('⚠️ Migrating imported property "has" to "hsp"...');
           importedData.hsp = importedData.has;
           delete importedData.has;
         }
       } else {
-        console.log('❌ Unknown format');
         alert('Unknown format. Please import a valid HSP v0.1 profile.');
         return;
       }
@@ -445,7 +433,6 @@ function importData() {
       renderCurrentScreen();
       alert('✅ Data imported successfully!');
     } catch (error) {
-      console.error('Error importing data:', error);
       alert('❌ Error importing data: ' + error.message);
     }
   };
@@ -469,8 +456,6 @@ function importThirdPartyData() {
 
 async function handleGoogleSheetsImport(url) {
   try {
-    console.log('Importing Google Sheet:', url);
-
     // Import the sheet data
     const preferenceData = await importGoogleSheet(url);
 
@@ -489,7 +474,6 @@ async function handleGoogleSheetsImport(url) {
         source_url: preferenceData.sourceUrl,
         updated_at: getTimestamp()
       };
-      console.log('Updated existing imported sheet');
     } else {
       // Add as new preference
       AppState = addPreference(
@@ -499,7 +483,6 @@ async function handleGoogleSheetsImport(url) {
         preferenceData.collections,
         preferenceData.sourceUrl
       );
-      console.log('Added new imported sheet');
     }
 
     await saveData();
@@ -509,7 +492,6 @@ async function handleGoogleSheetsImport(url) {
 
     alert('✅ Google Sheet imported successfully!');
   } catch (error) {
-    console.error('Error importing Google Sheet:', error);
     throw error;
   }
 }
@@ -533,7 +515,6 @@ function getImportedSheets() {
 function renderCurrentScreen() {
   const appContainer = document.getElementById('app');
   if (!appContainer) {
-    console.error('App container not found');
     return;
   }
 
@@ -655,6 +636,25 @@ function renderCurrentScreen() {
             AppState = updateUserIdentityState(AppState, 'gender', state);
             AppState = updateUserIdentityState(AppState, 'location', state);
             await saveData();
+          },
+          getAutoInjectEnabled: () => AppState?.settings?.injection?.auto_inject || false,
+          onAutoInjectToggle: async (isEnabled) => {
+            // Ensure settings.injection exists
+            if (!AppState.settings) {
+              AppState.settings = {};
+            }
+            if (!AppState.settings.injection) {
+              AppState.settings.injection = {};
+            }
+
+            // Update the setting
+            AppState.settings.injection.auto_inject = isEnabled;
+            await saveData();
+          },
+          getAutoBackupEnabled: () => BackupState.autoBackupEnabled,
+          onAutoBackupToggle: async (isEnabled) => {
+            BackupState.autoBackupEnabled = isEnabled;
+            await saveBackupState();
           }
         });
         break;
@@ -748,14 +748,11 @@ function renderCurrentScreen() {
             // Update the setting
             AppState.settings.injection.auto_inject = isEnabled;
             await saveData();
-
-            console.log('Auto-inject setting updated:', isEnabled);
           },
           autoBackupEnabled: BackupState.autoBackupEnabled,
           onAutoBackupToggle: async (isEnabled) => {
             BackupState.autoBackupEnabled = isEnabled;
             await saveBackupState();
-            console.log('Auto-backup setting updated:', isEnabled);
           }
         });
         break;
@@ -783,13 +780,12 @@ function renderCurrentScreen() {
       appContainer.appendChild(screenComponent.element);
     }
   } catch (error) {
-    console.error('Error rendering screen:', error);
+    // Silent error handling
   }
 }
 
 // Initialize
 async function init() {
-  console.log('🚀 Initializing Data Gems with HSP Protocol v0.1...');
   await loadData();
   await loadBackupState();
 
@@ -807,7 +803,6 @@ async function init() {
   AppState.metadata.currentScreen = 'home';
 
   renderCurrentScreen();
-  console.log('✅ Data Gems initialized successfully!');
 }
 
 // Start

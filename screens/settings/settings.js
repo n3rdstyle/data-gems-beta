@@ -37,7 +37,7 @@ function createSettings(options = {}) {
   const header = createHeader({
     variant: 'simple',
     title: 'Settings',
-    onClose: onClose || (() => console.log('Settings closed'))
+    onClose: onClose || (() => {})
   });
   headerWrapper.appendChild(header.element);
 
@@ -59,14 +59,14 @@ function createSettings(options = {}) {
   const howToGuide = createActionButton({
     label: 'How-to Guide',
     variant: 'external',
-    onClick: onHowToGuide || (() => console.log('How-to Guide clicked'))
+    onClick: onHowToGuide || (() => {})
   });
   generalSection.appendChild(howToGuide.element);
 
   const faqs = createActionButton({
     label: 'FAQs',
     variant: 'external',
-    onClick: onFAQs || (() => console.log('FAQs clicked'))
+    onClick: onFAQs || (() => {})
   });
   generalSection.appendChild(faqs.element);
 
@@ -77,43 +77,19 @@ function createSettings(options = {}) {
   const injectionSection = document.createElement('div');
   injectionSection.className = 'settings__section';
 
-  const injectionHeader = createHeader({
-    variant: 'compact-plain',
-    title: 'Injection Settings'
-  });
-  injectionHeader.element.classList.add('settings__section-header');
-  injectionSection.appendChild(injectionHeader.element);
-
-  // Auto-inject toggle container
-  const autoInjectContainer = document.createElement('div');
-  autoInjectContainer.className = 'settings__toggle-row';
-
-  const autoInjectLabel = document.createElement('div');
-  autoInjectLabel.className = 'settings__toggle-label';
-  autoInjectLabel.textContent = 'Auto-inject profile';
-
-  const autoInjectDescription = document.createElement('div');
-  autoInjectDescription.className = 'settings__toggle-description';
-  autoInjectDescription.textContent = 'Automatically inject your profile when opening a new chat in supported AI platforms';
-
-  const autoInjectToggle = createToggle({
-    active: autoInjectEnabled,
-    onChange: (isActive) => {
+  // Auto-inject toggle as action button with toggle variant
+  const autoInject = createActionButton({
+    label: 'Auto-inject profile',
+    caption: 'Automatically inject your profile when opening a new chat in supported AI platforms',
+    variant: 'toggle',
+    toggleActive: autoInjectEnabled,
+    onToggleChange: (isActive) => {
       if (onAutoInjectToggle) {
         onAutoInjectToggle(isActive);
       }
     }
   });
-
-  const autoInjectLabelContainer = document.createElement('div');
-  autoInjectLabelContainer.className = 'settings__toggle-text';
-  autoInjectLabelContainer.appendChild(autoInjectLabel);
-  autoInjectLabelContainer.appendChild(autoInjectDescription);
-
-  autoInjectContainer.appendChild(autoInjectLabelContainer);
-  autoInjectContainer.appendChild(autoInjectToggle.element);
-
-  injectionSection.appendChild(autoInjectContainer);
+  injectionSection.appendChild(autoInject.element);
 
   const injectionDivider = createDivider();
   injectionSection.appendChild(injectionDivider.element);
@@ -141,11 +117,25 @@ function createSettings(options = {}) {
   });
   dataCenterSection.appendChild(backupData.element);
 
+  // Auto-backup toggle as action button with toggle variant
+  const autoBackup = createActionButton({
+    label: '',
+    caption: 'Automatically export backup after 50 entries and every 50 entries thereafter',
+    variant: 'toggle',
+    toggleActive: autoBackupEnabled,
+    onToggleChange: (isActive) => {
+      if (onAutoBackupToggle) {
+        onAutoBackupToggle(isActive);
+      }
+    }
+  });
+  dataCenterSection.appendChild(autoBackup.element);
+
   const updateData = createActionButton({
     label: 'Update your data',
     variant: 'cta',
     ctaLabel: 'Import',
-    onClick: onUpdateData || (() => console.log('Update data clicked'))
+    onClick: onUpdateData || (() => {})
   });
   dataCenterSection.appendChild(updateData.element);
 
@@ -153,47 +143,16 @@ function createSettings(options = {}) {
     label: 'Clear all data',
     variant: 'cta',
     ctaLabel: 'Delete',
-    onClick: onClearData || (() => console.log('Clear data clicked'))
+    onClick: onClearData || (() => {})
   });
   dataCenterSection.appendChild(clearData.element);
 
   const thirdPartyData = createActionButton({
     label: 'Third Party Data',
     variant: 'navigation',
-    onClick: onThirdPartyData || (() => console.log('Third Party Data clicked'))
+    onClick: onThirdPartyData || (() => {})
   });
   dataCenterSection.appendChild(thirdPartyData.element);
-
-  // Auto-backup toggle container
-  const autoBackupContainer = document.createElement('div');
-  autoBackupContainer.className = 'settings__toggle-row';
-
-  const autoBackupLabel = document.createElement('div');
-  autoBackupLabel.className = 'settings__toggle-label';
-  autoBackupLabel.textContent = 'Automatic backups';
-
-  const autoBackupDescription = document.createElement('div');
-  autoBackupDescription.className = 'settings__toggle-description';
-  autoBackupDescription.textContent = 'Automatically export backup after 50 entries and every 50 entries thereafter';
-
-  const autoBackupToggle = createToggle({
-    active: autoBackupEnabled,
-    onChange: (isActive) => {
-      if (onAutoBackupToggle) {
-        onAutoBackupToggle(isActive);
-      }
-    }
-  });
-
-  const autoBackupLabelContainer = document.createElement('div');
-  autoBackupLabelContainer.className = 'settings__toggle-text';
-  autoBackupLabelContainer.appendChild(autoBackupLabel);
-  autoBackupLabelContainer.appendChild(autoBackupDescription);
-
-  autoBackupContainer.appendChild(autoBackupLabelContainer);
-  autoBackupContainer.appendChild(autoBackupToggle.element);
-
-  dataCenterSection.appendChild(autoBackupContainer);
 
   const dataCenterDivider = createDivider();
   dataCenterSection.appendChild(dataCenterDivider.element);
@@ -205,28 +164,28 @@ function createSettings(options = {}) {
   const privacyStatement = createActionButton({
     label: 'Privacy Statement',
     variant: 'external',
-    onClick: onPrivacyStatement || (() => console.log('Privacy Statement clicked'))
+    onClick: onPrivacyStatement || (() => {})
   });
   legalSection.appendChild(privacyStatement.element);
 
   const terms = createActionButton({
     label: 'Terms & Conditions',
     variant: 'external',
-    onClick: onTerms || (() => console.log('Terms clicked'))
+    onClick: onTerms || (() => {})
   });
   legalSection.appendChild(terms.element);
 
   const imprint = createActionButton({
     label: 'Imprint',
     variant: 'external',
-    onClick: onImprint || (() => console.log('Imprint clicked'))
+    onClick: onImprint || (() => {})
   });
   legalSection.appendChild(imprint.element);
 
   const contact = createActionButton({
     label: 'Contact & Support',
     variant: 'external',
-    onClick: onContact || (() => console.log('Contact clicked'))
+    onClick: onContact || (() => {})
   });
   legalSection.appendChild(contact.element);
 
@@ -246,10 +205,10 @@ function createSettings(options = {}) {
     appName: 'Data Gems',
     version: 'v2.0.0',
     social: {
-      website: onWebsite || (() => console.log('Website clicked')),
-      instagram: onInstagram || (() => console.log('Instagram clicked')),
-      linkedin: onLinkedIn || (() => console.log('LinkedIn clicked')),
-      reddit: onReddit || (() => console.log('Reddit clicked'))
+      website: onWebsite || (() => {}),
+      instagram: onInstagram || (() => {}),
+      linkedin: onLinkedIn || (() => {}),
+      reddit: onReddit || (() => {})
     }
   });
   footerWrapper.appendChild(footer.element);

@@ -20,3 +20,10 @@
 .tag-list::-webkit-scrollbar {
   display: none;
 }
+
+/* Card variant: wrap layout for grid-like appearance */
+.tag-list:has([data-variant="card"]) {
+  flex-wrap: wrap;
+  overflow-x: visible;
+  gap: var(--spacing-xs);
+}

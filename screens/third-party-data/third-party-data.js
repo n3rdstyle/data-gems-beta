@@ -21,7 +21,7 @@ function createThirdPartyData(options = {}) {
   const header = createHeader({
     variant: 'simple',
     title: 'Third Party Data',
-    onClose: onClose || (() => console.log('Third Party Data closed'))
+    onClose: onClose || (() => {})
   });
   headerWrapper.appendChild(header.element);
 

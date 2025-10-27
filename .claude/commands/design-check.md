@@ -61,7 +61,26 @@ Führe eine umfassende Design System Compliance Prüfung für die Browser Extens
    - Fehlen Komponenten die existieren sollten?
    - Werden Komponenten korrekt eingesetzt?
 
-6. **Report erstellen**
+6. **Reverse Check: Design System Gaps**
+
+   Identifiziere was in der Extension existiert, aber im Design System fehlt:
+
+   **Komponenten-Gaps:**
+   - Welche Komponenten in `components/` sind nicht im Design System dokumentiert?
+   - Welche Varianten existieren in der Praxis, die nicht im Design System definiert sind?
+
+   **Pattern-Gaps:**
+   - Welche wiederkehrenden UI-Patterns werden verwendet, die standardisiert werden sollten?
+   - Gibt es "informelle" Conventions (z.B. konsistent genutzte Abstände, die noch nicht als Token definiert sind)?
+
+   **Token-Gaps:**
+   - Werden neue Farben/Abstände/etc. verwendet, die als Design Tokens formalisiert werden sollten?
+   - Gibt es mehrfach verwendete Werte, die Token-Kandidaten wären?
+
+   **Screen-Patterns:**
+   - Welche Layout-Patterns in `screens/` könnten als wiederverwendbare Komponenten extrahiert werden?
+
+7. **Report erstellen**
 
    Erstelle einen strukturierten Report mit folgenden Abschnitten:
 
@@ -115,6 +134,34 @@ Führe eine umfassende Design System Compliance Prüfung für die Browser Extens
    **Niedrige Priorität:**
    3. Problem + Aufwand-Schätzung
 
+   ### 🔄 Design System Gaps (Reverse Check)
+
+   Was fehlt im Design System, das in der Extension existiert?
+
+   **🧩 Fehlende Komponenten**
+   - Liste von Komponenten in der Extension, die nicht im Design System dokumentiert sind
+   - Beispiele mit Dateipfaden und Verwendungskontext
+   - Empfehlung: Sollte ins Design System aufgenommen werden? Warum/Warum nicht?
+
+   **🎨 Potenzielle neue Tokens**
+   - Hardcoded Werte, die mehrfach verwendet werden und Token-Kandidaten wären
+   - Format: Wert → Vorgeschlagener Token-Name → Verwendungsstellen
+   - Beispiel:
+     ```
+     Farbe: #E8F4F8 (3x verwendet)
+     → Vorschlag: --color-info-subtle
+     → Vorkommen: components/info-banner/info-banner.css:15, screens/settings/settings.css:42
+     ```
+
+   **📐 Wiederkehrende Patterns**
+   - UI-Patterns, die standardisiert werden sollten
+   - Layout-Strukturen, die als Komponenten extrahiert werden könnten
+   - Beispiele mit Kontext und Wiederverwendungspotenzial
+
+   **💡 Empfehlungen für Design System Evolution**
+   - Priorisierte Liste: Was sollte als nächstes ins Design System aufgenommen werden?
+   - Begründung: Wiederverwendung, Konsistenz, Wartbarkeit
+
    ### 📈 Gesamtbewertung
 
    **Design System Compliance: X/100**
@@ -126,14 +173,25 @@ Führe eine umfassende Design System Compliance Prüfung für die Browser Extens
    - ❌ Border-Radius: X% - Bewertung
    - ⚠️ Typography: X% - Bewertung
 
-   **Fazit**: Zusammenfassende Bewertung und nächste Schritte
+   **Design System Vollständigkeit: X/100**
+
+   Wie vollständig deckt das Design System die Extension ab?
+   - Dokumentierte Komponenten: X/Y (X%)
+   - Fehlende Komponenten: Y
+   - Potenzielle neue Tokens: Z
+   - Standardisierbare Patterns: N
+
+   **Fazit**: Zusammenfassende Bewertung, Compliance-Status und Empfehlungen für die Design System Evolution
 
 ## Output-Format
 
-- Verwende Emojis für visuelle Struktur (✅ ⚠️ ❌ 📊 🎯 📈)
+- Verwende Emojis für visuelle Struktur (✅ ⚠️ ❌ 📊 🎯 📈 🔄 🧩 🎨 📐 💡)
 - Nutze Datei:Zeilen-Referenzen für alle Code-Beispiele
 - Sei spezifisch und konstruktiv
 - Priorisiere nach Impact und Aufwand
+- Der Report enthält jetzt zwei Perspektiven:
+  1. **Compliance Check**: Hält sich die Extension an das Design System?
+  2. **Reverse Check**: Was fehlt im Design System, das in der Extension existiert?
 
 ## Hinweis
 

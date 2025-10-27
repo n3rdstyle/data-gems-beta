@@ -59,9 +59,12 @@ function createDataSearch(options = {}) {
   const tagListWrapper = document.createElement('div');
   tagListWrapper.className = 'data-search__tag-list-wrapper';
 
-  // Create tag list
+  // Create tag list with card variant
   const tagList = createTagList({
-    tags,
+    tags: tags.map(tag => ({
+      ...tag,
+      variant: 'card'
+    })),
     onTagClick
   });
   tagListWrapper.appendChild(tagList.element);

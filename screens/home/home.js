@@ -35,7 +35,11 @@ function createHome(options = {}) {
     onClearData = null,
     onThirdPartyData = null,
     onDescriptionToggle = null,
-    onPersonalInfoToggle = null
+    onPersonalInfoToggle = null,
+    getAutoInjectEnabled = null, // Changed to getter function
+    onAutoInjectToggle = null,
+    getAutoBackupEnabled = null, // Changed to getter function
+    onAutoBackupToggle = null
   } = options;
 
   // Create home container
@@ -134,7 +138,7 @@ function createHome(options = {}) {
         { id: 5, title: 'Message #5', preview: 'Lorem Ipsum Dolor ...' }
       ],
       onClose: closeMessages,
-      onMessageClick: (message) => console.log('Message clicked:', message)
+      onMessageClick: (message) => {}
     });
 
     // Append modal inside overlay (not as sibling)
@@ -163,13 +167,17 @@ function createHome(options = {}) {
     // Hide home screen
     screenElement.style.display = 'none';
 
-    // Create settings screen
+    // Create settings screen with current values from getters
     settingsScreen = createSettings({
       onClose: closeSettings,
       onBackupData: onBackupData,
       onUpdateData: onUpdateData,
       onClearData: onClearData,
-      onThirdPartyData: onThirdPartyData
+      onThirdPartyData: onThirdPartyData,
+      autoInjectEnabled: getAutoInjectEnabled ? getAutoInjectEnabled() : false,
+      onAutoInjectToggle: onAutoInjectToggle,
+      autoBackupEnabled: getAutoBackupEnabled ? getAutoBackupEnabled() : false,
+      onAutoBackupToggle: onAutoBackupToggle
     });
 
     // Add settings screen to parent
@@ -227,6 +235,17 @@ function createHome(options = {}) {
   // Store reference to preference options (created later)
   let preferenceOptions = null;
 
+  // Helper function to update preference options based on list state
+  const updatePreferenceOptionsState = () => {
+    if (!preferenceOptions) return;
+
+    const dataList = contentPreferences.getDataList();
+    const cardCount = dataList.getCount();
+    const isEmpty = cardCount === 0;
+
+    preferenceOptions.setEmptyState(isEmpty);
+  };
+
   // Create content preferences
   const contentWrapper = document.createElement('div');
   contentWrapper.className = 'home__content';
@@ -243,6 +262,10 @@ function createHome(options = {}) {
           preferenceOptions.element.style.display = '';
         }
       }
+    },
+    onListChange: (action, card) => {
+      // Update preference options state when list changes
+      updatePreferenceOptionsState();
     },
     onCardStateChange: (card, state) => {
       // Persist state changes from hover icon buttons
@@ -340,12 +363,60 @@ function createHome(options = {}) {
   });
   contentWrapper.appendChild(contentPreferences.element);
 
+  // Create scroll-to-top button
+  const scrollToTopButton = createTertiaryButton({
+    icon: 'arrowUp',
+    ariaLabel: 'Scroll to top',
+    size: 'default',
+    background: 'filled'
+  });
+  scrollToTopButton.element.style.position = 'absolute';
+  scrollToTopButton.element.style.bottom = '16px';
+  scrollToTopButton.element.style.right = '16px';
+  scrollToTopButton.element.style.zIndex = '100';
+  scrollToTopButton.element.style.opacity = '0';
+  scrollToTopButton.element.style.transform = 'translateY(20px)';
+  scrollToTopButton.element.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+  scrollToTopButton.element.style.pointerEvents = 'none';
+
+  scrollToTopButton.element.addEventListener('click', () => {
+    contentWrapper.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  });
+
+  screenElement.appendChild(scrollToTopButton.element);
+
   // Add scroll listener to hide preference options when scrolling
+  let lastScrollTop = 0;
+
   contentWrapper.addEventListener('scroll', () => {
-    // Hide preference options when scrolling
-    if (preferenceOptions && preferenceOptions.isOpen()) {
+    if (!preferenceOptions) return;
+
+    const currentScrollTop = contentWrapper.scrollTop;
+
+    // Hide overlay if it's open
+    if (preferenceOptions.isOpen()) {
       preferenceOptions.hide();
     }
+
+    // Detect scroll direction
+    if (currentScrollTop > lastScrollTop) {
+      // Scrolling down - hide preference options, show scroll-to-top button
+      preferenceOptions.element.classList.add('hidden-by-scroll');
+      scrollToTopButton.element.style.opacity = '1';
+      scrollToTopButton.element.style.transform = 'translateY(0)';
+      scrollToTopButton.element.style.pointerEvents = 'auto';
+    } else {
+      // Scrolling up - show preference options, hide scroll-to-top button
+      preferenceOptions.element.classList.remove('hidden-by-scroll');
+      scrollToTopButton.element.style.opacity = '0';
+      scrollToTopButton.element.style.transform = 'translateY(20px)';
+      scrollToTopButton.element.style.pointerEvents = 'none';
+    }
+
+    lastScrollTop = currentScrollTop;
   });
 
   // Initialize calibration with current card count
@@ -504,6 +575,9 @@ function createHome(options = {}) {
   screenElement.appendChild(calibrationWrapper);
   screenElement.appendChild(contentWrapper);
   screenElement.appendChild(preferenceOptions.element);
+
+  // Initialize preference options state based on initial data
+  updatePreferenceOptionsState();
 
   // Public API
   return {

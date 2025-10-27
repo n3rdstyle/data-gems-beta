@@ -347,7 +347,6 @@ function updatePreference(profile, prefId, updates) {
   const prefIndex = updatedProfile.content.preferences.items.findIndex(p => p.id === prefId);
 
   if (prefIndex === -1) {
-    console.warn(`Preference with id ${prefId} not found`);
     return profile;
   }
 
@@ -422,7 +421,6 @@ function migrateThirdPartyAssurance(profile) {
 
   if (hasChanges) {
     updatedProfile.updated_at = getTimestamp();
-    console.log('✅ Migrated third-party assurance for existing preferences');
     return updatedProfile;
   }
 

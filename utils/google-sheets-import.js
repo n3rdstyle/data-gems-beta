@@ -55,7 +55,6 @@ async function fetchSheetTabNameByGid(spreadsheetId, gid) {
     if (matches.length > 0) {
       // For now, return the first match as the page loads with the specific GID
       // The active tab should be the one we're looking for
-      console.log(`Found ${matches.length} tab name(s):`, matches);
 
       // Try to find the tab name that appears near our GID in the HTML
       const gidPattern = new RegExp(`gid=${gid}[^>]*>[^<]*<[^>]*>([^<]+)`);
@@ -64,7 +63,6 @@ async function fetchSheetTabNameByGid(spreadsheetId, gid) {
         const nearbyText = gidMatch[1].trim();
         const foundTab = matches.find(name => nearbyText.includes(name) || name.includes(nearbyText));
         if (foundTab) {
-          console.log(`Found matching tab name near GID: ${foundTab}`);
           return foundTab;
         }
       }
@@ -75,7 +73,6 @@ async function fetchSheetTabNameByGid(spreadsheetId, gid) {
 
     return null;
   } catch (error) {
-    console.error('Error fetching tab name by GID:', error);
     return null;
   }
 }
@@ -167,7 +164,6 @@ async function fetchAllSheetTabs(spreadsheetId) {
 
     return sheetsData;
   } catch (error) {
-    console.error('Error fetching sheet tabs:', error);
     return [{ name: 'Imported Sheet', gid: null }];
   }
 }
@@ -192,7 +188,6 @@ async function fetchGoogleSheetCSV(spreadsheetId, gid = null) {
     }
     return await response.text();
   } catch (error) {
-    console.error('Error fetching Google Sheet:', error);
     throw error;
   }
 }
@@ -301,14 +296,9 @@ async function importGoogleSheet(spreadsheetUrl) {
       // Fetch the actual tab name from HTML using the GID
       const fetchedName = await fetchSheetTabNameByGid(spreadsheetId, gid);
       tabName = fetchedName || `Sheet (GID: ${gid})`;
-      console.log(`Importing tab with GID ${gid}: ${tabName}`);
     } else {
       // Use first tab name from HTML
       tabName = tabs.length > 0 ? tabs[0].name : 'Imported Sheet';
-      console.log(`Importing first tab: ${tabName}`);
-      if (tabs.length > 1) {
-        console.log(`Note: ${tabs.length} tabs found, but no GID specified in URL`);
-      }
     }
 
     // Parse CSV
@@ -328,7 +318,6 @@ async function importGoogleSheet(spreadsheetUrl) {
       sourceUrl: normalizedUrl
     };
   } catch (error) {
-    console.error('Error importing Google Sheet:', error);
     throw error;
   }
 }

@@ -21,7 +21,7 @@ function createMessagesModal(options = {}) {
   const header = createHeader({
     variant: 'simple',
     title: 'Messages',
-    onClose: onClose || (() => console.log('Messages modal closed'))
+    onClose: onClose || (() => {})
   });
   headerWrapper.appendChild(header.element);
 
@@ -42,8 +42,6 @@ function createMessagesModal(options = {}) {
       onClick: () => {
         if (onMessageClick) {
           onMessageClick(message);
-        } else {
-          console.log('Message clicked:', message);
         }
       }
     });

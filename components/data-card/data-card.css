@@ -35,6 +35,34 @@
   overflow-wrap: break-word;
 }
 
+/* Source info icon (bottom right) */
+.data-card__source-info {
+  position: absolute;
+  bottom: var(--spacing-xs); /* 8px */
+  right: var(--spacing-xs); /* 8px */
+}
+
+.data-card__source-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--color-neutral-50);
+  transition: color 0.2s ease-in-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: help;
+}
+
+.data-card__source-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Show tooltip on hover */
+.data-card__source-info:hover .data-card__source-icon {
+  color: var(--color-neutral-70);
+}
+
 /* Action icons container */
 .data-card__actions {
   display: flex;

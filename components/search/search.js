@@ -8,7 +8,8 @@ function createSearch(options = {}) {
   const {
     placeholder = 'Search your preferences',
     onInput = null,
-    onClear = null
+    onClear = null,
+    onEnter = null
   } = options;
 
   // Create search container
@@ -33,6 +34,10 @@ function createSearch(options = {}) {
         if (onInput) {
           onInput('');
         }
+      } else if (e.key === 'Enter') {
+        if (onEnter) {
+          onEnter(inputField.getValue());
+        }
       }
     }
   });
@@ -54,13 +59,15 @@ function createSearch(options = {}) {
       }
     },
 
-    clear() {
+    clear(silent = false) {
       inputField.clear();
-      if (onClear) {
-        onClear();
-      }
-      if (onInput) {
-        onInput('');
+      if (!silent) {
+        if (onClear) {
+          onClear();
+        }
+        if (onInput) {
+          onInput('');
+        }
       }
     },
 
@@ -78,7 +85,8 @@ function createSearch(options = {}) {
 
     // Event handlers
     onInput: null,
-    onClear: null
+    onClear: null,
+    onEnter: null
   };
 }
 

@@ -1,6 +1,6 @@
 /**
  * Calibration Component
- * Progress bar for showing calibration/loading status
+ * Progress bar for showing calibration/loading status with tooltip
  */
 
 function createCalibration(options = {}) {
@@ -8,8 +8,13 @@ function createCalibration(options = {}) {
     progress = 0, // 0-100
     width = 400,
     animated = true,
-    onChange = null
+    onChange = null,
+    showTooltip = true // Option to show/hide tooltip
   } = options;
+
+  // Create tooltip container that wraps the calibration
+  const tooltipContainer = document.createElement('div');
+  tooltipContainer.className = 'tooltip-container';
 
   // Create calibration container
   const calibrationElement = document.createElement('div');
@@ -26,13 +31,45 @@ function createCalibration(options = {}) {
 
   calibrationElement.appendChild(progressBar);
 
+  // Create tooltip if enabled
+  let tooltipElement = null;
+  if (showTooltip) {
+    // Create tooltip
+    tooltipElement = document.createElement('div');
+    tooltipElement.className = 'tooltip tooltip--top tooltip--calibration';
+  }
+
+  // Assemble: tooltip container wraps calibration + tooltip
+  tooltipContainer.appendChild(calibrationElement);
+  if (tooltipElement) {
+    tooltipContainer.appendChild(tooltipElement);
+  }
+
+  // Helper function to update tooltip text (if exists)
+  const updateTooltipText = (currentProgress) => {
+    if (tooltipElement) {
+      const remaining = 100 - currentProgress;
+      const remainingCards = Math.max(0, remaining);
+
+      if (remaining > 0) {
+        tooltipElement.textContent = `Add ${remainingCards} more data card${remainingCards !== 1 ? 's' : ''} to complete your profile calibration and unlock personalized AI recommendations.`;
+      } else {
+        tooltipElement.textContent = 'Profile calibration complete! Your AI experience is now fully personalized.';
+      }
+    }
+  };
+
+  // Set initial tooltip text
+  updateTooltipText(clampedProgress);
+
   // Public API
   return {
-    element: calibrationElement,
+    element: tooltipContainer,
 
     setProgress(value) {
       const newProgress = Math.max(0, Math.min(100, value));
       progressBar.style.width = `${newProgress}%`;
+      updateTooltipText(newProgress);
 
       if (onChange) {
         onChange(newProgress);
@@ -53,6 +90,7 @@ function createCalibration(options = {}) {
 
     reset() {
       progressBar.style.width = '0%';
+      updateTooltipText(0);
       if (onChange) {
         onChange(0);
       }
@@ -60,6 +98,7 @@ function createCalibration(options = {}) {
 
     complete() {
       progressBar.style.width = '100%';
+      updateTooltipText(100);
       if (onChange) {
         onChange(100);
       }
@@ -81,11 +120,13 @@ function createCalibration(options = {}) {
         const newValue = current + (difference * eased);
 
         progressBar.style.width = `${newValue}%`;
+        updateTooltipText(newValue);
 
         if (progress < 1) {
           requestAnimationFrame(animate);
         } else {
           progressBar.style.width = `${target}%`;
+          updateTooltipText(target);
           if (onChange) {
             onChange(target);
           }

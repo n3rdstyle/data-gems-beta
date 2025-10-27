@@ -2,7 +2,20 @@
  * Tertiary Button Component
  * Creates a minimal button for tertiary actions
  * Supports both icon and text variants
- * Icon sizes: 'default' (40x40px with 24px icon) or 'small' (24x24px with 16px icon)
+ *
+ * Icon variant sizes:
+ * - default: 40x40px with 24px icon
+ * - small: 24x24px with 16px icon
+ *
+ * Text variant sizes:
+ * - large: 48px height
+ * - medium: 40px height (default)
+ * - small: 32px height
+ *
+ * Background variants:
+ * - transparent: Default transparent background with hover effect (default)
+ * - filled: Permanent neutral-80 background with white icon/text
+ *
  * Requires: icons.js (for icon variant)
  */
 
@@ -10,8 +23,9 @@ function createTertiaryButton(options = {}) {
   const {
     icon = null,
     text = null,
-    size = 'default', // 'default' or 'small' (only applies to icon variant)
+    size = 'medium', // For icon: 'default' or 'small' | For text: 'large', 'medium', or 'small'
     filled = false, // Whether to fill the icon
+    background = 'transparent', // 'transparent' or 'filled' (neutral-80 background)
     onClick = null,
     disabled = false,
     ariaLabel = ''
@@ -29,9 +43,26 @@ function createTertiaryButton(options = {}) {
     button.classList.add('button-tertiary--text');
   }
 
-  // Apply size class (only for icon variant)
-  if (variant === 'icon' && size === 'small') {
-    button.classList.add('button-tertiary--small');
+  // Apply background class
+  if (background === 'filled') {
+    button.classList.add('button-tertiary--filled');
+  }
+
+  // Apply size class
+  if (variant === 'icon') {
+    // Icon variant: 'default' or 'small'
+    if (size === 'small') {
+      button.classList.add('button-tertiary--small');
+    }
+  } else {
+    // Text variant: 'large', 'medium', or 'small'
+    if (size === 'large') {
+      button.classList.add('button-tertiary--large');
+    } else if (size === 'small') {
+      button.classList.add('button-tertiary--small');
+    } else {
+      button.classList.add('button-tertiary--medium');
+    }
   }
 
   button.type = 'button';

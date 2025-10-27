@@ -76,6 +76,137 @@
 }
 
 /* ============================================
+   CARD VARIANT - Status Cards
+   Large square tags with vertical layout
+   ============================================ */
+
+.tag[data-variant="card"] {
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: var(--spacing-xs);
+  border-radius: var(--radius-lg);
+  flex: 1 1 0;
+  min-width: 64px;
+  height: 64px;
+  gap: var(--spacing-xxs);
+  border: none;
+  position: relative;
+}
+
+.tag[data-variant="card"] .tag__icon {
+  display: none;
+}
+
+/* Show icon for card variant when explicitly set */
+.tag[data-variant="card"][data-show-icon="true"] .tag__icon {
+  display: block;
+  position: absolute;
+  top: var(--spacing-xs);
+  right: var(--spacing-xs);
+  width: 16px;
+  height: 16px;
+  opacity: 0.6;
+}
+
+.tag[data-variant="card"] .tag__count {
+  font-size: var(--font-size-20);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  display: block;
+  order: -1;
+}
+
+.tag[data-variant="card"] .tag__label {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-compact);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* ============================================
+   CARD VARIANT - COLLECTION TAG STATES
+   ============================================ */
+
+/* Collection - Active (selected) */
+.tag[data-variant="card"][data-type="collection"][data-state="active"] {
+  background-color: var(--color-neutral-80);
+  color: var(--color-neutral-20);
+}
+
+.tag[data-variant="card"][data-type="collection"][data-state="active"]:hover {
+  background-color: var(--color-neutral-70);
+  color: var(--color-neutral-20);
+}
+
+/* Collection - Inactive (unselected) */
+.tag[data-variant="card"][data-type="collection"][data-state="inactive"] {
+  background-color: var(--color-neutral-30);
+  color: var(--color-neutral-80);
+}
+
+.tag[data-variant="card"][data-type="collection"][data-state="inactive"]:hover {
+  background-color: var(--color-neutral-40);
+  color: var(--color-neutral-80);
+}
+
+/* ============================================
+   CARD VARIANT - FAVORITES TAG STATES
+   ============================================ */
+
+/* Favorites - Active (selected) */
+.tag[data-variant="card"][data-type="favorites"][data-state="active"] {
+  background: var(--gradient-aurora);
+  color: var(--color-neutral-20);
+}
+
+.tag[data-variant="card"][data-type="favorites"][data-state="active"]:hover {
+  background: var(--color-primary-50);
+  color: var(--color-neutral-20);
+}
+
+/* Favorites - Inactive (unselected) */
+.tag[data-variant="card"][data-type="favorites"][data-state="inactive"] {
+  background-color: var(--color-primary-20);
+  color: var(--color-primary-80);
+}
+
+.tag[data-variant="card"][data-type="favorites"][data-state="inactive"]:hover {
+  background-color: var(--color-primary-30);
+  color: var(--color-primary-80);
+}
+
+/* ============================================
+   CARD VARIANT - HIDDEN TAG STATES
+   ============================================ */
+
+/* Hidden - Active (selected) */
+.tag[data-variant="card"][data-type="hidden"][data-state="active"] {
+  background-color: var(--color-neutral-50);
+  color: var(--color-neutral-20);
+}
+
+.tag[data-variant="card"][data-type="hidden"][data-state="active"]:hover {
+  background-color: var(--color-neutral-60);
+  color: var(--color-neutral-20);
+}
+
+/* Hidden - Inactive (unselected) */
+.tag[data-variant="card"][data-type="hidden"][data-state="inactive"] {
+  background-color: var(--color-neutral-30);
+  color: var(--color-neutral-60);
+}
+
+.tag[data-variant="card"][data-type="hidden"][data-state="inactive"]:hover {
+  background-color: var(--color-neutral-40);
+  color: var(--color-neutral-60);
+}
+
+/* ============================================
    COLLECTION TAG STATES
    ============================================ */
 

@@ -162,8 +162,3 @@ hasProfile.metadata.total_preferences = hasProfile.content.preferences.items.len
 // Write output
 const outputPath = '/Users/d.breuer/Desktop/data-gems-has-profile-converted.json';
 fs.writeFileSync(outputPath, JSON.stringify(hasProfile, null, 2), 'utf8');
-
-console.log(`✅ Conversion complete!`);
-console.log(`📊 Converted ${hasProfile.content.preferences.items.length} context items to preferences`);
-console.log(`🏷️  Created ${hasProfile.collections.length} collections`);
-console.log(`💾 Output: ${outputPath}`);

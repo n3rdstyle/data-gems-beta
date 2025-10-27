@@ -1,11 +1,11 @@
 /**
- * Primary Button Component
- * Main action button with gradient background
+ * Secondary Button Component
+ * Outlined button with stroke for secondary actions
  * Variants:
- * - default: Sundown gradient, 32px border radius
- * - neutral: Dark gray for use on gradient backgrounds
- * - dark: Primary dark blue
- * - v2: Compact version with 8px border radius, dark blue background (for modals)
+ * - default: Primary color border with transparent background
+ * - neutral: Neutral color border for use on colored backgrounds
+ * - light: Light border for use on dark backgrounds
+ * - v2: Compact version with fixed height (for modals)
  *
  * Sizes:
  * - large: 48px height (for prominent CTAs)
@@ -13,13 +13,13 @@
  * - small: 32px height (for compact interfaces)
  */
 
-function createPrimaryButton(options = {}) {
+function createSecondaryButton(options = {}) {
   const {
     label = 'Button',
     onClick = null,
     disabled = false,
     ariaLabel = '',
-    variant = 'default', // 'default', 'neutral', 'dark', or 'v2'
+    variant = 'default', // 'default', 'neutral', 'light', or 'v2'
     size = 'medium' // 'large', 'medium', or 'small'
   } = options;
 
@@ -31,32 +31,32 @@ function createPrimaryButton(options = {}) {
 
   // Apply variant and text-style classes
   if (variant === 'neutral') {
-    button.className = 'button-primary button-primary--neutral text-style-body-medium';
-  } else if (variant === 'dark') {
-    button.className = 'button-primary button-primary--dark text-style-body-medium';
+    button.className = 'button-secondary button-secondary--neutral text-style-body-medium';
+  } else if (variant === 'light') {
+    button.className = 'button-secondary button-secondary--light text-style-body-medium';
   } else if (variant === 'v2') {
-    button.className = 'button-primary button-primary--v2 text-style-body-medium';
+    button.className = 'button-secondary button-secondary--v2 text-style-body-medium';
 
     // Apply size for v2 variant (maintains backward compatibility)
     if (size === 'small') {
-      button.classList.add('button-primary--small');
+      button.classList.add('button-secondary--small');
       button.classList.remove('text-style-body-medium');
       button.classList.add('text-style-button-small');
     }
   } else {
-    button.className = 'button-primary text-style-body-medium';
+    button.className = 'button-secondary text-style-body-medium';
   }
 
   // Apply size classes for non-v2 variants
   if (variant !== 'v2') {
     if (size === 'large') {
-      button.classList.add('button-primary--large');
+      button.classList.add('button-secondary--large');
     } else if (size === 'small') {
-      button.classList.add('button-primary--small');
+      button.classList.add('button-secondary--small');
       button.classList.remove('text-style-body-medium');
       button.classList.add('text-style-button-small');
     } else {
-      button.classList.add('button-primary--medium');
+      button.classList.add('button-secondary--medium');
     }
   }
 
@@ -107,5 +107,5 @@ function createPrimaryButton(options = {}) {
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { createPrimaryButton };
+  module.exports = { createSecondaryButton };
 }

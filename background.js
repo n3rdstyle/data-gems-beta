@@ -50,50 +50,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 /**
  * Monitor tab updates for auto-injection
+ * DISABLED: Auto-inject is now handled directly by the content script on page load
+ * This prevents multiple injection attempts and is simpler/more reliable
  */
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  // Only act when page is fully loaded
-  if (changeInfo.status !== 'complete') return;
-  if (!tab.url) return;
-
-  // Check if auto-inject is enabled
-  try {
-    const result = await chrome.storage.local.get(['hasProfile']);
-    const hasProfile = result.hasProfile;
-
-    if (!hasProfile) return;
-
-    // Check if auto-inject is enabled in settings
-    const autoInjectEnabled = hasProfile?.settings?.injection?.auto_inject || false;
-    if (!autoInjectEnabled) return;
-
-    // Check if URL matches supported platforms
-    const supportedPlatforms = [
-      'chat.openai.com',
-      'chatgpt.com',
-      'claude.ai',
-      'gemini.google.com',
-      'grok.com',
-      'x.com/i/grok',
-      'twitter.com/i/grok'
-    ];
-
-    const isSupported = supportedPlatforms.some(platform => tab.url.includes(platform));
-    if (!isSupported) return;
-
-    // Send message to content script to trigger auto-injection
-    try {
-      await chrome.tabs.sendMessage(tabId, {
-        action: 'autoInject',
-        profile: hasProfile
-      });
-    } catch (error) {
-      // Content script not ready yet, ignore
-    }
-  } catch (error) {
-    console.error('[Data Gems] Error in auto-inject check:', error);
-  }
-});
+// chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+//   // Disabled - content script handles auto-inject directly
+// });
 
 // Keep service worker alive
 chrome.runtime.onStartup.addListener(() => {

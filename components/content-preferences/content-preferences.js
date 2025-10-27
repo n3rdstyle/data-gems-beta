@@ -6,10 +6,11 @@
 /**
  * Calculate tags with counts from data
  * @param {Array} data - Array of data items with collections
- * @returns {Array} Array of tag objects with counts
+ * @returns {Object} Object with mainTags and collectionTags arrays
  */
 function calculateTagsFromData(data) {
-  const tags = [];
+  const mainTags = [];
+  const collectionTags = [];
 
   // Count total cards
   const totalCount = data.length;
@@ -19,34 +20,6 @@ function calculateTagsFromData(data) {
 
   // Count hidden cards
   const hiddenCount = data.filter(item => item.state === 'hidden').length;
-
-  // Add "All" tag
-  tags.push({
-    type: 'collection',
-    label: 'All',
-    count: totalCount,
-    state: 'active'
-  });
-
-  // Add "Favorites" tag only if there are favorited cards
-  if (favoritedCount > 0) {
-    tags.push({
-      type: 'favorites',
-      label: 'Favorites',
-      count: favoritedCount,
-      state: 'inactive'
-    });
-  }
-
-  // Add "Hidden" tag only if there are hidden cards
-  if (hiddenCount > 0) {
-    tags.push({
-      type: 'hidden',
-      label: 'Hidden',
-      count: hiddenCount,
-      state: 'inactive'
-    });
-  }
 
   // Count collections
   const collectionCounts = {};
@@ -58,9 +31,39 @@ function calculateTagsFromData(data) {
     }
   });
 
-  // Add collection tags
+  // Add "All" tag (with dropdown icon for collections)
+  mainTags.push({
+    type: 'collection',
+    label: 'All',
+    count: totalCount,
+    state: 'active',
+    showIcon: true,
+    iconName: 'chevronDown'
+  });
+
+  // Add "Favorites" tag only if there are favorited cards
+  if (favoritedCount > 0) {
+    mainTags.push({
+      type: 'favorites',
+      label: 'Favorites',
+      count: favoritedCount,
+      state: 'inactive'
+    });
+  }
+
+  // Add "Hidden" tag only if there are hidden cards
+  if (hiddenCount > 0) {
+    mainTags.push({
+      type: 'hidden',
+      label: 'Hidden',
+      count: hiddenCount,
+      state: 'inactive'
+    });
+  }
+
+  // Store collection tags separately (not displayed directly)
   Object.keys(collectionCounts).sort().forEach(collectionName => {
-    tags.push({
+    collectionTags.push({
       type: 'collection',
       label: collectionName,
       count: collectionCounts[collectionName],
@@ -68,7 +71,10 @@ function calculateTagsFromData(data) {
     });
   });
 
-  return tags;
+  return {
+    mainTags,
+    collectionTags
+  };
 }
 
 function createContentPreferences(options = {}) {
@@ -81,24 +87,44 @@ function createContentPreferences(options = {}) {
     onTagClick = null,
     onCardStateChange = null,
     onCardClick = null,
-    modalContainer = null
+    onListChange = null, // Callback when list changes (add/remove/clear)
+    modalContainer = null,
+    onSearchStateChange = null // Callback when search is activated/deactivated
   } = options;
 
   // Calculate tags from data if not provided
-  const calculatedTags = tags || calculateTagsFromData(data);
+  const tagData = tags ? { mainTags: tags, collectionTags: [] } : calculateTagsFromData(data);
+  let collectionTags = tagData.collectionTags;
 
   // Create main container
   const container = document.createElement('div');
   container.className = 'content-preferences';
 
-  // Create headline
+  // Create headline with search icon
   const headlineWrapper = document.createElement('div');
   headlineWrapper.className = 'content-preferences__headline';
-  const headline = createHeadline({ text: title });
+  const headline = createHeadline({
+    text: title,
+    showIcon: true,
+    iconName: 'search',
+    onIconClick: () => {
+      // Open search modal
+      openSearchModal();
+    }
+  });
   headlineWrapper.appendChild(headline.element);
 
   // Track active filter
   let activeFilter = null;
+
+  // Store reference to the "All" tag
+  let allTag = null;
+
+  // Track active search term
+  let activeSearchTerm = null;
+
+  // Store reference to tag list wrapper for show/hide
+  let tagListWrapper = null;
 
   // Function to update tag counts (will be defined later)
   const updateTagCountsInternal = () => {
@@ -109,14 +135,14 @@ function createContentPreferences(options = {}) {
       collections: card.getCollections()
     }));
 
-    const newTags = calculateTagsFromData(data);
+    const newTagData = calculateTagsFromData(data);
+    collectionTags = newTagData.collectionTags; // Update collection tags list
 
     // Update existing tags with new counts
-    const tagList = dataSearch.getTagList();
     const existingTags = tagList.getTags();
 
     existingTags.forEach(existingTag => {
-      const matchingNewTag = newTags.find(nt =>
+      const matchingNewTag = newTagData.mainTags.find(nt =>
         nt.label === existingTag.getLabel() && nt.type === existingTag.getType()
       );
 
@@ -143,65 +169,33 @@ function createContentPreferences(options = {}) {
 
     // Add Favorites/Hidden tags if they don't exist yet but have count > 0
     const needsFavoritesTag = !existingTags.some(t => t.getType() === 'favorites') &&
-                              newTags.some(nt => nt.type === 'favorites' && nt.count > 0);
+                              newTagData.mainTags.some(nt => nt.type === 'favorites' && nt.count > 0);
     const needsHiddenTag = !existingTags.some(t => t.getType() === 'hidden') &&
-                           newTags.some(nt => nt.type === 'hidden' && nt.count > 0);
+                           newTagData.mainTags.some(nt => nt.type === 'hidden' && nt.count > 0);
 
     if (needsFavoritesTag) {
-      const favTag = newTags.find(nt => nt.type === 'favorites');
+      const favTag = newTagData.mainTags.find(nt => nt.type === 'favorites');
       // Insert after "All" tag (index 1)
-      tagList.addTagAtIndex(favTag, 1);
+      tagList.addTagAtIndex({ ...favTag, variant: 'card' }, 1);
     }
 
     if (needsHiddenTag) {
-      const hiddenTag = newTags.find(nt => nt.type === 'hidden');
+      const hiddenTag = newTagData.mainTags.find(nt => nt.type === 'hidden');
       // Insert after "All" and "Favorites" tags
       const insertIndex = existingTags.some(t => t.getType() === 'favorites') ? 2 : 1;
-      tagList.addTagAtIndex(hiddenTag, insertIndex);
+      tagList.addTagAtIndex({ ...hiddenTag, variant: 'card' }, insertIndex);
     }
 
-    // Add any new collection tags that don't exist yet
-    const newCollectionTags = newTags.filter(newTag => {
-      const exists = existingTags.some(et =>
-        et.getLabel() === newTag.label && et.getType() === newTag.type
+    // If there's an active collection filter, update the "All" tag accordingly
+    if (activeFilter && activeFilter.type === 'collections' && allTag) {
+      const visibleCards = dataList.getCards().filter(card =>
+        card.element.style.display !== 'none'
       );
-      return !exists && newTag.type === 'collection' && newTag.label !== 'All';
-    });
-
-    // Add new tags in alphabetical order by finding the correct position
-    newCollectionTags.forEach(newTag => {
-      // Get current tags (updated in case we're adding multiple)
-      const currentTags = tagList.getTags();
-
-      // Find position to insert: after Hidden tag and in alphabetical order
-      const hiddenTagIndex = currentTags.findIndex(t => t.getType() === 'hidden');
-      let insertIndex = hiddenTagIndex >= 0 ? hiddenTagIndex + 1 : currentTags.length;
-
-      // Find alphabetical position among existing collection tags
-      for (let i = insertIndex; i < currentTags.length; i++) {
-        const tag = currentTags[i];
-        if (tag.getType() === 'collection' && tag.getLabel() !== 'All') {
-          if (newTag.label.localeCompare(tag.getLabel()) < 0) {
-            insertIndex = i;
-            break;
-          }
-        }
-      }
-
-      tagList.addTagAtIndex(newTag, insertIndex);
-    });
-
-    // Remove collection tags with 0 count
-    // Create array copy to avoid issues when removing during iteration
-    const tagsToRemove = existingTags.filter(existingTag =>
-      existingTag.getType() === 'collection' &&
-      existingTag.getLabel() !== 'All' &&
-      existingTag.getCount() === 0
-    );
-
-    tagsToRemove.forEach(tag => {
-      tagList.removeTag(tag);
-    });
+      allTag.setCount(visibleCards.length);
+    } else if (allTag) {
+      // No filter active, show total count
+      allTag.setCount(dataList.getCards().length);
+    }
   };
 
   // Create data list first (so it's available for callbacks)
@@ -209,6 +203,12 @@ function createContentPreferences(options = {}) {
   listWrapper.className = 'content-preferences__list';
   const dataList = new DataList(listWrapper, {
     data: data,
+    onListChange: (action, card) => {
+      // Forward list change event to parent
+      if (onListChange) {
+        onListChange(action, card);
+      }
+    },
     onCardStateChange: (card, state) => {
       // Update tag counts when state changes
       setTimeout(() => {
@@ -259,31 +259,179 @@ function createContentPreferences(options = {}) {
     modalContainer: modalContainer
   });
 
-  // Create data search (after data list so dataList is available)
-  const searchWrapper = document.createElement('div');
-  searchWrapper.className = 'content-preferences__search';
-  const dataSearch = createDataSearch({
-    placeholder: searchPlaceholder,
-    tags: calculatedTags,
-    onSearch: (value) => {
-      // Filter data list based on search
-      if (onSearch) {
-        onSearch(value);
+  // Function to clear search
+  const clearSearchTerm = () => {
+    activeSearchTerm = null;
+    headline.clearSearch();
+
+    // Show tag list again
+    if (tagListWrapper) {
+      tagListWrapper.style.display = '';
+    }
+
+    // Notify parent that search was deactivated
+    if (onSearchStateChange) {
+      onSearchStateChange(false);
+    }
+
+    // Clear filter and reapply tag filter if one exists
+    if (activeFilter) {
+      if (activeFilter.type === 'state') {
+        dataList.filterByState(activeFilter.value);
+      } else if (activeFilter.type === 'collections') {
+        dataList.filterByCollections(activeFilter.value);
       }
-      if (value) {
-        dataList.filter(value);
-      } else {
-        // If no search term but there's an active tag filter, reapply it
-        if (activeFilter) {
-          dataList.filterByState(activeFilter);
-        } else {
-          dataList.clearFilter();
+    } else {
+      dataList.clearFilter();
+    }
+  };
+
+  // Function to open search modal
+  const openSearchModal = () => {
+    const searchModal = createSearchModal({
+      placeholder: searchPlaceholder,
+      onSearch: (value) => {
+        // Filter data list based on search (live filtering)
+        if (onSearch) {
+          onSearch(value);
         }
+        if (value) {
+          dataList.filter(value);
+        } else {
+          // If no search term but there's an active tag filter, reapply it
+          if (activeFilter) {
+            if (activeFilter.type === 'state') {
+              dataList.filterByState(activeFilter.value);
+            } else if (activeFilter.type === 'collections') {
+              dataList.filterByCollections(activeFilter.value);
+            }
+          } else {
+            dataList.clearFilter();
+          }
+        }
+      },
+      onSearchSubmit: (value) => {
+        // Search submitted with Enter key
+        activeSearchTerm = value;
+
+        // Hide tag list
+        if (tagListWrapper) {
+          tagListWrapper.style.display = 'none';
+        }
+
+        // Scroll to top of the scrollable container
+        const scrollableParent = container.closest('.home__content');
+        if (scrollableParent) {
+          scrollableParent.scrollTop = 0;
+        }
+
+        // Notify parent that search was activated
+        if (onSearchStateChange) {
+          onSearchStateChange(true);
+        }
+
+        // Apply filter
+        dataList.filter(value);
+
+        // Update headline to show search button
+        headline.setSearchActive(value, clearSearchTerm);
+      },
+      onClose: () => {
+        // Modal closed
       }
-    },
+    });
+
+    // Append modal directly without overlay
+    if (modalContainer) {
+      modalContainer.appendChild(searchModal.element);
+    } else {
+      container.appendChild(searchModal.element);
+    }
+
+    searchModal.show();
+  };
+
+  // Create tag list (without search field)
+  tagListWrapper = document.createElement('div');
+  tagListWrapper.className = 'content-preferences__tags';
+  const tagList = createTagList({
+    tags: tagData.mainTags.map(tag => ({ ...tag, variant: 'card' })),
     onTagClick: (tag) => {
+      const tagLabel = tag.getLabel().toLowerCase();
+      const isAllTag = tag === allTag;
+
+      // If "All" tag is clicked, open collection filter modal
+      if (isAllTag && collectionTags.length > 0) {
+        // Prevent default toggle behavior
+        tag.setState('active');
+
+        // Create and show collection filter modal
+        const modal = createCollectionFilterModal({
+          collections: collectionTags,
+          selectedCollections: activeFilter && activeFilter.type === 'collections' ? activeFilter.value : [],
+          onApply: (selectedCollections) => {
+            if (selectedCollections.length > 0) {
+              // Filter by selected collections
+              activeFilter = { type: 'collections', value: selectedCollections };
+              dataList.filterByCollections(selectedCollections);
+
+              // Update "All" tag label and count
+              const visibleCards = dataList.getCards().filter(card =>
+                card.element.style.display !== 'none'
+              );
+              const newCount = visibleCards.length;
+
+              if (selectedCollections.length === 1) {
+                // Single collection: show collection name
+                tag.setLabel(selectedCollections[0]);
+              } else {
+                // Multiple collections: show "Multiple Tags"
+                tag.setLabel('Multiple Tags');
+              }
+              tag.setCount(newCount);
+            } else {
+              // No collections selected, show all
+              activeFilter = null;
+              dataList.clearFilter();
+
+              // Reset "All" tag to default
+              tag.setLabel('All');
+              tag.setCount(dataList.getCards().length);
+            }
+          },
+          onClose: () => {
+            // Modal closed without applying - do nothing
+          }
+        });
+
+        // Create overlay
+        const overlay = createOverlay({ opacity: 0.5 });
+        overlay.element.appendChild(modal.element);
+
+        // Set overlay reference in modal so it can clean up
+        modal.setOverlay(overlay.element);
+
+        // Close modal when clicking on overlay background
+        overlay.element.addEventListener('click', (e) => {
+          if (e.target === overlay.element) {
+            modal.hide();
+          }
+        });
+
+        if (modalContainer) {
+          modalContainer.appendChild(overlay.element);
+        } else {
+          container.appendChild(overlay.element);
+        }
+
+        // Show overlay and modal
+        overlay.show();
+        modal.show();
+
+        return; // Don't execute normal tag logic
+      }
+
       // Handle filtering by tag type
-      const tagList = dataSearch.getTagList();
       const allTags = tagList.getTags();
 
       // Note: Tag has already toggled itself in handleClick()
@@ -293,9 +441,6 @@ function createContentPreferences(options = {}) {
 
       if (isActive) {
         // Tag was just activated
-        const tagLabel = tag.getLabel().toLowerCase();
-        const isAllTag = tagLabel === 'all';
-
         // Deactivate all other tags
         allTags.forEach(t => {
           if (t !== tag) {
@@ -303,39 +448,35 @@ function createContentPreferences(options = {}) {
           }
         });
 
-        // Hide/show tags based on which tag was clicked
-        if (!isAllTag) {
-          // If a specific tag (not "All") was activated, hide all other tags except "All"
-          allTags.forEach(t => {
-            const tLabel = t.getLabel().toLowerCase();
-            if (t !== tag && tLabel !== 'all') {
-              t.hide();
-            } else {
-              t.show();
-            }
-          });
-        } else {
-          // If "All" was activated, show all tags
-          allTags.forEach(t => t.show());
-        }
-
         // Apply filter based on tag type and label
-        const tagType = tag.getType();
-
         if (tagLabel === 'favorites') {
           activeFilter = { type: 'state', value: 'favorited' };
           dataList.filterByState('favorited');
+
+          // Reset "All" tag to default when switching to Favorites
+          if (allTag) {
+            allTag.setLabel('All');
+            allTag.setCount(dataList.getCards().length);
+          }
         } else if (tagLabel === 'hidden') {
           activeFilter = { type: 'state', value: 'hidden' };
           dataList.filterByState('hidden');
-        } else if (tagType === 'collection' && tagLabel !== 'all') {
-          // Filter by collection name
-          activeFilter = { type: 'collection', value: tag.getLabel() };
-          dataList.filterByCollection(tag.getLabel());
+
+          // Reset "All" tag to default when switching to Hidden
+          if (allTag) {
+            allTag.setLabel('All');
+            allTag.setCount(dataList.getCards().length);
+          }
         } else {
-          // For "All" tag, show all cards
+          // For "All" tag without collections, show all cards
           activeFilter = null;
           dataList.clearFilter();
+
+          // Reset "All" tag to default
+          if (allTag) {
+            allTag.setLabel('All');
+            allTag.setCount(dataList.getCards().length);
+          }
         }
       } else {
         // Tag was just deactivated
@@ -350,12 +491,9 @@ function createContentPreferences(options = {}) {
           }
         }
 
-        // Clear filter and show all tags and cards
+        // Clear filter and show all cards
         activeFilter = null;
         dataList.clearFilter();
-
-        // Show all tags again
-        allTags.forEach(t => t.show());
       }
 
       if (onTagClick) {
@@ -363,11 +501,16 @@ function createContentPreferences(options = {}) {
       }
     }
   });
-  searchWrapper.appendChild(dataSearch.element);
+  tagListWrapper.appendChild(tagList.element);
+
+  // Store reference to "All" tag for later updates
+  allTag = tagList.getTags().find(t =>
+    t.getType() === 'collection' && (t.getLabel() === 'All' || t.showIcon)
+  );
 
   // Assemble component
   container.appendChild(headlineWrapper);
-  container.appendChild(searchWrapper);
+  container.appendChild(tagListWrapper);
   container.appendChild(listWrapper);
 
   // Public API
@@ -378,8 +521,8 @@ function createContentPreferences(options = {}) {
       return headline;
     },
 
-    getDataSearch() {
-      return dataSearch;
+    getTagList() {
+      return tagList;
     },
 
     getDataList() {
@@ -398,8 +541,8 @@ function createContentPreferences(options = {}) {
       dataList.removeCard(card);
     },
 
-    clearSearch() {
-      dataSearch.clearSearch();
+    openSearch() {
+      openSearchModal();
     },
 
     filterByState(state) {

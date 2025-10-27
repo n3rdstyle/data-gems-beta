@@ -7,11 +7,13 @@ function createActionButton(options = {}) {
   const {
     label = '',
     caption = null, // Optional caption for two-line variant
-    variant = 'navigation', // 'navigation', 'external', 'cta'
+    variant = 'navigation', // 'navigation', 'external', 'cta', 'toggle'
     ctaLabel = 'Action', // Label for CTA button
     href = null, // URL for navigation/external
     onClick = null,
-    disabled = false
+    disabled = false,
+    toggleActive = false, // Active state for toggle variant
+    onToggleChange = null // Callback for toggle state change
   } = options;
 
   // Create container
@@ -25,8 +27,46 @@ function createActionButton(options = {}) {
   // Create label (with or without caption)
   let labelElement;
   let captionElement;
+  let toggleInstance = null;
 
-  if (caption) {
+  if (variant === 'toggle') {
+    // Toggle variant - always two-line with caption and toggle
+    const labelWrapper = document.createElement('div');
+    labelWrapper.className = 'action-button__label-wrapper';
+
+    // Only create label element if label is not empty
+    if (label) {
+      labelElement = document.createElement('div');
+      labelElement.className = 'action-button__label text-style-h3';
+      labelElement.textContent = label;
+      labelWrapper.appendChild(labelElement);
+    }
+
+    // Caption row with toggle
+    const captionRow = document.createElement('div');
+    captionRow.className = 'action-button__caption-row';
+
+    captionElement = document.createElement('div');
+    captionElement.className = 'action-button__caption text-style-caption-medium';
+    captionElement.textContent = caption || '';
+
+    toggleInstance = createToggle({
+      active: toggleActive,
+      disabled: disabled,
+      onChange: (isActive) => {
+        if (onToggleChange) {
+          onToggleChange(isActive);
+        }
+      }
+    });
+
+    captionRow.appendChild(captionElement);
+    captionRow.appendChild(toggleInstance.element);
+
+    labelWrapper.appendChild(captionRow);
+    container.appendChild(labelWrapper);
+
+  } else if (caption) {
     // Two-line variant with wrapper
     const labelWrapper = document.createElement('div');
     labelWrapper.className = 'action-button__label-wrapper';
@@ -152,6 +192,17 @@ function createActionButton(options = {}) {
       }
     },
 
+    // Toggle variant methods
+    getToggleState() {
+      return toggleInstance ? toggleInstance.isActive() : null;
+    },
+
+    setToggleState(value) {
+      if (toggleInstance) {
+        toggleInstance.setActive(value);
+      }
+    },
+
     disable() {
       container.classList.add('action-button--disabled');
       container.setAttribute('tabindex', '-1');
@@ -160,6 +211,8 @@ function createActionButton(options = {}) {
         if (ctaButton) {
           ctaButton.disabled = true;
         }
+      } else if (variant === 'toggle' && toggleInstance) {
+        toggleInstance.setDisabled(true);
       }
     },
 
@@ -171,6 +224,8 @@ function createActionButton(options = {}) {
         if (ctaButton) {
           ctaButton.disabled = false;
         }
+      } else if (variant === 'toggle' && toggleInstance) {
+        toggleInstance.setDisabled(false);
       }
     },
 

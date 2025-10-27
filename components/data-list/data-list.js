@@ -19,6 +19,12 @@ class DataList {
   }
 
   init() {
+    // Create empty state element
+    this.emptyStateElement = document.createElement('div');
+    this.emptyStateElement.className = 'data-list__empty';
+    this.emptyStateElement.textContent = 'No data yet. Add your first preference below!';
+    this.element.appendChild(this.emptyStateElement);
+
     // If data is provided, populate the list
     if (this.data.length > 0) {
       this.populate(this.data);
@@ -26,6 +32,9 @@ class DataList {
       // Initialize existing cards in the DOM
       this.initExistingCards();
     }
+
+    // Update empty state visibility
+    this.updateEmptyState();
   }
 
   /**
@@ -44,7 +53,7 @@ class DataList {
 
   /**
    * Populate the list with data
-   * @param {Array} data - Array of objects with { name, state, collections }
+   * @param {Array} data - Array of objects with { name, state, collections, id, source }
    */
   populate(data) {
     // Clear existing cards
@@ -52,7 +61,7 @@ class DataList {
 
     // Create new cards
     data.forEach(item => {
-      this.addCard(item.name, item.state || 'default', item.collections || [], item.id);
+      this.addCard(item.name, item.state || 'default', item.collections || [], item.id, item.source);
     });
   }
 
@@ -62,15 +71,17 @@ class DataList {
    * @param {string} state - Card state ('default', 'favorited', 'hidden')
    * @param {Array} collections - Array of collection names
    * @param {string} id - Card ID (optional)
+   * @param {object} source - Source metadata (e.g., { type: 'google', url: '...' })
    * @returns {DataCard} - The created card instance
    */
-  addCard(name, state = 'default', collections = [], id = null) {
+  addCard(name, state = 'default', collections = [], id = null, source = null) {
     // Create card without callback first
     const card = createDataCard({
       id: id,
       state: state,
       data: name,
       collections: collections,
+      source: source,
       onClick: this.onCardClick ? (card) => this.onCardClick(card, this.modalContainer) : null
     });
 
@@ -79,6 +90,9 @@ class DataList {
 
     this.element.appendChild(card.element);
     this.cards.push(card);
+
+    // Update empty state visibility
+    this.updateEmptyState();
 
     // Trigger list change callback
     if (this.onListChange) {
@@ -99,6 +113,9 @@ class DataList {
       card.element.remove();
       card.destroy();
 
+      // Update empty state visibility
+      this.updateEmptyState();
+
       // Trigger list change callback
       if (this.onListChange) {
         this.onListChange('remove', card);
@@ -115,6 +132,9 @@ class DataList {
       card.destroy();
     });
     this.cards = [];
+
+    // Update empty state visibility
+    this.updateEmptyState();
 
     // Trigger list change callback
     if (this.onListChange) {
@@ -187,6 +207,9 @@ class DataList {
       // Show/hide based on match
       card.element.style.display = matches ? '' : 'none';
     });
+
+    // Update empty state visibility
+    this.updateEmptyState();
   }
 
   /**
@@ -198,6 +221,9 @@ class DataList {
       const cardState = card.getState();
       card.element.style.display = cardState === state ? '' : 'none';
     });
+
+    // Update empty state visibility
+    this.updateEmptyState();
   }
 
   /**
@@ -212,6 +238,33 @@ class DataList {
       );
       card.element.style.display = hasCollection ? '' : 'none';
     });
+
+    // Update empty state visibility
+    this.updateEmptyState();
+  }
+
+  /**
+   * Filter cards by multiple collections (OR logic)
+   * @param {Array<string>} collectionNames - Array of collection names to filter by
+   */
+  filterByCollections(collectionNames) {
+    if (!collectionNames || collectionNames.length === 0) {
+      this.clearFilter();
+      return;
+    }
+
+    const lowerCaseNames = collectionNames.map(name => name.toLowerCase());
+
+    this.cards.forEach(card => {
+      const collections = card.collections || [];
+      const hasAnyCollection = collections.some(c =>
+        lowerCaseNames.includes(c.toLowerCase())
+      );
+      card.element.style.display = hasAnyCollection ? '' : 'none';
+    });
+
+    // Update empty state visibility
+    this.updateEmptyState();
   }
 
   /**
@@ -221,6 +274,9 @@ class DataList {
     this.cards.forEach(card => {
       card.element.style.display = '';
     });
+
+    // Update empty state visibility
+    this.updateEmptyState();
   }
 
   /**
@@ -247,6 +303,34 @@ class DataList {
   handleCardStateChange(card, state) {
     if (this.onCardStateChange) {
       this.onCardStateChange(card, state);
+    }
+  }
+
+  /**
+   * Update empty state visibility based on card count
+   * @private
+   */
+  updateEmptyState() {
+    if (!this.emptyStateElement) return;
+
+    const visibleCards = this.cards.filter(card =>
+      card.element.style.display !== 'none'
+    );
+
+    if (visibleCards.length === 0) {
+      this.emptyStateElement.style.display = 'flex';
+    } else {
+      this.emptyStateElement.style.display = 'none';
+    }
+  }
+
+  /**
+   * Set custom empty state message
+   * @param {string} message - Custom message to display when list is empty
+   */
+  setEmptyStateMessage(message) {
+    if (this.emptyStateElement) {
+      this.emptyStateElement.textContent = message;
     }
   }
 

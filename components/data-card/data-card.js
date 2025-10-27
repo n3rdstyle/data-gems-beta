@@ -15,6 +15,7 @@ class DataCard {
     this.onStateChange = options.onStateChange || null;
     this.onClick = options.onClick || null;
     this.collections = options.collections || [];
+    this.source = options.source || null; // Track data source (e.g., { type: 'google', url: '...' })
 
     this.init();
   }
@@ -33,17 +34,64 @@ class DataCard {
       this.setValue(this.value);
     }
 
+    // Add source info icon if source is present
+    this.addSourceInfo();
+
     // Create action icons container
     this.createActionIcons();
 
     // Add click handler
     this.element.addEventListener('click', (e) => {
-      // Don't trigger card click if clicking on action icons
-      if (e.target.closest('.data-card__actions')) {
+      // Don't trigger card click if clicking on action icons or info icon
+      if (e.target.closest('.data-card__actions') || e.target.closest('.data-card__source-info')) {
         return;
       }
       this.handleClick();
     });
+  }
+
+  /**
+   * Add source info icon with tooltip
+   */
+  addSourceInfo() {
+    if (!this.source || !this.source.type) {
+      return;
+    }
+
+    const contentElement = this.element.querySelector('.data-card__content');
+    if (!contentElement) return;
+
+    // Get source label
+    let sourceLabel = 'External Source';
+    if (this.source.type === 'google') {
+      sourceLabel = 'Integrated via Google';
+    } else if (this.source.type === 'notion') {
+      sourceLabel = 'Integrated via Notion';
+    }
+
+    // Create info icon container
+    const sourceInfo = document.createElement('div');
+    sourceInfo.className = 'data-card__source-info';
+
+    // Create tooltip container
+    const tooltipContainer = document.createElement('div');
+    tooltipContainer.className = 'tooltip-container';
+
+    // Create info icon
+    const infoIcon = document.createElement('div');
+    infoIcon.className = 'data-card__source-icon';
+    infoIcon.innerHTML = ICONS.info;
+    infoIcon.setAttribute('aria-label', sourceLabel);
+
+    // Create tooltip using the design system tooltip component
+    const tooltip = document.createElement('div');
+    tooltip.className = 'tooltip tooltip--top-right';
+    tooltip.textContent = sourceLabel;
+
+    tooltipContainer.appendChild(infoIcon);
+    tooltipContainer.appendChild(tooltip);
+    sourceInfo.appendChild(tooltipContainer);
+    contentElement.appendChild(sourceInfo);
   }
 
   /**
@@ -132,7 +180,6 @@ class DataCard {
     const validStates = ['default', 'favorited', 'hidden'];
 
     if (!validStates.includes(state)) {
-      console.warn(`Invalid state: ${state}. Using 'default'.`);
       state = 'default';
     }
 
