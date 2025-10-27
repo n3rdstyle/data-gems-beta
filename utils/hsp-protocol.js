@@ -149,6 +149,9 @@ function createInitialProfile(userData = {}) {
       privacy: {
         store_locally_only: true,
         auto_clear_after_days: null
+      },
+      injection: {
+        auto_inject: false
       }
     },
 

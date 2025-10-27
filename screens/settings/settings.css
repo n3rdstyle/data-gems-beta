@@ -48,3 +48,35 @@
   /* No padding - uses screen padding */
   flex-shrink: 0;
 }
+
+/* Toggle Row Styles */
+.settings__toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-component-internal); /* 16px */
+  padding: var(--spacing-xs) 0; /* 8px top/bottom */
+}
+
+.settings__toggle-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2xs); /* 4px */
+}
+
+.settings__toggle-label {
+  font-family: var(--font-family-default);
+  font-size: var(--font-size-body-md);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-primary-100);
+  line-height: var(--line-height-tight);
+}
+
+.settings__toggle-description {
+  font-family: var(--font-family-default);
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-primary-60);
+  line-height: var(--line-height-normal);
+}

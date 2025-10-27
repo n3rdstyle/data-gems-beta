@@ -1,7 +1,7 @@
 /**
  * Data Gems Profile Injector
  * Injects user profile into AI chat interfaces
- * Supported platforms: ChatGPT, Claude, Gemini, Perplexity, Grok
+ * Supported platforms: ChatGPT, Claude, Gemini, Grok
  */
 
 // Platform detection and configuration
@@ -13,7 +13,8 @@ const PLATFORMS = {
       promptInput: '#prompt-textarea, textarea[data-id], div[contenteditable="true"][data-testid="textbox"]',
       inputContainer: 'main'
     },
-    isContentEditable: true
+    isContentEditable: true,
+    injectionMethod: 'file' // ChatGPT supports file attachments
   },
   CLAUDE: {
     name: 'Claude',
@@ -22,34 +23,41 @@ const PLATFORMS = {
       promptInput: 'div[contenteditable="true"][data-placeholder*="message"], div.ProseMirror[contenteditable="true"]',
       inputContainer: 'div[class*="InputContainer"], fieldset'
     },
-    isContentEditable: true
+    isContentEditable: true,
+    injectionMethod: 'text' // Claude: inject as text
   },
   GEMINI: {
     name: 'Gemini',
     hostPatterns: ['gemini.google.com'],
     selectors: {
       promptInput: 'div[contenteditable="true"].ql-editor, rich-textarea[class*="input-area"]',
-      inputContainer: 'div[class*="input-area-container"]'
+      inputContainer: 'div[class*="input-area-container"]',
+      uploadButton: 'button[aria-label*="upload" i], button[aria-label*="attach" i], button[aria-label*="file" i], button.upload-button'
     },
-    isContentEditable: true
+    isContentEditable: true,
+    injectionMethod: 'file' // Gemini: attach file
   },
-  PERPLEXITY: {
-    name: 'Perplexity',
-    hostPatterns: ['perplexity.ai'],
-    selectors: {
-      promptInput: 'textarea[placeholder*="Ask"], textarea[class*="TextArea"]',
-      inputContainer: 'div[class*="TextAreaContainer"]'
-    },
-    isContentEditable: false
-  },
+  // PERPLEXITY: Disabled - Perplexity blocks content scripts via CSP
+  // PERPLEXITY: {
+  //   name: 'Perplexity',
+  //   hostPatterns: ['perplexity.ai'],
+  //   selectors: {
+  //     promptInput: '#ask-input, div[contenteditable="true"][role="textbox"][data-lexical-editor="true"]',
+  //     inputContainer: 'div.relative.rounded-2xl'
+  //   },
+  //   isContentEditable: true,
+  //   injectionMethod: 'text'
+  // },
   GROK: {
     name: 'Grok',
-    hostPatterns: ['x.com', 'twitter.com'],
+    hostPatterns: ['grok.com', 'x.com', 'twitter.com'],
     selectors: {
-      promptInput: 'textarea[aria-label*="message"], div[contenteditable="true"][data-placeholder*="Grok"]',
-      inputContainer: 'div[class*="MessageInput"]'
+      promptInput: 'textarea[aria-label*="Grok"], textarea[aria-label*="Ask"]',
+      inputContainer: 'div.query-bar, form',
+      uploadButton: 'button[aria-label*="attach" i], button.group\\/attach-button'
     },
-    isContentEditable: false
+    isContentEditable: false,
+    injectionMethod: 'file' // Grok: attach file
   }
 };
 
@@ -176,15 +184,14 @@ function createInjectionButton() {
 function showInjectionButton() {
   if (injectionButton || !promptElement) return;
 
-  // Find the form element (parent of the prompt)
-  const formElement = promptElement.closest('form');
-  if (!formElement || !formElement.parentElement) return;
-
-  // Create wrapper div for right alignment
+  // Create wrapper div for center alignment
   const wrapper = document.createElement('div');
   wrapper.style.display = 'flex';
-  wrapper.style.justifyContent = 'flex-end';
+  wrapper.style.justifyContent = 'center';
+  wrapper.style.alignItems = 'center';
   wrapper.style.marginBottom = '16px';
+  wrapper.style.width = '100%';
+  wrapper.style.textAlign = 'center';
 
   // Create button
   injectionButton = createInjectionButton();
@@ -192,11 +199,46 @@ function showInjectionButton() {
   // Add button to wrapper
   wrapper.appendChild(injectionButton);
 
-  // Insert wrapper BEFORE the form element
-  formElement.parentElement.insertBefore(wrapper, formElement);
+  // Grok-specific strategy: Insert before the query-bar div
+  if (currentPlatform.name === 'Grok') {
+    const queryBar = document.querySelector('div.query-bar');
+    if (queryBar && queryBar.parentElement) {
+      queryBar.parentElement.insertBefore(wrapper, queryBar);
+      injectionButton._wrapper = wrapper;
+      return;
+    }
+  }
 
-  // Store wrapper reference for cleanup
-  injectionButton._wrapper = wrapper;
+  // Strategy 1: Try to find form element (ChatGPT, Claude, etc.)
+  const formElement = promptElement.closest('form');
+  if (formElement && formElement.parentElement) {
+    // Insert wrapper BEFORE the form element
+    formElement.parentElement.insertBefore(wrapper, formElement);
+    injectionButton._wrapper = wrapper;
+    return;
+  }
+
+  // Strategy 2: Use platform-specific inputContainer selector (Gemini, etc.)
+  if (currentPlatform.selectors.inputContainer) {
+    const container = document.querySelector(currentPlatform.selectors.inputContainer);
+    if (container) {
+      // Insert wrapper as first child of container
+      container.insertBefore(wrapper, container.firstChild);
+      injectionButton._wrapper = wrapper;
+      return;
+    }
+  }
+
+  // Strategy 3: Fallback - insert before the prompt element's parent
+  if (promptElement.parentElement) {
+    promptElement.parentElement.insertBefore(wrapper, promptElement);
+    injectionButton._wrapper = wrapper;
+    return;
+  }
+
+  // If all strategies fail, cleanup
+  wrapper.remove();
+  injectionButton = null;
 }
 
 /**
@@ -223,27 +265,32 @@ async function handleInjection() {
     return;
   }
 
-  // Format profile as JSON (without the explanation text)
-  const profileData = formatProfileAsJSON(hasProfile);
+  // Check injection method for current platform
+  if (currentPlatform.injectionMethod === 'file') {
+    // Try file attachment method first (ChatGPT, Gemini)
+    const profileData = formatProfileAsJSON(hasProfile);
+    const blob = new Blob([profileData], { type: 'application/json' });
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    const fileName = `data-gems-profile-${timestamp}.json`;
+    const file = new File([blob], fileName, { type: 'application/json' });
 
-  // Create JSON Blob
-  const blob = new Blob([profileData], { type: 'application/json' });
+    const success = await attachFileToChat(file);
 
-  // Create File object
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-  const fileName = `data-gems-profile-${timestamp}.json`;
-  const file = new File([blob], fileName, { type: 'application/json' });
-
-  // Try to attach file to ChatGPT
-  const success = await attachFileToChat(file);
-
-  if (success) {
-    // Hide button after successful injection
-    hideInjectionButton();
-  } else {
-    console.error('[Data Gems] Failed to attach profile file');
-    alert('Failed to attach profile. Please try again.');
+    if (success) {
+      hideInjectionButton();
+      return;
+    }
   }
+
+  // Text injection method (used for Claude, Grok, or as fallback)
+  const profileText = formatProfileForInjection(hasProfile, {
+    includeHidden: false,
+    includeMetadata: false,
+    prettify: true
+  });
+
+  setPromptValue(profileText);
+  hideInjectionButton();
 }
 
 /**
@@ -297,47 +344,161 @@ function formatProfileAsJSON(hasProfile) {
 }
 
 /**
- * Attach file to ChatGPT chat
+ * Attach file to chat (ChatGPT, Gemini, etc.)
  */
 async function attachFileToChat(file) {
-  // Method 1: Try to find file input and trigger it
+
+  // Method 0: Try to click upload button first (for platforms like Gemini)
+  if (currentPlatform.selectors?.uploadButton) {
+    const uploadButton = document.querySelector(currentPlatform.selectors.uploadButton);
+
+    if (uploadButton) {
+
+      // Click the upload button
+      uploadButton.click();
+
+      // Wait for file input to appear
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Now try to find the file input that appeared
+      const fileInputs = document.querySelectorAll('input[type="file"]');
+
+      for (const input of fileInputs) {
+        try {
+
+          // Create DataTransfer object with our file
+          const dataTransfer = new DataTransfer();
+          dataTransfer.items.add(file);
+
+          // Set files property
+          input.files = dataTransfer.files;
+
+          // Trigger change event
+          const changeEvent = new Event('change', { bubbles: true });
+          input.dispatchEvent(changeEvent);
+
+          // Also trigger input event
+          const inputEvent = new Event('input', { bubbles: true });
+          input.dispatchEvent(inputEvent);
+
+
+          // Wait to see if attachment appears in UI
+          await new Promise(resolve => setTimeout(resolve, 2000));
+
+          // Check if file was attached by looking for file name in DOM
+          const bodyText = document.body.textContent;
+          if (bodyText.includes(file.name) || bodyText.includes('json')) {
+            return true;
+          }
+
+        } catch (error) {
+          console.error('[Data Gems] Error with upload button method:', error);
+        }
+      }
+    } else {
+    }
+  }
+
+  // Method 1: Try to find and use file input directly
   const fileInputs = document.querySelectorAll('input[type="file"]');
 
   for (const input of fileInputs) {
-    // Skip image-only inputs
-    if (input.accept && input.accept.includes('image/') && !input.accept.includes('*')) {
+
+    // Skip image-only inputs (unless platform is Gemini which might need it)
+    if (input.accept && input.accept.includes('image/') && !input.accept.includes('*') && !input.accept.includes('json')) {
       continue;
     }
 
-    // Create DataTransfer object with our file
-    const dataTransfer = new DataTransfer();
-    dataTransfer.items.add(file);
+    try {
+      // Create DataTransfer object with our file
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(file);
 
-    // Set files property
-    input.files = dataTransfer.files;
+      // Set files property
+      input.files = dataTransfer.files;
 
-    // Trigger change event
-    const changeEvent = new Event('change', { bubbles: true });
-    input.dispatchEvent(changeEvent);
+      // Trigger change event
+      const changeEvent = new Event('change', { bubbles: true });
+      input.dispatchEvent(changeEvent);
 
-    return true;
+      // Also trigger input event
+      const inputEvent = new Event('input', { bubbles: true });
+      input.dispatchEvent(inputEvent);
+
+
+      // Wait to see if attachment appears in UI
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // Check if file was attached by looking for common attachment UI patterns
+      const attachmentSelectors = [
+        '[class*="attachment"]',
+        '[class*="file-"]',
+        '[data-testid*="file"]',
+        '[class*="upload"]',
+        '[aria-label*="attached"]',
+        'img[alt*="' + file.name.split('.')[0] + '"]'
+      ];
+
+      for (const selector of attachmentSelectors) {
+        const attachment = document.querySelector(selector);
+        if (attachment && attachment.textContent.includes(file.name.split('-').pop())) {
+          return true;
+        }
+      }
+
+    } catch (error) {
+      console.error('[Data Gems] Error with file input method:', error);
+    }
   }
 
-  // Method 2: Try to simulate drop event on the composer
-  const composer = document.querySelector('form.group\\/composer, [class*="composer"]');
+  // Method 2: Try to simulate drop event (for platforms that support drag & drop)
+  const dropTargets = [
+    'form.group\\/composer',
+    '[class*="composer"]',
+    'form[class*="composer"]',
+    currentPlatform.selectors?.inputContainer
+  ].filter(Boolean);
 
-  if (composer) {
-    const dataTransfer = new DataTransfer();
-    dataTransfer.items.add(file);
+  for (const targetSelector of dropTargets) {
+    const target = document.querySelector(targetSelector);
 
-    const dropEvent = new DragEvent('drop', {
-      bubbles: true,
-      cancelable: true,
-      dataTransfer: dataTransfer
-    });
+    if (target) {
+      try {
+        // Take snapshot before drop to detect changes
+        const beforeAttachments = document.querySelectorAll('[class*="attachment"], [class*="file-"], [data-testid*="file"]').length;
+        const beforeBodyText = document.body.textContent;
 
-    composer.dispatchEvent(dropEvent);
-    return true;
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+
+        const dropEvent = new DragEvent('drop', {
+          bubbles: true,
+          cancelable: true,
+          dataTransfer: dataTransfer
+        });
+
+        target.dispatchEvent(dropEvent);
+
+        // Wait to see if attachment appears
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Check for attachment UI - more robust verification
+        const afterAttachments = document.querySelectorAll('[class*="attachment"], [class*="file-"], [data-testid*="file"]').length;
+        const afterBodyText = document.body.textContent;
+
+        // Check if attachment count increased OR if file name appears in DOM
+        if (afterAttachments > beforeAttachments) {
+          return true;
+        }
+
+        if (!beforeBodyText.includes(file.name) && afterBodyText.includes(file.name)) {
+          return true;
+        }
+
+      } catch (error) {
+        console.error('[Data Gems] Error with drop method:', error);
+      }
+    }
   }
 
   return false;
@@ -368,13 +529,18 @@ function updateButtonVisibility() {
 async function initializeProfileInjection() {
   // Detect platform
   currentPlatform = detectPlatform();
-  if (!currentPlatform) return;
+  if (!currentPlatform) {
+    return;
+  }
 
   // Load profile from storage
   try {
     const result = await chrome.storage.local.get(['hasProfile']);
     hasProfile = result.hasProfile;
-    if (!hasProfile) return;
+
+    if (!hasProfile) {
+      return;
+    }
   } catch (error) {
     console.error('[Data Gems] Error loading profile:', error);
     return;
@@ -563,6 +729,33 @@ function hasInjectableData(hasProfile) {
 
   return hasIdentityData || hasPreferences;
 }
+
+/**
+ * Listen for auto-inject messages from background script
+ */
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'autoInject') {
+
+    // Update hasProfile with the profile from the message
+    hasProfile = request.profile;
+
+    // Wait a moment for the page to stabilize, then check if we should auto-inject
+    setTimeout(() => {
+      if (!promptElement) {
+        // If prompt element isn't found yet, try to find it
+        promptElement = findPromptElement(currentPlatform);
+      }
+
+      if (promptElement && isNewChat()) {
+        handleInjection();
+      } else {
+      }
+    }, 1500); // Wait 1.5 seconds for page to be ready
+
+    sendResponse({ success: true });
+    return true;
+  }
+});
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {

@@ -22,6 +22,36 @@ function initializeDefaultProfile() {
   });
 }
 
+// Backup tracking state
+let BackupState = {
+  reminderShown: false,
+  autoBackupEnabled: false,
+  lastBackupCount: 0
+};
+
+// Load backup state from Chrome storage
+async function loadBackupState() {
+  try {
+    const result = await chrome.storage.local.get(['backupState']);
+    if (result.backupState) {
+      BackupState = result.backupState;
+    }
+  } catch (error) {
+    console.error('❌ Error loading backup state:', error);
+  }
+}
+
+// Save backup state to Chrome storage
+async function saveBackupState() {
+  try {
+    await chrome.storage.local.set({
+      backupState: BackupState
+    });
+  } catch (error) {
+    console.error('❌ Error saving backup state:', error);
+  }
+}
+
 // Load data from Chrome storage
 async function loadData() {
   try {
@@ -181,6 +211,67 @@ function exportData() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+
+  // Update last backup count after successful export
+  const currentCount = AppState?.metadata?.total_preferences || 0;
+  BackupState.lastBackupCount = currentCount;
+  await saveBackupState();
+  console.log('💾 Backup count updated:', currentCount);
+}
+
+// Check if backup reminder should be shown (after 10 preferences, only once)
+async function checkBackupReminder() {
+  const currentCount = AppState?.metadata?.total_preferences || 0;
+
+  // Show reminder after 10 preferences, but only once
+  if (currentCount >= 10 && !BackupState.reminderShown) {
+    showBackupReminderModal();
+    BackupState.reminderShown = true;
+    await saveBackupState();
+  }
+
+  // Check for auto-backup trigger (after 50 and every 50 thereafter)
+  if (BackupState.autoBackupEnabled) {
+    await checkAutoBackup();
+  }
+}
+
+// Check and trigger auto-backup if needed
+async function checkAutoBackup() {
+  const currentCount = AppState?.metadata?.total_preferences || 0;
+  const lastBackupCount = BackupState.lastBackupCount || 0;
+
+  // Trigger auto-backup at 50 and then every 50 entries
+  if (currentCount >= 50) {
+    const shouldBackup = (currentCount - lastBackupCount) >= 50;
+    if (shouldBackup) {
+      console.log('🔄 Auto-backup triggered at', currentCount, 'entries');
+      exportData();
+      // exportData updates lastBackupCount internally
+    }
+  }
+}
+
+// Show backup reminder modal
+function showBackupReminderModal() {
+  const modal = createBackupReminderModal({
+    autoBackupEnabled: BackupState.autoBackupEnabled,
+    onClose: async (autoBackupState) => {
+      BackupState.autoBackupEnabled = autoBackupState;
+      await saveBackupState();
+      console.log('Backup reminder closed, auto-backup:', autoBackupState);
+    },
+    onExport: () => {
+      exportData();
+    },
+    onAutoBackupToggle: async (isActive) => {
+      BackupState.autoBackupEnabled = isActive;
+      await saveBackupState();
+      console.log('Auto-backup toggled:', isActive);
+    }
+  });
+
+  modal.show();
 }
 
 // Import/Export helper functions declared before renderCurrentScreen
@@ -263,8 +354,24 @@ async function mergeImportedData(importedData) {
 
       return 'merged';
     } else {
-      // Overwrite everything
-      return 'overwrite';
+      // Overwrite conflicting fields and merge all preferences
+      identityFields.forEach(fieldName => {
+        const importedField = importedData.content.basic.identity[fieldName];
+
+        if (hasValue(importedField)) {
+          AppState.content.basic.identity[fieldName] = importedField;
+        }
+      });
+
+      // Add all imported preferences (avoid duplicates)
+      importedPrefs.forEach(importedPref => {
+        const existingPref = existingPrefs.find(p => p.value === importedPref.value);
+        if (!existingPref) {
+          AppState.content.preferences.items.push(importedPref);
+        }
+      });
+
+      return 'merged';
     }
   } else if (additions.length > 0) {
     // No conflicts, just additions
@@ -326,11 +433,7 @@ function importData() {
       // Merge imported data with existing data (with conflict detection)
       const mergeResult = await mergeImportedData(importedData);
 
-      if (mergeResult === 'overwrite') {
-        // User chose to overwrite - use imported data directly
-        AppState = importedData;
-        AppState.metadata.currentScreen = 'home';
-      } else if (mergeResult === 'merged') {
+      if (mergeResult === 'merged') {
         // Data was merged - AppState already updated in mergeImportedData
         AppState.metadata.currentScreen = 'home';
       } else if (mergeResult === 'no-changes') {
@@ -514,6 +617,8 @@ function renderCurrentScreen() {
             AppState = addPreference(AppState, value, state, collections);
             await saveData();
             renderCurrentScreen();
+            // Check if backup reminder should be shown
+            await checkBackupReminder();
           },
           onPreferenceUpdate: async (prefId, updates) => {
             AppState = updatePreference(AppState, prefId, updates);
@@ -629,7 +734,29 @@ function renderCurrentScreen() {
           onBackupData: () => exportData(),
           onUpdateData: () => importData(),
           onClearData: () => clearAllData(),
-          onThirdPartyData: () => importThirdPartyData()
+          onThirdPartyData: () => importThirdPartyData(),
+          autoInjectEnabled: AppState?.settings?.injection?.auto_inject || false,
+          onAutoInjectToggle: async (isEnabled) => {
+            // Ensure settings.injection exists
+            if (!AppState.settings) {
+              AppState.settings = {};
+            }
+            if (!AppState.settings.injection) {
+              AppState.settings.injection = {};
+            }
+
+            // Update the setting
+            AppState.settings.injection.auto_inject = isEnabled;
+            await saveData();
+
+            console.log('Auto-inject setting updated:', isEnabled);
+          },
+          autoBackupEnabled: BackupState.autoBackupEnabled,
+          onAutoBackupToggle: async (isEnabled) => {
+            BackupState.autoBackupEnabled = isEnabled;
+            await saveBackupState();
+            console.log('Auto-backup setting updated:', isEnabled);
+          }
         });
         break;
 
@@ -664,6 +791,7 @@ function renderCurrentScreen() {
 async function init() {
   console.log('🚀 Initializing Data Gems with HSP Protocol v0.1...');
   await loadData();
+  await loadBackupState();
 
   // Initialize currentScreen in metadata if not present
   if (!AppState.metadata) {

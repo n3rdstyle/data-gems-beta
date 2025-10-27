@@ -5,8 +5,6 @@
 
 // Initialize extension on install
 chrome.runtime.onInstalled.addListener((details) => {
-  console.log('Data Gems extension installed:', details.reason);
-
   // Set default data on fresh install
   if (details.reason === 'install') {
     chrome.storage.local.set({
@@ -31,8 +29,6 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 // Handle messages from popup or content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log('Message received:', request);
-
   // Add message handlers here as needed
   switch (request.action) {
     case 'getData':
@@ -52,7 +48,54 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
+/**
+ * Monitor tab updates for auto-injection
+ */
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  // Only act when page is fully loaded
+  if (changeInfo.status !== 'complete') return;
+  if (!tab.url) return;
+
+  // Check if auto-inject is enabled
+  try {
+    const result = await chrome.storage.local.get(['hasProfile']);
+    const hasProfile = result.hasProfile;
+
+    if (!hasProfile) return;
+
+    // Check if auto-inject is enabled in settings
+    const autoInjectEnabled = hasProfile?.settings?.injection?.auto_inject || false;
+    if (!autoInjectEnabled) return;
+
+    // Check if URL matches supported platforms
+    const supportedPlatforms = [
+      'chat.openai.com',
+      'chatgpt.com',
+      'claude.ai',
+      'gemini.google.com',
+      'grok.com',
+      'x.com/i/grok',
+      'twitter.com/i/grok'
+    ];
+
+    const isSupported = supportedPlatforms.some(platform => tab.url.includes(platform));
+    if (!isSupported) return;
+
+    // Send message to content script to trigger auto-injection
+    try {
+      await chrome.tabs.sendMessage(tabId, {
+        action: 'autoInject',
+        profile: hasProfile
+      });
+    } catch (error) {
+      // Content script not ready yet, ignore
+    }
+  } catch (error) {
+    console.error('[Data Gems] Error in auto-inject check:', error);
+  }
+});
+
 // Keep service worker alive
 chrome.runtime.onStartup.addListener(() => {
-  console.log('Data Gems extension started');
+  // Extension started
 });

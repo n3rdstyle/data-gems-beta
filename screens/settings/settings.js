@@ -20,7 +20,11 @@ function createSettings(options = {}) {
     onWebsite = null,
     onInstagram = null,
     onLinkedIn = null,
-    onReddit = null
+    onReddit = null,
+    autoInjectEnabled = false,
+    onAutoInjectToggle = null,
+    autoBackupEnabled = false,
+    onAutoBackupToggle = null
   } = options;
 
   // Create main container
@@ -69,6 +73,51 @@ function createSettings(options = {}) {
   const generalDivider = createDivider();
   generalSection.appendChild(generalDivider.element);
 
+  // Injection Settings Section
+  const injectionSection = document.createElement('div');
+  injectionSection.className = 'settings__section';
+
+  const injectionHeader = createHeader({
+    variant: 'compact-plain',
+    title: 'Injection Settings'
+  });
+  injectionHeader.element.classList.add('settings__section-header');
+  injectionSection.appendChild(injectionHeader.element);
+
+  // Auto-inject toggle container
+  const autoInjectContainer = document.createElement('div');
+  autoInjectContainer.className = 'settings__toggle-row';
+
+  const autoInjectLabel = document.createElement('div');
+  autoInjectLabel.className = 'settings__toggle-label';
+  autoInjectLabel.textContent = 'Auto-inject profile';
+
+  const autoInjectDescription = document.createElement('div');
+  autoInjectDescription.className = 'settings__toggle-description';
+  autoInjectDescription.textContent = 'Automatically inject your profile when opening a new chat in supported AI platforms';
+
+  const autoInjectToggle = createToggle({
+    active: autoInjectEnabled,
+    onChange: (isActive) => {
+      if (onAutoInjectToggle) {
+        onAutoInjectToggle(isActive);
+      }
+    }
+  });
+
+  const autoInjectLabelContainer = document.createElement('div');
+  autoInjectLabelContainer.className = 'settings__toggle-text';
+  autoInjectLabelContainer.appendChild(autoInjectLabel);
+  autoInjectLabelContainer.appendChild(autoInjectDescription);
+
+  autoInjectContainer.appendChild(autoInjectLabelContainer);
+  autoInjectContainer.appendChild(autoInjectToggle.element);
+
+  injectionSection.appendChild(autoInjectContainer);
+
+  const injectionDivider = createDivider();
+  injectionSection.appendChild(injectionDivider.element);
+
   // Data Center Section
   const dataCenterSection = document.createElement('div');
   dataCenterSection.className = 'settings__section';
@@ -115,6 +164,37 @@ function createSettings(options = {}) {
   });
   dataCenterSection.appendChild(thirdPartyData.element);
 
+  // Auto-backup toggle container
+  const autoBackupContainer = document.createElement('div');
+  autoBackupContainer.className = 'settings__toggle-row';
+
+  const autoBackupLabel = document.createElement('div');
+  autoBackupLabel.className = 'settings__toggle-label';
+  autoBackupLabel.textContent = 'Automatic backups';
+
+  const autoBackupDescription = document.createElement('div');
+  autoBackupDescription.className = 'settings__toggle-description';
+  autoBackupDescription.textContent = 'Automatically export backup after 50 entries and every 50 entries thereafter';
+
+  const autoBackupToggle = createToggle({
+    active: autoBackupEnabled,
+    onChange: (isActive) => {
+      if (onAutoBackupToggle) {
+        onAutoBackupToggle(isActive);
+      }
+    }
+  });
+
+  const autoBackupLabelContainer = document.createElement('div');
+  autoBackupLabelContainer.className = 'settings__toggle-text';
+  autoBackupLabelContainer.appendChild(autoBackupLabel);
+  autoBackupLabelContainer.appendChild(autoBackupDescription);
+
+  autoBackupContainer.appendChild(autoBackupLabelContainer);
+  autoBackupContainer.appendChild(autoBackupToggle.element);
+
+  dataCenterSection.appendChild(autoBackupContainer);
+
   const dataCenterDivider = createDivider();
   dataCenterSection.appendChild(dataCenterDivider.element);
 
@@ -155,6 +235,7 @@ function createSettings(options = {}) {
 
   // Assemble content
   contentWrapper.appendChild(generalSection);
+  contentWrapper.appendChild(injectionSection);
   contentWrapper.appendChild(dataCenterSection);
   contentWrapper.appendChild(legalSection);
 

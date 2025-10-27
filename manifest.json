@@ -20,7 +20,8 @@
     "128": "icons/icon128.png"
   },
   "permissions": [
-    "storage"
+    "storage",
+    "tabs"
   ],
   "background": {
     "service_worker": "background.js"
@@ -32,7 +33,7 @@
         "https://chatgpt.com/*",
         "https://claude.ai/*",
         "https://gemini.google.com/*",
-        "https://www.perplexity.ai/*",
+        "https://grok.com/*",
         "https://x.com/*",
         "https://twitter.com/*"
       ],
