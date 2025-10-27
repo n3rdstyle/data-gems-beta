@@ -19,13 +19,13 @@ function formatProfileForInjection(hasProfile, options = {}) {
     prettify = true
   } = options;
 
-  if (!hasProfile || !hasProfile.has) {
+  if (!hasProfile || !hasProfile.hsp) {
     return 'No profile data available.';
   }
 
   // Create a filtered copy of the profile
   const filteredProfile = {
-    has: hasProfile.has,
+    hsp: hasProfile.hsp,
     type: hasProfile.type
   };
 
@@ -100,7 +100,7 @@ function formatProfileForInjection(hasProfile, options = {}) {
     ? JSON.stringify(filteredProfile, null, 2)
     : JSON.stringify(filteredProfile);
 
-  const injectionText = `Here is my Data Gems profile in HSP Protocol v${hasProfile.has} format:
+  const injectionText = `Here is my Data Gems profile in HSP Protocol v${hasProfile.hsp} format:
 
 \`\`\`json
 ${jsonString}
@@ -117,7 +117,7 @@ Please use this information as context for our conversation.`;
  * @returns {string} Human-readable profile summary
  */
 function getProfileSummary(hasProfile) {
-  if (!hasProfile || !hasProfile.has) {
+  if (!hasProfile || !hasProfile.hsp) {
     return 'No profile available';
   }
 
@@ -136,7 +136,7 @@ function getProfileSummary(hasProfile) {
  * @returns {boolean} True if profile has data worth injecting
  */
 function hasInjectableData(hasProfile) {
-  if (!hasProfile || !hasProfile.has) {
+  if (!hasProfile || !hasProfile.hsp) {
     return false;
   }
 

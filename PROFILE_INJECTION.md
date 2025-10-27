@@ -29,7 +29,7 @@ Das injizierte Profil nutzt das **HSP Protocol v0.1** Format:
 
 ```json
 {
-  "has": "0.1",
+  "hsp": "0.1",
   "type": "profile",
   "content": {
     "basic": {

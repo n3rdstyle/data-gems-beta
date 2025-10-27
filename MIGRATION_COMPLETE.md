@@ -182,7 +182,7 @@ chrome.storage.local.get(['hasProfile'], (result) => {
 ```json
 {
   "id": "profile_lz8x9k2a1b",
-  "has": "0.1",
+  "hsp": "0.1",
   "content": {
     "basic": {
       "identity": {

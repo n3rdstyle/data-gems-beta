@@ -93,7 +93,7 @@ chrome.storage.local.get(['hasProfile'], (result) => {
 **Expected Output:**
 ```json
 {
-  "has": "0.1",
+  "hsp": "0.1",
   "content": {
     "preferences": {
       "items": [

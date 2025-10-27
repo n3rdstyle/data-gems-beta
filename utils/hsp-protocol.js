@@ -118,7 +118,7 @@ function createInitialProfile(userData = {}) {
 
   return {
     id: generateId('profile'),
-    has: '0.1',
+    hsp: '0.1',
     type: 'profile',
     created_at: getTimestamp(),
     updated_at: getTimestamp(),

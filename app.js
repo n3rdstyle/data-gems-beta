@@ -136,7 +136,7 @@ function exportData() {
   const data = {
     // Header fields (in order)
     id: AppState.id,
-    has: AppState.has,
+    hsp: AppState.hsp,
     type: AppState.type,
     created_at: AppState.created_at,
     updated_at: AppState.updated_at,
@@ -167,7 +167,7 @@ function exportData() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `data-gems-has-profile-${Date.now()}.json`;
+  a.download = `data-gems-hsp-profile-${Date.now()}.json`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -298,7 +298,7 @@ function importData() {
       let importedData;
 
       // Check if it's HSP format
-      if (data.has && data.content) {
+      if (data.hsp && data.content) {
         console.log('✅ HSP format detected');
         importedData = data;
       } else {
