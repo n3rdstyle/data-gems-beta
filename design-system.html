@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="design-system/shadows/shadows.css">
 
   <!-- Elements -->
+  <link rel="stylesheet" href="elements/tooltip/tooltip.css">
   <link rel="stylesheet" href="components/overlay/overlay.css">
   <link rel="stylesheet" href="components/input-field/input-field.css">
   <link rel="stylesheet" href="components/divider/divider.css">
@@ -25,6 +26,7 @@
   <link rel="stylesheet" href="components/tag-list/tag-list.css">
   <link rel="stylesheet" href="components/search/search.css">
   <link rel="stylesheet" href="components/button-primary/button-primary.css">
+  <link rel="stylesheet" href="components/button-secondary/button-secondary.css">
   <link rel="stylesheet" href="components/button-tertiary/button-tertiary.css">
   <link rel="stylesheet" href="components/headline/headline.css">
   <link rel="stylesheet" href="components/data-search/data-search.css">
@@ -39,6 +41,9 @@
   <link rel="stylesheet" href="components/data-editor-modal/data-editor-modal.css">
   <link rel="stylesheet" href="components/tag-add-field/tag-add-field.css">
   <link rel="stylesheet" href="components/tag-add-modal/tag-add-modal.css">
+  <link rel="stylesheet" href="components/collection-filter-modal/collection-filter-modal.css">
+  <link rel="stylesheet" href="components/search-modal/search-modal.css">
+  <link rel="stylesheet" href="components/backup-reminder-modal/backup-reminder-modal.css">
   <link rel="stylesheet" href="components/dropdown/dropdown.css">
   <link rel="stylesheet" href="components/collapsible-section/collapsible-section.css">
   <link rel="stylesheet" href="components/action-button/action-button.css">
@@ -49,6 +54,7 @@
   <link rel="stylesheet" href="screens/home/home.css">
   <link rel="stylesheet" href="screens/profile/profile.css">
   <link rel="stylesheet" href="screens/settings/settings.css">
+  <link rel="stylesheet" href="screens/third-party-data/third-party-data.css">
 
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -405,6 +411,7 @@
           <a class="nav-item" data-section="home">Home</a>
           <a class="nav-item" data-section="profile">Profile</a>
           <a class="nav-item" data-section="settings">Settings</a>
+          <a class="nav-item" data-section="third-party-data">Third Party Data</a>
         </div>
         <div class="nav-section">
           <div class="nav-section-title" data-tooltip="Basic building blocks like colors and icons">Foundations</div>
@@ -418,11 +425,13 @@
         <div class="nav-section">
           <div class="nav-section-title" data-tooltip="Basic reusable UI elements">Elements</div>
           <a class="nav-item" data-section="button-primary">Primary Button</a>
+          <a class="nav-item" data-section="button-secondary">Secondary Button</a>
           <a class="nav-item" data-section="button-tertiary">Tertiary Button</a>
           <a class="nav-item" data-section="divider">Divider</a>
           <a class="nav-item" data-section="input-field">Input Field</a>
           <a class="nav-item" data-section="overlay">Overlay</a>
           <a class="nav-item" data-section="toggle">Toggle</a>
+          <a class="nav-item" data-section="tooltip">Tooltip</a>
         </div>
         <div class="nav-section">
           <div class="nav-section-title" data-tooltip="Combined elements forming functional units">Components</div>
@@ -440,6 +449,9 @@
           <a class="nav-item" data-section="header">Header</a>
           <a class="nav-item" data-section="headline">Headline</a>
           <a class="nav-item" data-section="messages-modal">Messages Modal</a>
+          <a class="nav-item" data-section="search-modal">Search Modal</a>
+          <a class="nav-item" data-section="collection-filter-modal">Collection Filter Modal</a>
+          <a class="nav-item" data-section="backup-reminder-modal">Backup Reminder Modal</a>
           <a class="nav-item" data-section="preference-options">Preference Options</a>
           <a class="nav-item" data-section="profile-teaser">Profile Teaser</a>
           <a class="nav-item" data-section="search">Search</a>
@@ -674,6 +686,11 @@
                 <td style="padding: 8px;">24px</td>
                 <td style="padding: 8px;">Between components on a screen</td>
               </tr>
+              <tr style="border-bottom: 1px solid var(--color-neutral-20);">
+                <td style="padding: 8px; font-family: monospace; color: var(--color-primary-90);">--spacing-input-vertical</td>
+                <td style="padding: 8px;">12px</td>
+                <td style="padding: 8px;">Vertical padding for inputs (optimal visual balance)</td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -877,6 +894,12 @@
               <div style="width: 80px; height: 60px; background: var(--color-primary-60); border-radius: 0;"></div>
               <div style="font-size: 12px; color: var(--color-neutral-60);">Sharp corners</div>
             </div>
+            <!-- Thin -->
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <div style="width: 120px; font-size: 14px; font-weight: 500; color: var(--color-neutral-80);">1px (thin)</div>
+              <div style="width: 80px; height: 60px; background: var(--color-primary-60); border-radius: 1px;"></div>
+              <div style="font-size: 12px; color: var(--color-neutral-60);">Very subtle, progress bars</div>
+            </div>
             <!-- XS -->
             <div style="display: flex; align-items: center; gap: 16px;">
               <div style="width: 120px; font-size: 14px; font-weight: 500; color: var(--color-neutral-80);">4px (xs)</div>
@@ -1048,6 +1071,20 @@
               <div style="font-size: 14px; font-weight: 500; color: var(--color-neutral-80); margin-bottom: 8px;">XL - Maximum elevation</div>
               <div style="width: 200px; height: 80px; background: var(--color-neutral-10); box-shadow: var(--shadow-xl); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--color-neutral-60);">
                 Tooltips, popovers
+              </div>
+            </div>
+            <!-- Bottom Sheet -->
+            <div>
+              <div style="font-size: 14px; font-weight: 500; color: var(--color-neutral-80); margin-bottom: 8px;">Bottom Sheet - Upward shadow</div>
+              <div style="width: 200px; height: 80px; background: var(--color-neutral-10); box-shadow: var(--shadow-bottom-sheet); border-radius: 16px 16px 0 0; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--color-neutral-60);">
+                Modals from bottom
+              </div>
+            </div>
+            <!-- Bottom Sheet Dark -->
+            <div>
+              <div style="font-size: 14px; font-weight: 500; color: var(--color-neutral-80); margin-bottom: 8px;">Bottom Sheet Dark - Stronger upward shadow</div>
+              <div style="width: 200px; height: 80px; background: var(--color-neutral-80); box-shadow: var(--shadow-bottom-sheet-dark); border-radius: 16px 16px 0 0; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--color-neutral-10);">
+                Dark bottom sheets
               </div>
             </div>
           </div>
@@ -1319,6 +1356,16 @@
         </div>
       </section>
 
+      <!-- Third Party Data Section -->
+      <section id="section-third-party-data" class="demo-section hidden">
+        <h2>Third Party Data</h2>
+        <p class="description">Screen for importing data from Google Sheets. Features URL input field, import button, and list of imported sheets.</p>
+
+        <div class="demo-example" style="display: flex; justify-content: center; background-color: var(--color-neutral-10); padding: 0;">
+          <div id="third-party-data-demo"></div>
+        </div>
+      </section>
+
       <!-- Headline Section -->
       <section id="section-headline" class="demo-section hidden">
         <h2>Headline</h2>
@@ -1358,6 +1405,60 @@
             <div style="display: flex; gap: 16px; flex-wrap: wrap;" id="button-primary-v2-small-demo"></div>
           </div>
         </div>
+
+        <div class="demo-subsection">
+          <h3>Button Sizes</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Consistent sizing system: Large (48px), Medium (40px), Small (32px)</p>
+          <div class="demo-example">
+            <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center;" id="button-primary-sizes-demo"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Secondary Button Section -->
+      <section id="section-button-secondary" class="demo-section hidden">
+        <h2>Secondary Button</h2>
+        <p class="description">Outlined button with stroke for secondary actions.</p>
+
+        <div class="demo-subsection">
+          <h3>Default Variant</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Primary color border with transparent background</p>
+          <div class="demo-example">
+            <div style="display: flex; gap: 16px; flex-wrap: wrap;" id="button-secondary-demo"></div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Neutral Variant</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Neutral color border for colored backgrounds</p>
+          <div class="demo-example">
+            <div style="display: flex; gap: 16px; flex-wrap: wrap;" id="button-secondary-neutral-demo"></div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Light Variant</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Light border for dark backgrounds</p>
+          <div class="demo-example" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 24px; border-radius: 8px;">
+            <div style="display: flex; gap: 16px; flex-wrap: wrap;" id="button-secondary-light-demo"></div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Version 2 (Compact)</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Fixed 40px height, for modals and dense interfaces</p>
+          <div class="demo-example">
+            <div style="display: flex; gap: 16px; flex-wrap: wrap;" id="button-secondary-v2-demo"></div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Button Sizes</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Consistent sizing system: Large (48px), Medium (40px), Small (32px)</p>
+          <div class="demo-example">
+            <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center;" id="button-secondary-sizes-demo"></div>
+          </div>
+        </div>
       </section>
 
       <!-- Button Tertiary Section -->
@@ -1385,6 +1486,14 @@
           <h3>Text Variant</h3>
           <div class="demo-example">
             <div style="display: flex; gap: 16px; flex-wrap: wrap;" id="button-text-demo"></div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Text Variant Sizes</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Text buttons with consistent sizing: Large (48px), Medium (40px), Small (32px)</p>
+          <div class="demo-example">
+            <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center;" id="button-text-sizes-demo"></div>
           </div>
         </div>
       </section>
@@ -1452,6 +1561,137 @@
                 <p>Content behind overlay</p>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tooltip Section -->
+      <section id="section-tooltip" class="demo-section hidden">
+        <h2>Tooltip</h2>
+        <p class="description">Reusable tooltip component with multiple positioning options and fade animations.</p>
+
+        <div class="demo-subsection">
+          <h3>Top Positions</h3>
+          <div class="demo-example">
+            <div style="display: flex; gap: 40px; justify-content: center; padding: 60px 20px;">
+              <!-- Top -->
+              <div style="text-align: center;">
+                <div class="tooltip-container">
+                  <div style="width: 24px; height: 24px; color: var(--color-neutral-60); cursor: help;">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                    </svg>
+                  </div>
+                  <div class="tooltip tooltip--top">Top Position</div>
+                </div>
+                <p style="margin-top: 8px; font-size: 12px; color: var(--color-neutral-60);">Top</p>
+              </div>
+
+              <!-- Top Right -->
+              <div style="text-align: center;">
+                <div class="tooltip-container">
+                  <div style="width: 24px; height: 24px; color: var(--color-neutral-60); cursor: help;">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                    </svg>
+                  </div>
+                  <div class="tooltip tooltip--top-right">Top Right</div>
+                </div>
+                <p style="margin-top: 8px; font-size: 12px; color: var(--color-neutral-60);">Top Right</p>
+              </div>
+
+              <!-- Top Left -->
+              <div style="text-align: center;">
+                <div class="tooltip-container">
+                  <div style="width: 24px; height: 24px; color: var(--color-neutral-60); cursor: help;">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                    </svg>
+                  </div>
+                  <div class="tooltip tooltip--top-left">Top Left</div>
+                </div>
+                <p style="margin-top: 8px; font-size: 12px; color: var(--color-neutral-60);">Top Left</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Other Positions</h3>
+          <div class="demo-example">
+            <div style="display: flex; gap: 40px; justify-content: center; padding: 60px 20px;">
+              <!-- Bottom -->
+              <div style="text-align: center;">
+                <div class="tooltip-container">
+                  <div style="width: 24px; height: 24px; color: var(--color-neutral-60); cursor: help;">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                    </svg>
+                  </div>
+                  <div class="tooltip tooltip--bottom">Bottom Position</div>
+                </div>
+                <p style="margin-top: 8px; font-size: 12px; color: var(--color-neutral-60);">Bottom</p>
+              </div>
+
+              <!-- Left -->
+              <div style="text-align: center;">
+                <div class="tooltip-container">
+                  <div style="width: 24px; height: 24px; color: var(--color-neutral-60); cursor: help;">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                    </svg>
+                  </div>
+                  <div class="tooltip tooltip--left">Left Position</div>
+                </div>
+                <p style="margin-top: 8px; font-size: 12px; color: var(--color-neutral-60);">Left</p>
+              </div>
+
+              <!-- Right -->
+              <div style="text-align: center;">
+                <div class="tooltip-container">
+                  <div style="width: 24px; height: 24px; color: var(--color-neutral-60); cursor: help;">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                    </svg>
+                  </div>
+                  <div class="tooltip tooltip--right">Right Position</div>
+                </div>
+                <p style="margin-top: 8px; font-size: 12px; color: var(--color-neutral-60);">Right</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Data Card Integration Example</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Tooltip used for source information on Data Cards</p>
+          <div class="demo-example">
+            <div style="position: relative; display: inline-block; padding: 16px 24px; background: var(--color-neutral-20); border-radius: 8px;">
+              <span style="color: var(--color-neutral-80);">Preference Data</span>
+              <div style="position: absolute; bottom: 8px; right: 8px;">
+                <div class="tooltip-container">
+                  <div style="width: 16px; height: 16px; color: var(--color-neutral-50); cursor: help;">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                    </svg>
+                  </div>
+                  <div class="tooltip tooltip--top-right">Integrated via Google</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Usage</h3>
+          <div style="background: var(--color-neutral-20); padding: 16px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.6;">
+            <div style="color: var(--color-neutral-80); margin-bottom: 12px;">
+              <strong>HTML:</strong>
+            </div>
+            <pre style="margin: 0; color: var(--color-neutral-70);">&lt;div class="tooltip-container"&gt;
+  &lt;div class="trigger-element"&gt;Icon/Button&lt;/div&gt;
+  &lt;div class="tooltip tooltip--top-right"&gt;Tooltip Text&lt;/div&gt;
+&lt;/div&gt;</pre>
           </div>
         </div>
       </section>
@@ -1811,6 +2051,36 @@
         </div>
       </section>
 
+      <!-- Search Modal Section -->
+      <section id="section-search-modal" class="demo-section hidden">
+        <h2>Search Modal</h2>
+        <p class="description">Bottom-sheet style modal for searching and filtering preference data. Slides up from bottom with upward shadow (<code>--shadow-bottom-sheet-dark</code>).</p>
+
+        <div class="demo-example" style="display: flex; justify-content: center; background-color: var(--color-neutral-20); padding: 40px;">
+          <p style="color: var(--color-neutral-60);">Search Modal - Interactive component requires overlay and runtime initialization</p>
+        </div>
+      </section>
+
+      <!-- Collection Filter Modal Section -->
+      <section id="section-collection-filter-modal" class="demo-section hidden">
+        <h2>Collection Filter Modal</h2>
+        <p class="description">Bottom-sheet modal for filtering preferences by collections. Multi-select tags with upward shadow (<code>--shadow-bottom-sheet</code>).</p>
+
+        <div class="demo-example" style="display: flex; justify-content: center; background-color: var(--color-neutral-20); padding: 40px;">
+          <p style="color: var(--color-neutral-60);">Collection Filter Modal - Interactive component requires overlay and runtime initialization</p>
+        </div>
+      </section>
+
+      <!-- Backup Reminder Modal Section -->
+      <section id="section-backup-reminder-modal" class="demo-section hidden">
+        <h2>Backup Reminder Modal</h2>
+        <p class="description">Centered modal that reminds users to backup their preference data regularly. Traditional modal design with scheduled reminder functionality.</p>
+
+        <div class="demo-example" style="display: flex; justify-content: center; background-color: var(--color-neutral-20); padding: 40px;">
+          <p style="color: var(--color-neutral-60);">Backup Reminder Modal - Interactive component requires overlay and runtime initialization</p>
+        </div>
+      </section>
+
       <!-- App Footer Section -->
       <section id="section-app-footer" class="demo-section hidden">
         <h2>App Footer</h2>
@@ -1879,6 +2149,7 @@
   <script src="components/toggle/toggle.js"></script>
   <script src="components/headline/headline.js"></script>
   <script src="components/button-primary/button-primary.js"></script>
+  <script src="components/button-secondary/button-secondary.js"></script>
   <script src="components/button-tertiary/button-tertiary.js"></script>
   <script src="components/search/search.js"></script>
   <script src="components/tag/tag.js"></script>
@@ -1903,12 +2174,16 @@
   <script src="components/data-editor-modal/data-editor-modal.js"></script>
   <script src="components/tag-add-field/tag-add-field.js"></script>
   <script src="components/tag-add-modal/tag-add-modal.js"></script>
+  <script src="components/collection-filter-modal/collection-filter-modal.js"></script>
+  <script src="components/search-modal/search-modal.js"></script>
+  <script src="components/backup-reminder-modal/backup-reminder-modal.js"></script>
   <script src="components/content-preferences/content-preferences.js"></script>
 
   <!-- Screens (depend on composite components) -->
   <script src="screens/home/home.js"></script>
   <script src="screens/profile/profile.js"></script>
   <script src="screens/settings/settings.js"></script>
+  <script src="screens/third-party-data/third-party-data.js"></script>
   <script>
     // Navigation functionality
     const navItems = document.querySelectorAll('.nav-item');
@@ -2077,6 +2352,142 @@
       v2SmallContainer.appendChild(v2SmallBtn1.element);
       v2SmallContainer.appendChild(v2SmallBtn2.element);
       v2SmallContainer.appendChild(v2SmallBtn3.element);
+
+      // Button sizes demo
+      const sizesContainer = document.getElementById('button-primary-sizes-demo');
+
+      const largeBtn = createPrimaryButton({
+        label: 'Large Button',
+        size: 'large',
+        onClick: () => console.log('Large clicked')
+      });
+
+      const mediumBtn = createPrimaryButton({
+        label: 'Medium Button',
+        size: 'medium',
+        onClick: () => console.log('Medium clicked')
+      });
+
+      const smallBtn = createPrimaryButton({
+        label: 'Small Button',
+        size: 'small',
+        onClick: () => console.log('Small clicked')
+      });
+
+      sizesContainer.appendChild(largeBtn.element);
+      sizesContainer.appendChild(mediumBtn.element);
+      sizesContainer.appendChild(smallBtn.element);
+    }
+
+    function initSecondaryButtonDemo() {
+      // Default variant
+      const container = document.getElementById('button-secondary-demo');
+
+      const btn1 = createSecondaryButton({
+        label: 'Cancel',
+        onClick: () => console.log('Cancel clicked')
+      });
+
+      const btn2 = createSecondaryButton({
+        label: 'Back',
+        onClick: () => console.log('Back clicked')
+      });
+
+      const btn3 = createSecondaryButton({
+        label: 'Disabled',
+        disabled: true
+      });
+
+      container.appendChild(btn1.element);
+      container.appendChild(btn2.element);
+      container.appendChild(btn3.element);
+
+      // Neutral variant
+      const neutralContainer = document.getElementById('button-secondary-neutral-demo');
+
+      const neutralBtn1 = createSecondaryButton({
+        label: 'Cancel',
+        variant: 'neutral',
+        onClick: () => console.log('Neutral Cancel clicked')
+      });
+
+      const neutralBtn2 = createSecondaryButton({
+        label: 'Skip',
+        variant: 'neutral',
+        onClick: () => console.log('Neutral Skip clicked')
+      });
+
+      neutralContainer.appendChild(neutralBtn1.element);
+      neutralContainer.appendChild(neutralBtn2.element);
+
+      // Light variant
+      const lightContainer = document.getElementById('button-secondary-light-demo');
+
+      const lightBtn1 = createSecondaryButton({
+        label: 'Cancel',
+        variant: 'light',
+        onClick: () => console.log('Light Cancel clicked')
+      });
+
+      const lightBtn2 = createSecondaryButton({
+        label: 'Go Back',
+        variant: 'light',
+        onClick: () => console.log('Light Back clicked')
+      });
+
+      lightContainer.appendChild(lightBtn1.element);
+      lightContainer.appendChild(lightBtn2.element);
+
+      // V2 variant
+      const v2Container = document.getElementById('button-secondary-v2-demo');
+
+      const v2Btn1 = createSecondaryButton({
+        label: 'Cancel',
+        variant: 'v2',
+        onClick: () => console.log('V2 Cancel clicked')
+      });
+
+      const v2Btn2 = createSecondaryButton({
+        label: 'Skip',
+        variant: 'v2',
+        onClick: () => console.log('V2 Skip clicked')
+      });
+
+      const v2Btn3 = createSecondaryButton({
+        label: 'Small',
+        variant: 'v2',
+        size: 'small',
+        onClick: () => console.log('V2 Small clicked')
+      });
+
+      v2Container.appendChild(v2Btn1.element);
+      v2Container.appendChild(v2Btn2.element);
+      v2Container.appendChild(v2Btn3.element);
+
+      // Button sizes demo
+      const sizesContainer = document.getElementById('button-secondary-sizes-demo');
+
+      const largeBtn = createSecondaryButton({
+        label: 'Large Button',
+        size: 'large',
+        onClick: () => console.log('Large clicked')
+      });
+
+      const mediumBtn = createSecondaryButton({
+        label: 'Medium Button',
+        size: 'medium',
+        onClick: () => console.log('Medium clicked')
+      });
+
+      const smallBtn = createSecondaryButton({
+        label: 'Small Button',
+        size: 'small',
+        onClick: () => console.log('Small clicked')
+      });
+
+      sizesContainer.appendChild(largeBtn.element);
+      sizesContainer.appendChild(mediumBtn.element);
+      sizesContainer.appendChild(smallBtn.element);
     }
 
     function initButtonDemo() {
@@ -2159,6 +2570,31 @@
       textContainer.appendChild(cancelBtn.element);
       textContainer.appendChild(editBtn.element);
       textContainer.appendChild(deleteBtn.element);
+
+      // Text variant sizes demo
+      const textSizesContainer = document.getElementById('button-text-sizes-demo');
+
+      const textLargeBtn = createTertiaryButton({
+        text: 'Large Button',
+        size: 'large',
+        onClick: () => console.log('Large text button clicked')
+      });
+
+      const textMediumBtn = createTertiaryButton({
+        text: 'Medium Button',
+        size: 'medium',
+        onClick: () => console.log('Medium text button clicked')
+      });
+
+      const textSmallBtn = createTertiaryButton({
+        text: 'Small Button',
+        size: 'small',
+        onClick: () => console.log('Small text button clicked')
+      });
+
+      textSizesContainer.appendChild(textLargeBtn.element);
+      textSizesContainer.appendChild(textMediumBtn.element);
+      textSizesContainer.appendChild(textSmallBtn.element);
     }
 
     function initTopMenuDemo() {
@@ -2929,6 +3365,7 @@
       initProfileDemo();
       initSettingsDemo();
       initPrimaryButtonDemo();
+      initSecondaryButtonDemo();
       initButtonDemo();
       initDividerDemo();
       initToggleDemo();
