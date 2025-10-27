@@ -54,9 +54,10 @@ const PLATFORMS = {
     name: 'Grok',
     hostPatterns: ['grok.com', 'x.com', 'twitter.com'],
     selectors: {
-      promptInput: 'textarea[aria-label*="Grok"], textarea[aria-label*="Ask"]',
-      inputContainer: 'div.query-bar, form',
-      uploadButton: 'button[aria-label*="attach" i], button.group\\/attach-button'
+      // Try multiple selectors: placeholder, class, data-testid, then fallback to any textarea
+      promptInput: 'textarea[placeholder*="Ask" i], textarea[placeholder*="message" i], textarea[class*="input"], textarea[data-testid*="input"], div[contenteditable="true"], textarea',
+      inputContainer: 'div.query-bar, form, main',
+      uploadButton: 'button[aria-label*="attach" i], button.group\\/attach-button, input[type="file"]'
     },
     isContentEditable: false,
     injectionMethod: 'file' // Grok: attach file
