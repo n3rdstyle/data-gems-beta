@@ -11,13 +11,10 @@ function createPreferenceOptions(options = {}) {
     randomQuestionDisabled = false,
     onButtonClick = null,
     onRandomQuestionClick = null,
-    onToggle = null,
-    onModalSend = null
+    onToggle = null
   } = options;
 
   let isActive = false;
-  let isModalActive = false;
-  let currentQuestion = '';
   let isRandomQuestionDisabled = randomQuestionDisabled;
 
   // Create main container
@@ -31,11 +28,7 @@ function createPreferenceOptions(options = {}) {
     visible: false,
     zIndex: 1,  // Set low z-index so buttons are above
     onClick: () => {
-      if (isModalActive) {
-        hideModal();
-      } else {
-        hide();
-      }
+      hide();
     }
   });
 
@@ -72,70 +65,7 @@ function createPreferenceOptions(options = {}) {
   const gradientFrame = document.createElement('div');
   gradientFrame.className = 'preference-options__gradient-frame';
 
-  // Create modal
-  const modal = document.createElement('div');
-  modal.className = 'preference-options__modal';
-
-  const modalCard = document.createElement('div');
-  modalCard.className = 'preference-options__modal-card';
-
-  // Answer input container
-  const answerContainer = document.createElement('div');
-  answerContainer.className = 'preference-options__modal-answer';
-
-  const inputField = createInputField({
-    type: 'text',
-    placeholder: 'Type your answer',
-    onKeyDown: (e) => {
-      if (e.key === 'Enter') {
-        sendButton.element.click();
-      }
-    }
-  });
-
-  const sendButton = createPrimaryButton({
-    label: 'Send',
-    variant: 'neutral',
-    onClick: () => {
-      const answer = inputField.getValue().trim();
-      if (answer) {
-        if (onModalSend) {
-          onModalSend(answer, currentQuestion);
-        }
-        inputField.clear();
-        hideModal();
-      }
-    }
-  });
-
-  answerContainer.appendChild(inputField.element);
-  answerContainer.appendChild(sendButton.element);
-
-  // Question text
-  const questionText = document.createElement('div');
-  questionText.className = 'preference-options__modal-question text-style-body-medium';
-
-  modalCard.appendChild(answerContainer);
-  modalCard.appendChild(questionText);
-  modal.appendChild(modalCard);
-
-  // Helper functions (now that inputField and questionText exist)
-  function showModal(question) {
-    currentQuestion = question;
-    questionText.textContent = question;
-    isModalActive = true;
-    preferenceOptionsElement.classList.add('modal-active');
-    // Focus input
-    setTimeout(() => inputField.focus(), 100);
-  }
-
-  function hideModal() {
-    isModalActive = false;
-    preferenceOptionsElement.classList.remove('modal-active');
-    inputField.clear();
-    currentQuestion = '';
-  }
-
+  // Helper functions
   function show() {
     // If there's only one button and it's "Add new preference", trigger it directly
     if (buttonElements.length === 1 && buttons.length === 1) {
@@ -157,9 +87,7 @@ function createPreferenceOptions(options = {}) {
 
   function hide() {
     isActive = false;
-    isModalActive = false;
     preferenceOptionsElement.classList.remove('active');
-    preferenceOptionsElement.classList.remove('modal-active');
     overlayComponent.hide();
     if (onToggle) onToggle(false);
   }
@@ -176,7 +104,7 @@ function createPreferenceOptions(options = {}) {
     return isActive;
   }
 
-  // Now create action buttons (after showModal is defined)
+  // Now create action buttons
   const buttonElements = [];
   buttons.forEach((buttonConfig, index) => {
     const button = document.createElement('button');
@@ -185,18 +113,11 @@ function createPreferenceOptions(options = {}) {
     button.type = 'button';
 
     button.addEventListener('click', () => {
-      // Check if button config has showModal set to false
-      const shouldShowModal = buttonConfig.showModal !== false;
-
       if (buttonConfig.onClick) {
         buttonConfig.onClick(buttonConfig.label || buttonConfig, index);
       }
       if (onButtonClick) {
         onButtonClick(buttonConfig.label || buttonConfig, index);
-      }
-      // Show modal with question only if not explicitly disabled
-      if (shouldShowModal) {
-        showModal(buttonConfig.label || buttonConfig);
       }
     });
 
@@ -204,7 +125,7 @@ function createPreferenceOptions(options = {}) {
     buttonsContainer.appendChild(button);
   });
 
-  // Create Random Question button with tooltip - after showModal is defined
+  // Create Random Question button with tooltip
   const randomQuestionContainer = document.createElement('div');
   randomQuestionContainer.className = 'tooltip-container';
 
@@ -225,12 +146,10 @@ function createPreferenceOptions(options = {}) {
       return;
     }
 
-    // Call user callback if provided
+    // Call user callback if provided (will open the new Random Question Modal)
     if (onRandomQuestionClick) {
       onRandomQuestionClick();
     }
-    // Show modal with the current button label
-    showModal(randomQuestionButton.textContent);
   });
 
   // Create tooltip for Random Question button
@@ -248,7 +167,6 @@ function createPreferenceOptions(options = {}) {
 
   // Assemble component
   content.appendChild(buttonsContainer);
-  content.appendChild(modal);
   content.appendChild(gradientFrame);
   content.appendChild(bottomBar);
   preferenceOptionsElement.appendChild(overlay);
@@ -268,7 +186,6 @@ function createPreferenceOptions(options = {}) {
       if (onButtonClick) {
         onButtonClick(buttonConfig.label || buttonConfig, index);
       }
-      showModal(buttonConfig.label || buttonConfig);
     });
 
     buttonElements.push(button);
@@ -297,16 +214,11 @@ function createPreferenceOptions(options = {}) {
     hide,
     toggle,
     isOpen,
-    showModal,
-    hideModal,
     addButton,
     removeButton,
     getButtons,
     getTriggerButton() {
       return triggerButton;
-    },
-    getInput() {
-      return inputField;
     },
     setRandomQuestionLabel(label) {
       randomQuestionButton.textContent = label;
@@ -335,7 +247,8 @@ function createPreferenceOptions(options = {}) {
         triggerButtonWrapper.classList.add('preference-options__trigger--empty');
         primaryButton = createPrimaryButton({
           label: 'Add your first preference',
-          variant: 'default'
+          variant: 'default',
+          icon: 'plus'
         });
         primaryButton.element.addEventListener('click', () => {
           toggle();
