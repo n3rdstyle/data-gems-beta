@@ -2094,7 +2094,7 @@
       <!-- Action Button Section -->
       <section id="section-action-button" class="demo-section hidden">
         <h2>Action Button</h2>
-        <p class="description">Button for navigation, external links, and CTAs with three variants.</p>
+        <p class="description">Button for navigation, external links, CTAs, and settings with four variants.</p>
 
         <div class="demo-subsection">
           <h3>Navigation Variant</h3>
@@ -2122,6 +2122,16 @@
           <div class="demo-example">
             <div style="max-width: 400px;">
               <div id="action-button-cta-demo"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Toggle Variant</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Setting with toggle switch on the right (label optional, caption required)</p>
+          <div class="demo-example">
+            <div style="max-width: 400px;">
+              <div id="action-button-toggle-demo"></div>
             </div>
           </div>
         </div>
@@ -3267,6 +3277,17 @@
         onClick: () => console.log('CTA clicked')
       });
       ctaContainer.appendChild(ctaButton.element);
+
+      // Toggle variant
+      const toggleContainer = document.getElementById('action-button-toggle-demo');
+      const toggleButton = createActionButton({
+        label: 'Profile Injection',
+        caption: 'Automatically inject profile on supported websites',
+        variant: 'toggle',
+        toggleActive: true,
+        onToggleChange: (isActive) => console.log('Toggle state changed:', isActive)
+      });
+      toggleContainer.appendChild(toggleButton.element);
 
       // Two-line variant with caption
       const twoLineContainer = document.getElementById('action-button-two-line-demo');
