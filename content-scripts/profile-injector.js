@@ -396,14 +396,85 @@ async function attachFileToChat(file) {
   // Method 0: DON'T click upload button (opens file picker which requires user activation)
   // Instead, directly find and set the file input element
 
-  // IMPORTANT: Wait a bit for file inputs to be created in the DOM (especially for Gemini)
+  // IMPORTANT: Wait for file inputs to be created in the DOM (especially for Gemini)
+  // Based on working implementation from data-gems repo
   if (currentPlatform.name === 'Gemini') {
-    console.log('[Data Gems] Waiting 500ms for Gemini file inputs to load...');
-    await new Promise(resolve => setTimeout(resolve, 500));
+    console.log('[Data Gems] Waiting 1000ms for Gemini file inputs to load...');
+    await new Promise(resolve => setTimeout(resolve, 1000));
   }
 
-  // Method 1: Try to find and use file input directly
-  const fileInputs = document.querySelectorAll('input[type="file"]');
+  // Method 1: Try to find and use file input directly with retry logic for Gemini
+  let fileInput = null;
+  const fileInputSelectors = [
+    'input[type="file"]',
+    'input[accept]',
+    'input[accept*="application"]',
+    'input[accept*="text"]',
+    'input[accept*="json"]',
+    'input[accept*="image"]',
+    'input.file-upload-input',
+    'input.hidden-file-input',
+    '[class*="file"] input[type="file"]'
+  ];
+
+  // For Gemini, use retry logic with visibility checks
+  if (currentPlatform.name === 'Gemini') {
+    let attempts = 0;
+    while (!fileInput && attempts < 5) {
+      if (attempts > 0) {
+        console.log('[Data Gems] Retry attempt', attempts, 'of 5...');
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+
+      // First try specific selectors
+      for (const selector of fileInputSelectors) {
+        try {
+          fileInput = document.querySelector(selector);
+          if (fileInput) {
+            console.log('[Data Gems] Found file input with selector:', selector);
+            break;
+          }
+        } catch (e) {
+          // Invalid selector, skip
+        }
+      }
+
+      // If not found, search all file inputs with visibility checks
+      if (!fileInput) {
+        const allFileInputs = document.querySelectorAll('input[type="file"]');
+        console.log('[Data Gems] Checking', allFileInputs.length, 'file inputs for visibility');
+
+        for (const input of allFileInputs) {
+          const rect = input.getBoundingClientRect();
+          const isVisible = rect.width > 0 && rect.height > 0;
+          const computedStyle = window.getComputedStyle(input);
+          const isDisplayed = computedStyle.display !== 'none' && computedStyle.visibility !== 'hidden';
+
+          // Take any file input that's not explicitly hidden
+          if (isVisible || isDisplayed || input.offsetParent !== null) {
+            console.log('[Data Gems] Found visible file input:', {
+              class: input.className,
+              accept: input.accept,
+              isVisible,
+              isDisplayed,
+              hasOffsetParent: input.offsetParent !== null
+            });
+            fileInput = input;
+            break;
+          }
+        }
+      }
+
+      attempts++;
+    }
+
+    if (!fileInput) {
+      console.log('[Data Gems] ✗ No file input found after 5 retry attempts');
+    }
+  }
+
+  // For non-Gemini platforms or if Gemini retry succeeded, collect all inputs
+  const fileInputs = fileInput ? [fileInput] : document.querySelectorAll('input[type="file"]');
   console.log('[Data Gems] Found', fileInputs.length, 'file inputs');
 
   for (const input of fileInputs) {
