@@ -396,6 +396,12 @@ async function attachFileToChat(file) {
   // Method 0: DON'T click upload button (opens file picker which requires user activation)
   // Instead, directly find and set the file input element
 
+  // IMPORTANT: Wait a bit for file inputs to be created in the DOM (especially for Gemini)
+  if (currentPlatform.name === 'Gemini') {
+    console.log('[Data Gems] Waiting 500ms for Gemini file inputs to load...');
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+
   // Method 1: Try to find and use file input directly
   const fileInputs = document.querySelectorAll('input[type="file"]');
   console.log('[Data Gems] Found', fileInputs.length, 'file inputs');
