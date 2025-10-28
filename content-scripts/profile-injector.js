@@ -394,41 +394,50 @@ async function attachFileToChat(file) {
   console.log('[Data Gems] Platform:', currentPlatform.name);
 
   // IMPORTANT: For Gemini, click upload button first to reveal file input
-  // Based on working implementation from data-gems repo (Technical Documentation Section 6.4)
-  // Key insight: Click the upload menu button (reveals upload interface), NOT the hidden upload button (opens file picker)
+  // Based on working implementation from data-gems repo
+  // Key insight: Must click the HIDDEN upload button, not the visible menu button
   if (currentPlatform.name === 'Gemini') {
-    // Support both English and German versions
-    const uploadButton = document.querySelector(
-      'button[aria-label*="Add" i], ' +               // English: "Add"
-      'button[aria-label*="hochladen" i], ' +         // German: "hochladen"
-      'button[aria-label*="upload" i], ' +            // Generic "upload"
-      'button.upload-card-button, ' +                 // Class selector
-      'button[jsname*="upload"]'                      // jsname attribute
-    );
+    // Exact selector order from working extension (line 580-587 in INJECTION_CODE_EXTRACT.js)
+    const uploadButtonSelectors = [
+      'button[aria-label*="upload" i]',               // Finds all buttons, querySelector takes FIRST
+      'button.upload-card-button',
+      'button[class*="upload"]',
+      'button mat-icon-button[aria-label*="upload" i]'
+    ];
 
-    if (uploadButton) {
-      console.log('[Data Gems] Found upload button:', uploadButton.getAttribute('aria-label') || uploadButton.className);
-      uploadButton.click();
-      console.log('[Data Gems] Clicked upload button');
+    let uploadButton = null;
+    for (const selector of uploadButtonSelectors) {
+      uploadButton = document.querySelector(selector);
+      if (uploadButton) {
+        console.log('[Data Gems] Found upload button with selector:', selector);
+        console.log('[Data Gems] Button classes:', uploadButton.className);
+        console.log('[Data Gems] Button aria-label:', uploadButton.getAttribute('aria-label'));
+        uploadButton.click();
+        console.log('[Data Gems] Clicked upload button');
 
-      // Wait 500ms for file input to appear (as per working extension)
-      console.log('[Data Gems] Waiting 500ms for file input to appear...');
-      await new Promise(resolve => setTimeout(resolve, 500));
-    } else {
+        // Wait 1000ms for file input to appear (matching working extension line 598)
+        console.log('[Data Gems] Waiting 1000ms for file input to appear...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        break;
+      }
+    }
+
+    if (!uploadButton) {
       console.log('[Data Gems] No upload button found, trying direct file input search');
     }
   }
 
   // Method 1: Try to find file input with retry logic for Gemini
   let fileInput = null;
-  // Prioritize the exact selector from working extension (Technical Documentation Section 6.4)
+  // Exact selectors from working extension (line 543-555 in INJECTION_CODE_EXTRACT.js)
   const fileInputSelectors = [
-    'input.file-upload-input[type="file"]',  // Gemini-specific from working extension
     'input[type="file"]',
-    'input[accept*="image"]',
-    'input.hidden-file-input',
+    'input[accept]',
     'input[accept*="application"]',
-    'input[accept*="text"]'
+    'input[accept*="text"]',
+    'input[accept*="json"]',
+    'input.file-upload-input',
+    '[class*="file"] input[type="file"]'
   ];
 
   // For Gemini, use retry logic with visibility checks
