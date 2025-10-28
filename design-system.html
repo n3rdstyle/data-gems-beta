@@ -3115,6 +3115,27 @@
       container.appendChild(settings.element);
     }
 
+    function initThirdPartyDataDemo() {
+      const container = document.getElementById('third-party-data-demo');
+      const thirdPartyData = createThirdPartyData({
+        onClose: () => console.log('Third Party Data closed'),
+        onImport: async (url) => {
+          console.log('Importing from URL:', url);
+          // Simulate import delay
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          alert(`Successfully imported data from: ${url}`);
+        },
+        importedSheets: [
+          {
+            url: 'https://docs.google.com/spreadsheets/d/abc123/edit',
+            title: 'My Preferences Backup',
+            data: []
+          }
+        ]
+      });
+      container.appendChild(thirdPartyData.element);
+    }
+
     function initDividerDemo() {
       const container = document.getElementById('divider-demo');
       const divider = createDivider();
@@ -3364,6 +3385,7 @@
       initHomeDemo();
       initProfileDemo();
       initSettingsDemo();
+      initThirdPartyDataDemo();
       initPrimaryButtonDemo();
       initSecondaryButtonDemo();
       initButtonDemo();
