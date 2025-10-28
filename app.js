@@ -53,11 +53,11 @@ async function saveBackupState() {
 // Load data from Chrome storage
 async function loadData() {
   try {
-    const result = await chrome.storage.local.get(['hasProfile', 'userData', 'preferences']);
+    const result = await chrome.storage.local.get(['hspProfile', 'userData', 'preferences']);
 
     // Check if we have new HSP format
-    if (result.hasProfile) {
-      AppState = result.hasProfile;
+    if (result.hspProfile) {
+      AppState = result.hspProfile;
 
       // Migrate 'has' property to 'hsp' if needed
       if (AppState.has && !AppState.hsp) {
@@ -100,7 +100,7 @@ async function saveData() {
     AppState.updated_at = getTimestamp();
 
     await chrome.storage.local.set({
-      hasProfile: AppState
+      hspProfile: AppState
     });
   } catch (error) {
     // Silent error handling
@@ -140,6 +140,10 @@ function getPreferences() {
 
 // Export data (HSP v0.1 format) - defined before renderCurrentScreen
 async function exportData() {
+  // Get beta user data
+  const betaUserData = await chrome.storage.local.get(['betaUser']);
+  const betaUser = betaUserData.betaUser || {};
+
   // Clean metadata - remove internal fields
   const cleanMetadata = {
     schema_version: AppState.metadata.schema_version,
@@ -186,6 +190,13 @@ async function exportData() {
 
     // Metadata (cleaned)
     metadata: cleanMetadata,
+
+    // Beta user info (if available)
+    beta: betaUser.betaId ? {
+      betaId: betaUser.betaId,
+      betaEmail: betaUser.email,
+      isBetaUser: true
+    } : undefined,
 
     // Export metadata (at the end)
     exportDate: getTimestamp(),
@@ -418,6 +429,25 @@ function importData() {
         return;
       }
 
+      // Restore beta user data if present in backup
+      if (importedData.beta && importedData.beta.betaId) {
+        const currentBetaData = await chrome.storage.local.get(['betaUser']);
+        const currentBetaUser = currentBetaData.betaUser || {};
+
+        // Only restore if not already checked in
+        if (!currentBetaUser.checkedIn) {
+          await chrome.storage.local.set({
+            betaUser: {
+              ...currentBetaUser,
+              checkedIn: true,
+              betaId: importedData.beta.betaId,
+              email: importedData.beta.betaEmail || null
+            }
+          });
+          console.log('✅ Beta user data restored from backup');
+        }
+      }
+
       // Merge imported data with existing data (with conflict detection)
       const mergeResult = await mergeImportedData(importedData);
 
@@ -431,6 +461,10 @@ function importData() {
 
       await saveData();
       renderCurrentScreen();
+      // Check if beta check-in modal should be shown
+      await checkBetaCheckinModal();
+      // Check if backup reminder should be shown
+      await checkBackupReminder();
       alert('✅ Data imported successfully!');
     } catch (error) {
       alert('❌ Error importing data: ' + error.message);
@@ -490,6 +524,11 @@ async function handleGoogleSheetsImport(url) {
     // Refresh the screen to show updated list
     renderCurrentScreen();
 
+    // Check if beta check-in modal should be shown
+    await checkBetaCheckinModal();
+    // Check if backup reminder should be shown
+    await checkBackupReminder();
+
     alert('✅ Google Sheet imported successfully!');
   } catch (error) {
     throw error;
@@ -512,7 +551,7 @@ function getImportedSheets() {
 }
 
 // Render current screen
-function renderCurrentScreen() {
+async function renderCurrentScreen() {
   const appContainer = document.getElementById('app');
   if (!appContainer) {
     return;
@@ -528,6 +567,11 @@ function renderCurrentScreen() {
 
     switch (currentScreen) {
       case 'home':
+        // Get beta user status for home screen (for settings access)
+        const homeBetaUserData = await chrome.storage.local.get(['betaUser']);
+        const homeBetaUser = homeBetaUserData.betaUser || {};
+        const homeIsBetaUser = homeBetaUser.checkedIn === true;
+
         screenComponent = createHome({
           profileName: userData.name,
           profileSubtitle: userData.subtitle || '',
@@ -598,6 +642,8 @@ function renderCurrentScreen() {
             AppState = addPreference(AppState, value, state, collections);
             await saveData();
             renderCurrentScreen();
+            // Check if beta check-in modal should be shown
+            await checkBetaCheckinModal();
             // Check if backup reminder should be shown
             await checkBackupReminder();
           },
@@ -655,6 +701,97 @@ function renderCurrentScreen() {
           onAutoBackupToggle: async (isEnabled) => {
             BackupState.autoBackupEnabled = isEnabled;
             await saveBackupState();
+          },
+          isBetaUser: homeIsBetaUser,
+          onJoinBeta: () => {
+            console.log('🎯 [Home] Join Beta button clicked from Settings!');
+            // Open beta check-in modal
+            const currentEmail = AppState?.content?.basic?.identity?.email?.value || '';
+            const modal = createBetaCheckinModal({
+              initialEmail: currentEmail,
+              onClose: (joined) => {
+                console.log('🎯 [Home] Beta modal closed, joined:', joined);
+                if (joined) {
+                  // Refresh to update settings
+                  renderCurrentScreen();
+                }
+              },
+              onJoin: async (email, consentGiven) => {
+                console.log('🎯 [Home] Join clicked from home settings, email:', email);
+                const result = await chrome.runtime.sendMessage({
+                  action: 'betaCheckin',
+                  email: email,
+                  consentGiven: consentGiven
+                });
+
+                if (!result.success) {
+                  throw new Error(result.error || 'Failed to join beta program');
+                }
+
+                // Update profile
+                const identityEmail = AppState?.content?.basic?.identity?.email;
+                if (identityEmail && (!identityEmail.value || identityEmail.value === '')) {
+                  identityEmail.value = email;
+                  identityEmail.updated_at = getTimestamp();
+                }
+
+                const identitySubtitle = AppState?.content?.basic?.identity?.subtitle;
+                if (identitySubtitle) {
+                  identitySubtitle.value = 'Beta User';
+                  identitySubtitle.updated_at = getTimestamp();
+                }
+
+                await saveData();
+                renderCurrentScreen();
+                console.log('✅ [Home] Beta check-in successful from home settings!');
+              },
+              onSkip: async () => {
+                console.log('🎯 [Home] Skip clicked from home settings');
+                await chrome.runtime.sendMessage({ action: 'betaSkipped' });
+              }
+            });
+            modal.show();
+          },
+          onRevokeBeta: async () => {
+            console.log('🎯 [Home] Revoke Beta button clicked from Settings!');
+
+            // Confirm revocation
+            const confirmed = confirm('Are you sure you want to leave the beta community? Your beta ID, email, and profile data will be removed from our database.');
+            if (!confirmed) return;
+
+            try {
+              // Call background script to delete from Supabase and reset local storage
+              const result = await chrome.runtime.sendMessage({
+                action: 'betaRevoke'
+              });
+
+              if (!result.success) {
+                throw new Error(result.error || 'Failed to revoke beta status');
+              }
+
+              // Remove email from profile if it exists
+              const identityEmail = AppState?.content?.basic?.identity?.email;
+              if (identityEmail && identityEmail.value) {
+                identityEmail.value = '';
+                identityEmail.updated_at = getTimestamp();
+              }
+
+              // Remove subtitle if it was "Beta User"
+              const identitySubtitle = AppState?.content?.basic?.identity?.subtitle;
+              if (identitySubtitle && identitySubtitle.value === 'Beta User') {
+                identitySubtitle.value = '';
+                identitySubtitle.updated_at = getTimestamp();
+              }
+
+              await saveData();
+              console.log('✅ [Home] Beta status revoked successfully');
+
+              // Refresh to update settings
+              renderCurrentScreen();
+            } catch (error) {
+              console.error('❌ [Home] Failed to revoke beta status:', error);
+              alert('Failed to revoke beta status. Please try again.');
+            }
           }
         });
         break;
@@ -726,6 +863,18 @@ function renderCurrentScreen() {
         break;
 
       case 'settings':
+        // Get beta user status
+        const betaUserData = await chrome.storage.local.get(['betaUser']);
+        const betaUser = betaUserData.betaUser || {};
+        // Show join button if NOT checked in (even if skipped)
+        const isBetaUser = betaUser.checkedIn === true;
+        console.log('🎯 [Settings] Beta user data:', betaUser);
+        console.log('🎯 [Settings] checkedIn:', betaUser.checkedIn);
+        console.log('🎯 [Settings] skipped:', betaUser.skipped);
+        console.log('🎯 [Settings] Is beta user?', isBetaUser);
+        console.log('🎯 [Settings] About to call createSettings with isBetaUser:', isBetaUser);
+        console.log('🎯 [Settings] typeof onJoinBeta:', typeof (() => {}));
+
         screenComponent = createSettings({
           onClose: () => {
             AppState.metadata.currentScreen = 'home';
@@ -753,6 +902,105 @@ function renderCurrentScreen() {
           onAutoBackupToggle: async (isEnabled) => {
             BackupState.autoBackupEnabled = isEnabled;
             await saveBackupState();
+          },
+          isBetaUser: isBetaUser,
+          onJoinBeta: () => {
+            console.log('🎯 [Settings] Join Beta button clicked!');
+            // Open beta check-in modal
+            const currentEmail = AppState?.content?.basic?.identity?.email?.value || '';
+            console.log('🎯 [Settings] Current email:', currentEmail);
+            const modal = createBetaCheckinModal({
+              initialEmail: currentEmail,
+              onClose: (joined) => {
+                console.log('🎯 [Settings] Beta modal closed, joined:', joined);
+                // Refresh settings to hide the beta button if joined
+                if (joined) {
+                  renderCurrentScreen();
+                }
+              },
+              onJoin: async (email, consentGiven) => {
+                console.log('🎯 [Settings] Join clicked from settings, email:', email);
+                // Send to background script
+                const result = await chrome.runtime.sendMessage({
+                  action: 'betaCheckin',
+                  email: email,
+                  consentGiven: consentGiven
+                });
+
+                if (!result.success) {
+                  throw new Error(result.error || 'Failed to join beta program');
+                }
+
+                // Update profile with email (if empty) and beta subtitle
+                const identityEmail = AppState?.content?.basic?.identity?.email;
+                if (identityEmail && (!identityEmail.value || identityEmail.value === '')) {
+                  identityEmail.value = email;
+                  identityEmail.updated_at = getTimestamp();
+                }
+
+                // Set subtitle to "Beta User"
+                const identitySubtitle = AppState?.content?.basic?.identity?.subtitle;
+                if (identitySubtitle) {
+                  identitySubtitle.value = 'Beta User';
+                  identitySubtitle.updated_at = getTimestamp();
+                }
+
+                // Save updated profile
+                await saveData();
+                renderCurrentScreen();
+
+                console.log('✅ [Settings] Beta check-in successful from settings!');
+              },
+              onSkip: async () => {
+                console.log('🎯 [Settings] Skip clicked from settings');
+                // Update skip counter
+                await chrome.runtime.sendMessage({ action: 'betaSkipped' });
+              }
+            });
+            console.log('🎯 [Settings] Modal created, calling show()...');
+            modal.show();
+            console.log('🎯 [Settings] Modal.show() called');
+          },
+          onRevokeBeta: async () => {
+            console.log('🎯 [Settings] Revoke Beta button clicked!');
+
+            // Confirm revocation
+            const confirmed = confirm('Are you sure you want to leave the beta community? Your beta ID, email, and profile data will be removed from our database.');
+            if (!confirmed) return;
+
+            try {
+              // Call background script to delete from Supabase and reset local storage
+              const result = await chrome.runtime.sendMessage({
+                action: 'betaRevoke'
+              });
+
+              if (!result.success) {
+                throw new Error(result.error || 'Failed to revoke beta status');
+              }
+
+              // Remove email from profile if it exists
+              const identityEmail = AppState?.content?.basic?.identity?.email;
+              if (identityEmail && identityEmail.value) {
+                identityEmail.value = '';
+                identityEmail.updated_at = getTimestamp();
+              }
+
+              // Remove subtitle if it was "Beta User"
+              const identitySubtitle = AppState?.content?.basic?.identity?.subtitle;
+              if (identitySubtitle && identitySubtitle.value === 'Beta User') {
+                identitySubtitle.value = '';
+                identitySubtitle.updated_at = getTimestamp();
+              }
+
+              await saveData();
+              console.log('✅ [Settings] Beta status revoked successfully');
+
+              // Refresh settings to show join button again
+              renderCurrentScreen();
+            } catch (error) {
+              console.error('❌ [Settings] Failed to revoke beta status:', error);
+              alert('Failed to revoke beta status. Please try again.');
+            }
           }
         });
         break;
@@ -784,6 +1032,80 @@ function renderCurrentScreen() {
   }
 }
 
+/**
+ * Beta Check-In Modal Logic
+ */
+async function checkBetaCheckinModal() {
+  console.log('🎯 [App] Checking Beta Check-In Modal...');
+  try {
+    // Ask background script if modal should be shown
+    console.log('🎯 [App] Sending message to background script...');
+    const response = await chrome.runtime.sendMessage({ action: 'checkBetaReminder' });
+    console.log('🎯 [App] Response from background:', response);
+
+    if (response.shouldShow) {
+      console.log('✅ [App] Modal should show! Creating modal...');
+
+      // Get current email from profile
+      const currentEmail = AppState?.content?.basic?.identity?.email?.value || '';
+
+      // Show beta check-in modal
+      const modal = createBetaCheckinModal({
+        initialEmail: currentEmail,
+        onClose: (joined) => {
+          console.log('🎯 [App] Modal closed, joined:', joined);
+        },
+        onJoin: async (email, consentGiven) => {
+          console.log('🎯 [App] Join clicked, email:', email);
+          // Send to background script
+          const result = await chrome.runtime.sendMessage({
+            action: 'betaCheckin',
+            email: email,
+            consentGiven: consentGiven
+          });
+
+          if (!result.success) {
+            throw new Error(result.error || 'Failed to join beta program');
+          }
+
+          // Update profile with email (if empty) and beta subtitle
+          const identityEmail = AppState?.content?.basic?.identity?.email;
+          if (identityEmail && (!identityEmail.value || identityEmail.value === '')) {
+            identityEmail.value = email;
+            identityEmail.updated_at = getTimestamp();
+          }
+
+          // Set subtitle to "Beta User"
+          const identitySubtitle = AppState?.content?.basic?.identity?.subtitle;
+          if (identitySubtitle) {
+            identitySubtitle.value = 'Beta User';
+            identitySubtitle.updated_at = getTimestamp();
+          }
+
+          // Save updated profile
+          await saveData();
+          renderCurrentScreen();
+
+          console.log('✅ [App] Beta check-in successful! Profile updated.');
+        },
+        onSkip: async () => {
+          console.log('🎯 [App] Skip clicked');
+          // Update skip counter
+          await chrome.runtime.sendMessage({ action: 'betaSkipped' });
+        }
+      });
+
+      modal.show();
+      console.log('✅ [App] Modal.show() called');
+    } else {
+      console.log('❌ [App] Modal should NOT show');
+    }
+  } catch (error) {
+    // Silent error - don't disrupt user experience
+    console.error('❌ [App] Beta check-in error:', error);
+  }
+}
+
 // Initialize
 async function init() {
   await loadData();
@@ -803,6 +1125,9 @@ async function init() {
   AppState.metadata.currentScreen = 'home';
 
   renderCurrentScreen();
+
+  // Check if beta check-in modal should be shown
+  await checkBetaCheckinModal();
 }
 
 // Start

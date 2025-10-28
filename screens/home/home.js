@@ -385,16 +385,14 @@ function createHome(options = {}) {
   scrollToTopButton.element.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
   scrollToTopButton.element.style.pointerEvents = 'none';
 
-  // Get the actual scrolling element (data list container)
-  const scrollableContainer = contentPreferences.element.querySelector('.content-preferences__list');
+  // Get the scrollable container (content wrapper)
+  const scrollableContainer = contentWrapper;
 
   scrollToTopButton.element.addEventListener('click', () => {
-    if (scrollableContainer) {
-      scrollableContainer.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
-    }
+    scrollableContainer.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
   });
 
   screenElement.appendChild(scrollToTopButton.element);
@@ -402,11 +400,10 @@ function createHome(options = {}) {
   // Add scroll listener to hide preference options when scrolling
   let lastScrollTop = 0;
 
-  if (scrollableContainer) {
-    scrollableContainer.addEventListener('scroll', () => {
-      if (!preferenceOptions) return;
+  scrollableContainer.addEventListener('scroll', () => {
+    if (!preferenceOptions) return;
 
-      const currentScrollTop = scrollableContainer.scrollTop;
+    const currentScrollTop = scrollableContainer.scrollTop;
 
       // Hide overlay if it's open
       if (preferenceOptions.isOpen()) {
@@ -428,9 +425,8 @@ function createHome(options = {}) {
         scrollToTopButton.element.style.pointerEvents = 'none';
       }
 
-      lastScrollTop = currentScrollTop;
-    });
-  }
+    lastScrollTop = currentScrollTop;
+  });
 
   // Initialize calibration with current card count
   updateCalibrationFromCards();

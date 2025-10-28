@@ -118,9 +118,9 @@ Das injizierte Profil nutzt das **HSP Protocol v0.1** Format:
 
 ### Manuell Storage checken
 ```javascript
-chrome.storage.local.get(['hasProfile'], (result) => {
-  console.log('Has Profile:', !!result.hasProfile);
-  console.log('Preferences:', result.hasProfile?.content?.preferences?.items?.length);
+chrome.storage.local.get(['hspProfile'], (result) => {
+  console.log('Has Profile:', !!result.hspProfile);
+  console.log('Preferences:', result.hspProfile?.content?.preferences?.items?.length);
 });
 ```
 

@@ -370,9 +370,11 @@ function createContentPreferences(options = {}) {
       const tagLabel = tag.getLabel().toLowerCase();
       const isAllTag = tag === allTag;
 
-      // If "All" tag is clicked, open collection filter modal
-      if (isAllTag && collectionTags.length > 0) {
-        // Prevent default toggle behavior
+      // If "All" tag was already active (now inactive after toggle), open collection filter modal
+      // If it was inactive (now active after toggle), just show all cards normally
+      const wasActive = tag.getState() === 'inactive'; // After toggle, inactive means it was active before
+      if (isAllTag && collectionTags.length > 0 && wasActive) {
+        // Prevent default toggle behavior - keep it active
         tag.setState('active');
 
         // Create and show collection filter modal

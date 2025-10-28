@@ -56,11 +56,11 @@ Data Gems initialized successfully!
 
 In Console eingeben:
 ```javascript
-chrome.storage.local.get(['hasProfile'], (result) => {
+chrome.storage.local.get(['hspProfile'], (result) => {
   console.log('=== STORAGE CHECK ===');
-  console.log('Has Profile?', !!result.hasProfile);
-  console.log('Preferences:', result.hasProfile?.content?.preferences?.items?.length || 0);
-  console.log('Full data:', result.hasProfile);
+  console.log('Has Profile?', !!result.hspProfile);
+  console.log('Preferences:', result.hspProfile?.content?.preferences?.items?.length || 0);
+  console.log('Full data:', result.hspProfile);
 });
 ```
 
@@ -139,8 +139,8 @@ chrome.storage.local.get(null, (items) => {
 
 ### Manuell Preference hinzufügen (Test):
 ```javascript
-chrome.storage.local.get(['hasProfile'], async (result) => {
-  const profile = result.hasProfile;
+chrome.storage.local.get(['hspProfile'], async (result) => {
+  const profile = result.hspProfile;
   profile.content.preferences.items.push({
     id: 'test_001',
     value: 'Manual test preference',
@@ -151,7 +151,7 @@ chrome.storage.local.get(['hasProfile'], async (result) => {
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   });
-  await chrome.storage.local.set({ hasProfile: profile });
+  await chrome.storage.local.set({ hspProfile: profile });
   console.log('Manual preference added! Close & reopen extension.');
 });
 ```

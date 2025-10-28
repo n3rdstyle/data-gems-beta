@@ -5,39 +5,39 @@
 
 /**
  * Format HSP profile for AI injection
- * @param {object} hasProfile - HSP v0.1 profile object
+ * @param {object} hspProfile - HSP v0.1 profile object
  * @param {object} options - Formatting options
  * @param {boolean} options.includeHidden - Include fields with state "hidden" (default: false)
  * @param {boolean} options.includeMetadata - Include profile metadata (default: false)
  * @param {boolean} options.prettify - Prettify JSON output (default: true)
  * @returns {string} Formatted profile text for injection
  */
-function formatProfileForInjection(hasProfile, options = {}) {
+function formatProfileForInjection(hspProfile, options = {}) {
   const {
     includeHidden = false,
     includeMetadata = false,
     prettify = true
   } = options;
 
-  if (!hasProfile || !hasProfile.hsp) {
+  if (!hspProfile || !hspProfile.hsp) {
     return 'No profile data available.';
   }
 
   // Create a filtered copy of the profile
   const filteredProfile = {
-    hsp: hasProfile.hsp,
-    type: hasProfile.type
+    hsp: hspProfile.hsp,
+    type: hspProfile.type
   };
 
   // Filter identity fields
-  if (hasProfile.content?.basic?.identity) {
+  if (hspProfile.content?.basic?.identity) {
     filteredProfile.content = {
       basic: {
         identity: {}
       }
     };
 
-    const identity = hasProfile.content.basic.identity;
+    const identity = hspProfile.content.basic.identity;
     Object.keys(identity).forEach(key => {
       const field = identity[key];
 
@@ -62,13 +62,13 @@ function formatProfileForInjection(hasProfile, options = {}) {
   }
 
   // Filter preferences
-  if (hasProfile.content?.preferences?.items) {
+  if (hspProfile.content?.preferences?.items) {
     if (!filteredProfile.content) {
       filteredProfile.content = {};
     }
 
     filteredProfile.content.preferences = {
-      items: hasProfile.content.preferences.items.filter(pref => {
+      items: hspProfile.content.preferences.items.filter(pref => {
         // Skip hidden preferences unless includeHidden is true
         if (!includeHidden && pref.state === 'hidden') {
           return false;
@@ -83,15 +83,16 @@ function formatProfileForInjection(hasProfile, options = {}) {
   }
 
   // Include collections (always useful for context)
-  if (hasProfile.collections && hasProfile.collections.length > 0) {
-    filteredProfile.collections = hasProfile.collections;
+  // Only send collection labels (LLM doesn't need IDs, timestamps, etc.)
+  if (hspProfile.collections && hspProfile.collections.length > 0) {
+    filteredProfile.collections = hspProfile.collections.map(col => col.label);
   }
 
   // Include metadata if requested
-  if (includeMetadata && hasProfile.metadata) {
+  if (includeMetadata && hspProfile.metadata) {
     filteredProfile.metadata = {
-      schema_version: hasProfile.metadata.schema_version,
-      total_preferences: hasProfile.metadata.total_preferences
+      schema_version: hspProfile.metadata.schema_version,
+      total_preferences: hspProfile.metadata.total_preferences
     };
   }
 
@@ -100,7 +101,7 @@ function formatProfileForInjection(hasProfile, options = {}) {
     ? JSON.stringify(filteredProfile, null, 2)
     : JSON.stringify(filteredProfile);
 
-  const injectionText = `Here is my Data Gems profile in HSP Protocol v${hasProfile.hsp} format:
+  const injectionText = `Here is my Data Gems profile in HSP Protocol v${hspProfile.hsp} format:
 
 \`\`\`json
 ${jsonString}
@@ -113,16 +114,16 @@ Please use this information as context for our conversation.`;
 
 /**
  * Get a human-readable summary of the profile
- * @param {object} hasProfile - HSP v0.1 profile object
+ * @param {object} hspProfile - HSP v0.1 profile object
  * @returns {string} Human-readable profile summary
  */
-function getProfileSummary(hasProfile) {
-  if (!hasProfile || !hasProfile.hsp) {
+function getProfileSummary(hspProfile) {
+  if (!hspProfile || !hspProfile.hsp) {
     return 'No profile available';
   }
 
-  const identity = hasProfile.content?.basic?.identity || {};
-  const preferences = hasProfile.content?.preferences?.items || [];
+  const identity = hspProfile.content?.basic?.identity || {};
+  const preferences = hspProfile.content?.preferences?.items || [];
 
   const name = identity.name?.value || 'User';
   const prefCount = preferences.filter(p => p.state !== 'hidden').length;
@@ -132,16 +133,16 @@ function getProfileSummary(hasProfile) {
 
 /**
  * Check if profile has sufficient data for injection
- * @param {object} hasProfile - HSP v0.1 profile object
+ * @param {object} hspProfile - HSP v0.1 profile object
  * @returns {boolean} True if profile has data worth injecting
  */
-function hasInjectableData(hasProfile) {
-  if (!hasProfile || !hasProfile.hsp) {
+function hasInjectableData(hspProfile) {
+  if (!hspProfile || !hspProfile.hsp) {
     return false;
   }
 
-  const identity = hasProfile.content?.basic?.identity || {};
-  const preferences = hasProfile.content?.preferences?.items || [];
+  const identity = hspProfile.content?.basic?.identity || {};
+  const preferences = hspProfile.content?.preferences?.items || [];
 
   // Check if there's at least one non-empty identity field (excluding avatarImage)
   const hasIdentityData = Object.keys(identity).some(key => {

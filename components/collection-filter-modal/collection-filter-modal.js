@@ -39,6 +39,33 @@ function createCollectionFilterModal(options = {}) {
   // Track selected collections
   let selected = [...selectedCollections];
 
+  // Create footer with buttons (before collection items, so we can reference them)
+  const footer = document.createElement('div');
+  footer.className = 'collection-filter-modal__footer';
+
+  const clearButton = createSecondaryButton({
+    label: 'Clear',
+    variant: 'v2',
+    disabled: selected.length === 0 // Initially disabled if no selection
+  });
+
+  const applyButton = createPrimaryButton({
+    label: 'Apply Filter',
+    variant: 'v2',
+    disabled: selected.length === 0 // Initially disabled if no selection
+  });
+
+  // Helper to update button state
+  const updateButtonState = () => {
+    if (selected.length === 0) {
+      applyButton.setDisabled(true);
+      clearButton.setDisabled(true);
+    } else {
+      applyButton.setDisabled(false);
+      clearButton.setDisabled(false);
+    }
+  };
+
   // Create collection items
   if (collections.length === 0) {
     const empty = document.createElement('div');
@@ -82,28 +109,17 @@ function createCollectionFilterModal(options = {}) {
           selected.push(collection.label);
           item.classList.add('active');
         }
+        updateButtonState(); // Update apply button state
       });
 
       list.appendChild(item);
     });
   }
 
-  // Create footer with buttons
-  const footer = document.createElement('div');
-  footer.className = 'collection-filter-modal__footer';
-
-  const clearButton = createPrimaryButton({
-    label: 'Clear',
-    variant: 'secondary'
-  });
-
-  const applyButton = createPrimaryButton({
-    label: 'Apply Filter',
-    variant: 'primary'
-  });
-
-  footer.appendChild(clearButton.element);
+  // Add buttons to footer (buttons were created earlier)
+  // Order: Apply Filter first, then Clear
   footer.appendChild(applyButton.element);
+  footer.appendChild(clearButton.element);
 
   // Assemble modal
   modalElement.appendChild(header);
@@ -121,6 +137,11 @@ function createCollectionFilterModal(options = {}) {
     list.querySelectorAll('.collection-filter-modal__item').forEach(item => {
       item.classList.remove('active');
     });
+    // Call onApply with empty array to show all cards and close modal
+    if (onApply) {
+      onApply([]);
+    }
+    hide();
   });
 
   applyButton.element.addEventListener('click', () => {

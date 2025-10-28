@@ -501,7 +501,7 @@ function createProfile(options = {}) {
   emailLabel.className = 'profile__field-label text-style-h3';
   emailLabel.textContent = 'Email';
   const emailField = createInputField({
-    type: 'text',
+    type: 'email',
     value: email,
     onInput: () => {
       checkForChanges();

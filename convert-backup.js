@@ -21,10 +21,10 @@ function getTimestamp() {
   return new Date().toISOString();
 }
 
-// Create HAS v0.1 Profile
-const hasProfile = {
+// Create HSP v0.1 Profile
+const hspProfile = {
   id: generateId('profile'),
-  has: '0.1',
+  hsp: '0.1',
   type: 'profile',
   created_at: backup.exportedAt || getTimestamp(),
   updated_at: getTimestamp(),
@@ -39,7 +39,7 @@ const hasProfile = {
           updated_at: getTimestamp()
         },
         subtitle: {
-          value: 'Founder',
+          value: '',
           assurance: 'self_declared',
           reliability: 'high',
           updated_at: getTimestamp()
@@ -125,7 +125,7 @@ backup.contextItems.forEach(item => {
 
 // Register all categories as collections
 categoriesSet.forEach(category => {
-  hasProfile.collections.push({
+  hspProfile.collections.push({
     id: generateId('col'),
     name: category.toLowerCase().replace(/\s+/g, '_').replace(/&/g, 'and'),
     label: category,
@@ -153,12 +153,12 @@ backup.contextItems.forEach(item => {
     updated_at: item.updatedAt || backup.exportedAt || getTimestamp()
   };
 
-  hasProfile.content.preferences.items.push(preference);
+  hspProfile.content.preferences.items.push(preference);
 });
 
 // Update total preferences count
-hasProfile.metadata.total_preferences = hasProfile.content.preferences.items.length;
+hspProfile.metadata.total_preferences = hspProfile.content.preferences.items.length;
 
 // Write output
-const outputPath = '/Users/d.breuer/Desktop/data-gems-has-profile-converted.json';
-fs.writeFileSync(outputPath, JSON.stringify(hasProfile, null, 2), 'utf8');
+const outputPath = '/Users/d.breuer/Desktop/data-gems-hsp-profile-converted.json';
+fs.writeFileSync(outputPath, JSON.stringify(hspProfile, null, 2), 'utf8');

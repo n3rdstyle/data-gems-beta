@@ -71,7 +71,7 @@ AppState = {
 **Changes:**
 - ✅ AppState is now HSP v0.1 profile structure
 - ✅ Automatic legacy data migration on first load
-- ✅ Storage key changed from `userData`/`preferences` → `hasProfile`
+- ✅ Storage key changed from `userData`/`preferences` → `hspProfile`
 - ✅ Export/Import now uses HSP format
 - ✅ Helper functions `getUserData()` and `getPreferences()` for backward compatibility
 - ✅ Profile updates use `updateUserIdentity()` helper
@@ -79,7 +79,7 @@ AppState = {
 **Migration Logic:**
 ```javascript
 // On load, check for:
-1. hasProfile (new format) → Use directly
+1. hspProfile (new format) → Use directly
 2. userData/preferences (legacy) → Migrate automatically
 3. Nothing → Create fresh profile
 ```
@@ -151,15 +151,15 @@ Ready for Phase 2-6 additions:
 - [ ] Import legacy backup → Migration works
 - [ ] Import HSP backup → Loads correctly
 - [ ] Edit profile (name, email, etc.) → Updates HSP structure
-- [ ] Check Chrome DevTools → `hasProfile` in storage
+- [ ] Check Chrome DevTools → `hspProfile` in storage
 
 ### Console Checks
 Open Chrome DevTools and verify:
 ```javascript
-chrome.storage.local.get(['hasProfile'], (result) => {
-  console.log('HSP Profile:', result.hasProfile);
-  console.log('Version:', result.hasProfile.has); // Should be "0.1"
-  console.log('Preferences:', result.hasProfile.content.preferences.items);
+chrome.storage.local.get(['hspProfile'], (result) => {
+  console.log('HSP Profile:', result.hspProfile);
+  console.log('Version:', result.hspProfile.has); // Should be "0.1"
+  console.log('Preferences:', result.hspProfile.content.preferences.items);
 });
 ```
 

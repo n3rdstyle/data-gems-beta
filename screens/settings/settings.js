@@ -24,7 +24,10 @@ function createSettings(options = {}) {
     autoInjectEnabled = false,
     onAutoInjectToggle = null,
     autoBackupEnabled = false,
-    onAutoBackupToggle = null
+    onAutoBackupToggle = null,
+    isBetaUser = false,
+    onJoinBeta = null,
+    onRevokeBeta = null
   } = options;
 
   // Create main container
@@ -45,37 +48,50 @@ function createSettings(options = {}) {
   const contentWrapper = document.createElement('div');
   contentWrapper.className = 'settings__content';
 
-  // General Section
-  const generalSection = document.createElement('div');
-  generalSection.className = 'settings__section';
+  // Beta Community Section (always show, but with different button) - RIGHT UNDER HEADER
+  const betaCommunitySection = document.createElement('div');
+  betaCommunitySection.className = 'settings__section settings__section--beta-teaser';
 
-  const generalHeader = createHeader({
+  if (!isBetaUser) {
+    // Not a beta user - show Join button with CTA variant
+    const joinBeta = createActionButton({
+      label: 'Join Beta Community',
+      caption: 'Get exclusive updates and lifetime premium access',
+      variant: 'cta',
+      ctaLabel: 'Join',
+      onClick: () => {
+        if (onJoinBeta) {
+          onJoinBeta();
+        }
+      }
+    });
+    betaCommunitySection.appendChild(joinBeta.element);
+  } else {
+    // Is a beta user - show Revoke button with secondary variant
+    const revokeBeta = createActionButton({
+      label: 'Beta Community',
+      caption: 'You are a member of the beta community',
+      variant: 'secondary',
+      ctaLabel: 'Revoke',
+      onClick: () => {
+        if (onRevokeBeta) {
+          onRevokeBeta();
+        }
+      }
+    });
+    betaCommunitySection.appendChild(revokeBeta.element);
+  }
+
+  // Configuration Section
+  const configurationSection = document.createElement('div');
+  configurationSection.className = 'settings__section';
+
+  const configurationHeader = createHeader({
     variant: 'compact-plain',
-    title: 'General'
+    title: 'Configuration'
   });
-  generalHeader.element.classList.add('settings__section-header');
-  generalSection.appendChild(generalHeader.element);
-
-  const howToGuide = createActionButton({
-    label: 'How-to Guide',
-    variant: 'external',
-    onClick: onHowToGuide || (() => {})
-  });
-  generalSection.appendChild(howToGuide.element);
-
-  const faqs = createActionButton({
-    label: 'FAQs',
-    variant: 'external',
-    onClick: onFAQs || (() => {})
-  });
-  generalSection.appendChild(faqs.element);
-
-  const generalDivider = createDivider();
-  generalSection.appendChild(generalDivider.element);
-
-  // Injection Settings Section
-  const injectionSection = document.createElement('div');
-  injectionSection.className = 'settings__section';
+  configurationHeader.element.classList.add('settings__section-header');
+  configurationSection.appendChild(configurationHeader.element);
 
   // Auto-inject toggle as action button with toggle variant
   const autoInject = createActionButton({
@@ -89,10 +105,10 @@ function createSettings(options = {}) {
       }
     }
   });
-  injectionSection.appendChild(autoInject.element);
+  configurationSection.appendChild(autoInject.element);
 
-  const injectionDivider = createDivider();
-  injectionSection.appendChild(injectionDivider.element);
+  const configurationDivider = createDivider();
+  configurationSection.appendChild(configurationDivider.element);
 
   // Data Center Section
   const dataCenterSection = document.createElement('div');
@@ -161,6 +177,20 @@ function createSettings(options = {}) {
   const legalSection = document.createElement('div');
   legalSection.className = 'settings__section';
 
+  const howToGuide = createActionButton({
+    label: 'How-to Guide',
+    variant: 'external',
+    onClick: onHowToGuide || (() => {})
+  });
+  legalSection.appendChild(howToGuide.element);
+
+  const faqs = createActionButton({
+    label: 'FAQs',
+    variant: 'external',
+    onClick: onFAQs || (() => {})
+  });
+  legalSection.appendChild(faqs.element);
+
   const privacyStatement = createActionButton({
     label: 'Privacy Statement',
     variant: 'external',
@@ -193,8 +223,8 @@ function createSettings(options = {}) {
   legalSection.appendChild(legalDivider.element);
 
   // Assemble content
-  contentWrapper.appendChild(generalSection);
-  contentWrapper.appendChild(injectionSection);
+  contentWrapper.appendChild(betaCommunitySection);
+  contentWrapper.appendChild(configurationSection);
   contentWrapper.appendChild(dataCenterSection);
   contentWrapper.appendChild(legalSection);
 

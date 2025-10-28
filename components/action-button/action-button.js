@@ -7,8 +7,8 @@ function createActionButton(options = {}) {
   const {
     label = '',
     caption = null, // Optional caption for two-line variant
-    variant = 'navigation', // 'navigation', 'external', 'cta', 'toggle'
-    ctaLabel = 'Action', // Label for CTA button
+    variant = 'navigation', // 'navigation', 'external', 'cta', 'secondary', 'toggle'
+    ctaLabel = 'Action', // Label for CTA or secondary button
     href = null, // URL for navigation/external
     onClick = null,
     disabled = false,
@@ -146,6 +146,23 @@ function createActionButton(options = {}) {
     }
 
     container.appendChild(ctaButton);
+
+  } else if (variant === 'secondary') {
+    // Add Secondary button using Secondary Button V2 Small
+    const secondaryButtonInstance = createSecondaryButton({
+      label: ctaLabel,
+      variant: 'v2',
+      size: 'small',
+      disabled: disabled,
+      onClick: (e) => {
+        if (onClick) {
+          onClick();
+        }
+      }
+    });
+
+    secondaryButtonInstance.element.classList.add('action-button__secondary-button');
+    container.appendChild(secondaryButtonInstance.element);
   }
 
   // Accessibility

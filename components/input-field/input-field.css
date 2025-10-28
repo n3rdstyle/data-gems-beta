@@ -114,3 +114,38 @@
 .input-field__count--over-limit {
   color: var(--color-error);
 }
+
+/* Email validation states */
+.input-field__input--valid {
+  border-color: var(--color-success);
+}
+
+.input-field__input--valid:focus {
+  border-color: var(--color-success);
+}
+
+.input-field__input--invalid {
+  border-color: var(--color-error);
+}
+
+.input-field__input--invalid:focus {
+  border-color: var(--color-error);
+}
+
+/* Email validation message */
+.input-field__validation {
+  font-family: var(--font-family);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.4;
+  padding: 0 4px;
+  margin-top: -4px;
+}
+
+.input-field__validation--valid {
+  color: var(--color-success);
+}
+
+.input-field__validation--invalid {
+  color: var(--color-error);
+}

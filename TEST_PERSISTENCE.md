@@ -83,10 +83,10 @@
 
 In DevTools Console:
 ```javascript
-chrome.storage.local.get(['hasProfile'], (result) => {
+chrome.storage.local.get(['hspProfile'], (result) => {
   console.log('=== HSP PROFILE ===');
-  console.log(JSON.stringify(result.hasProfile, null, 2));
-  console.log('Preferences:', result.hasProfile?.content?.preferences?.items);
+  console.log(JSON.stringify(result.hspProfile, null, 2));
+  console.log('Preferences:', result.hspProfile?.content?.preferences?.items);
 });
 ```
 

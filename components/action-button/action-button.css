@@ -73,6 +73,12 @@
   flex-shrink: 0;
 }
 
+/* Secondary variant (uses Secondary Button V2 Small) */
+.action-button--secondary .action-button__secondary-button {
+  /* Secondary Button V2 Small styles are applied via class */
+  flex-shrink: 0;
+}
+
 /* Hover states */
 .action-button--navigation:hover,
 .action-button--external:hover {

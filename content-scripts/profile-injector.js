@@ -73,7 +73,7 @@ const PLATFORMS = {
 let currentPlatform = null;
 let injectionButton = null;
 let promptElement = null;
-let hasProfile = null;
+let hspProfile = null;
 let observerActive = false;
 let autoInjectEnabled = false;
 let hasInjectedInCurrentChat = false; // Track if we've injected in current chat
@@ -310,14 +310,14 @@ function hideInjectionButton() {
  * Handle profile injection
  */
 async function handleInjection() {
-  if (!hasProfile) {
+  if (!hspProfile) {
     return;
   }
 
   // Check injection method for current platform
   if (currentPlatform.injectionMethod === 'file') {
     // Try file attachment method first (ChatGPT, Gemini, Claude)
-    const profileData = formatProfileAsJSON(hasProfile);
+    const profileData = formatProfileAsJSON(hspProfile);
     const blob = new Blob([profileData], { type: 'application/json' });
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
     const fileName = `data-gems-profile-${timestamp}.json`;
@@ -333,7 +333,7 @@ async function handleInjection() {
   }
 
   // Text injection method (used for Grok, or as fallback if file fails)
-  const profileText = formatProfileForInjection(hasProfile, {
+  const profileText = formatProfileForInjection(hspProfile, {
     includeHidden: false,
     includeMetadata: false,
     prettify: true
@@ -347,20 +347,20 @@ async function handleInjection() {
 /**
  * Format profile as clean JSON (without explanation text)
  */
-function formatProfileAsJSON(hasProfile) {
+function formatProfileAsJSON(hspProfile) {
   const filteredProfile = {
-    hsp: hasProfile.hsp,
-    type: hasProfile.type
+    hsp: hspProfile.hsp,
+    type: hspProfile.type
   };
 
-  if (hasProfile.content?.basic?.identity) {
+  if (hspProfile.content?.basic?.identity) {
     filteredProfile.content = {
       basic: {
         identity: {}
       }
     };
 
-    const identity = hasProfile.content.basic.identity;
+    const identity = hspProfile.content.basic.identity;
     Object.keys(identity).forEach(key => {
       const field = identity[key];
 
@@ -373,13 +373,13 @@ function formatProfileAsJSON(hasProfile) {
     });
   }
 
-  if (hasProfile.content?.preferences?.items) {
+  if (hspProfile.content?.preferences?.items) {
     if (!filteredProfile.content) {
       filteredProfile.content = {};
     }
 
     filteredProfile.content.preferences = {
-      items: hasProfile.content.preferences.items.filter(pref => {
+      items: hspProfile.content.preferences.items.filter(pref => {
         if (pref.state === 'hidden') return false;
         if (!pref.value || pref.value.trim() === '') return false;
         return true;
@@ -387,8 +387,9 @@ function formatProfileAsJSON(hasProfile) {
     };
   }
 
-  if (hasProfile.collections && hasProfile.collections.length > 0) {
-    filteredProfile.collections = hasProfile.collections;
+  if (hspProfile.collections && hspProfile.collections.length > 0) {
+    // Only send collection labels (LLM doesn't need IDs, timestamps, etc.)
+    filteredProfile.collections = hspProfile.collections.map(col => col.label);
   }
 
   return JSON.stringify(filteredProfile, null, 2);
@@ -524,7 +525,7 @@ async function attachFileToChat(file) {
       console.log('[Data Gems] Before state:', {
         attachmentCount: beforeAttachments,
         hasFileName: beforeBodyText.includes(fileNameLower),
-        hasProfileString: beforeBodyText.includes('data-gems-profile')
+        hspProfileString: beforeBodyText.includes('data-gems-profile')
       });
 
       // Create DataTransfer object with our file
@@ -556,7 +557,7 @@ async function attachFileToChat(file) {
       console.log('[Data Gems] After state:', {
         attachmentCount: afterAttachments,
         hasFileName: afterBodyText.includes(fileNameLower),
-        hasProfileString: afterBodyText.includes('data-gems-profile')
+        hspProfileString: afterBodyText.includes('data-gems-profile')
       });
 
       // Only report success if there's a CLEAR NEW CHANGE
@@ -636,7 +637,7 @@ async function attachFileToChat(file) {
         console.log('[Data Gems] After drop:', {
           attachmentCount: afterAttachments,
           hasFileName: afterBodyText.includes(fileNameLower),
-          hasProfileString: afterBodyText.includes('data-gems-profile')
+          hspProfileString: afterBodyText.includes('data-gems-profile')
         });
 
         // Check if attachment count increased OR if file name appears in DOM
@@ -763,7 +764,7 @@ function updateButtonVisibility() {
     return;
   }
 
-  const hasData = hasInjectableData(hasProfile);
+  const hasData = hasInjectableData(hspProfile);
 
   // Don't show button if we've already injected in this chat
   if (hasInjectedInCurrentChat) {
@@ -792,15 +793,15 @@ async function initializeProfileInjection() {
 
   // Load profile and settings from storage
   try {
-    const result = await chrome.storage.local.get(['hasProfile']);
-    hasProfile = result.hasProfile;
+    const result = await chrome.storage.local.get(['hspProfile']);
+    hspProfile = result.hspProfile;
 
-    if (!hasProfile) {
+    if (!hspProfile) {
       return;
     }
 
     // Load auto-inject setting
-    autoInjectEnabled = hasProfile?.settings?.injection?.auto_inject || false;
+    autoInjectEnabled = hspProfile?.settings?.injection?.auto_inject || false;
   } catch (error) {
     return;
   }
@@ -894,30 +895,30 @@ function setupInputMonitoring() {
 }
 
 // Copy formatter functions (inline to avoid external dependencies in content script)
-function formatProfileForInjection(hasProfile, options = {}) {
+function formatProfileForInjection(hspProfile, options = {}) {
   const {
     includeHidden = false,
     includeMetadata = false,
     prettify = true
   } = options;
 
-  if (!hasProfile || !hasProfile.hsp) {
+  if (!hspProfile || !hspProfile.hsp) {
     return 'No profile data available.';
   }
 
   const filteredProfile = {
-    hsp: hasProfile.hsp,
-    type: hasProfile.type
+    hsp: hspProfile.hsp,
+    type: hspProfile.type
   };
 
-  if (hasProfile.content?.basic?.identity) {
+  if (hspProfile.content?.basic?.identity) {
     filteredProfile.content = {
       basic: {
         identity: {}
       }
     };
 
-    const identity = hasProfile.content.basic.identity;
+    const identity = hspProfile.content.basic.identity;
     Object.keys(identity).forEach(key => {
       const field = identity[key];
 
@@ -938,13 +939,13 @@ function formatProfileForInjection(hasProfile, options = {}) {
     });
   }
 
-  if (hasProfile.content?.preferences?.items) {
+  if (hspProfile.content?.preferences?.items) {
     if (!filteredProfile.content) {
       filteredProfile.content = {};
     }
 
     filteredProfile.content.preferences = {
-      items: hasProfile.content.preferences.items.filter(pref => {
+      items: hspProfile.content.preferences.items.filter(pref => {
         if (!includeHidden && pref.state === 'hidden') {
           return false;
         }
@@ -956,14 +957,14 @@ function formatProfileForInjection(hasProfile, options = {}) {
     };
   }
 
-  if (hasProfile.collections && hasProfile.collections.length > 0) {
-    filteredProfile.collections = hasProfile.collections;
+  if (hspProfile.collections && hspProfile.collections.length > 0) {
+    filteredProfile.collections = hspProfile.collections;
   }
 
-  if (includeMetadata && hasProfile.metadata) {
+  if (includeMetadata && hspProfile.metadata) {
     filteredProfile.metadata = {
-      schema_version: hasProfile.metadata.schema_version,
-      total_preferences: hasProfile.metadata.total_preferences
+      schema_version: hspProfile.metadata.schema_version,
+      total_preferences: hspProfile.metadata.total_preferences
     };
   }
 
@@ -971,7 +972,7 @@ function formatProfileForInjection(hasProfile, options = {}) {
     ? JSON.stringify(filteredProfile, null, 2)
     : JSON.stringify(filteredProfile);
 
-  const injectionText = `Here is my Data Gems profile in HSP Protocol v${hasProfile.hsp} format:
+  const injectionText = `Here is my Data Gems profile in HSP Protocol v${hspProfile.hsp} format:
 
 \`\`\`json
 ${jsonString}
@@ -982,13 +983,13 @@ Please use this information as context for our conversation.`;
   return injectionText;
 }
 
-function hasInjectableData(hasProfile) {
-  if (!hasProfile || !hasProfile.hsp) {
+function hasInjectableData(hspProfile) {
+  if (!hspProfile || !hspProfile.hsp) {
     return false;
   }
 
-  const identity = hasProfile.content?.basic?.identity || {};
-  const preferences = hasProfile.content?.preferences?.items || [];
+  const identity = hspProfile.content?.basic?.identity || {};
+  const preferences = hspProfile.content?.preferences?.items || [];
 
   const hasIdentityData = Object.keys(identity).some(key => {
     if (key === 'avatarImage') return false;
@@ -1011,14 +1012,14 @@ function hasInjectableData(hasProfile) {
 
 // Listen for changes to storage (e.g., when user toggles auto-inject in settings)
 chrome.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName === 'local' && changes.hasProfile) {
-    const newProfile = changes.hasProfile.newValue;
+  if (areaName === 'local' && changes.hspProfile) {
+    const newProfile = changes.hspProfile.newValue;
     const oldAutoInject = autoInjectEnabled;
     const newAutoInject = newProfile?.settings?.injection?.auto_inject || false;
 
     // Update auto-inject state
     autoInjectEnabled = newAutoInject;
-    hasProfile = newProfile;
+    hspProfile = newProfile;
 
     // If auto-inject was turned off, show button
     if (oldAutoInject && !newAutoInject && promptElement && !injectionButton) {
@@ -1062,5 +1063,5 @@ window.__dataGems_test = {
   attachFileToChat,
   handleInjection,
   currentPlatform: () => currentPlatform,
-  hasProfile: () => hasProfile
+  hspProfile: () => hspProfile
 };

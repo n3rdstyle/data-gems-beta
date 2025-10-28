@@ -8,7 +8,7 @@ let inputFieldIdCounter = 0;
 
 function createInputField(options = {}) {
   const {
-    type = 'text', // 'text', 'search', 'textarea'
+    type = 'text', // 'text', 'email', 'search', 'textarea'
     label = '',
     placeholder = '',
     value = '',
@@ -19,6 +19,7 @@ function createInputField(options = {}) {
     autoResize = false, // For textarea
     helperText = '',
     errorMessage = '',
+    validateEmail = false, // Enable live email validation
     id = null, // Optional custom id
     name = null, // Optional custom name
     onChange = null,
@@ -109,6 +110,9 @@ function createInputField(options = {}) {
       updateCount();
     }
 
+    // Update email validation
+    updateEmailValidation();
+
     // Auto resize
     resizeTextarea();
   });
@@ -117,13 +121,27 @@ function createInputField(options = {}) {
     if (onChange) onChange(e.target.value, e);
   });
 
-  if (onFocus) {
-    inputElement.addEventListener('focus', (e) => onFocus(e));
-  }
+  inputElement.addEventListener('focus', (e) => {
+    // Show validation when focusing (if email type and has value)
+    if ((validateEmail || type === 'email') && inputElement.value.trim()) {
+      updateEmailValidation();
+    }
+    // Call user's onFocus callback if provided
+    if (onFocus) onFocus(e);
+  });
 
-  if (onBlur) {
-    inputElement.addEventListener('blur', (e) => onBlur(e));
-  }
+  inputElement.addEventListener('blur', (e) => {
+    // Hide validation when leaving the field (return to default state)
+    if (validateEmail || type === 'email') {
+      if (validationElement) {
+        validationElement.style.display = 'none';
+        inputElement.classList.remove('input-field__input--valid');
+        inputElement.classList.remove('input-field__input--invalid');
+      }
+    }
+    // Call user's onBlur callback if provided
+    if (onBlur) onBlur(e);
+  });
 
   if (onKeyPress) {
     inputElement.addEventListener('keypress', (e) => onKeyPress(e));
@@ -135,6 +153,51 @@ function createInputField(options = {}) {
 
   wrapper.appendChild(inputElement);
   container.appendChild(wrapper);
+
+  // Email validation element (for live validation)
+  let validationElement = null;
+  if (validateEmail || type === 'email') {
+    validationElement = document.createElement('div');
+    validationElement.className = 'input-field__validation';
+    validationElement.style.display = 'none';
+    container.appendChild(validationElement);
+  }
+
+  // Helper function to validate email
+  const isValidEmail = (email) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  // Helper function to update validation state (live validation)
+  const updateEmailValidation = () => {
+    if (!validateEmail && type !== 'email') return;
+
+    const emailValue = inputElement.value.trim();
+
+    if (emailValue === '') {
+      // Empty - hide validation
+      validationElement.style.display = 'none';
+      inputElement.classList.remove('input-field__input--valid');
+      inputElement.classList.remove('input-field__input--invalid');
+    } else if (isValidEmail(emailValue)) {
+      // Valid email - show success
+      validationElement.style.display = 'block';
+      validationElement.textContent = '✓ Valid email';
+      validationElement.className = 'input-field__validation input-field__validation--valid';
+      inputElement.classList.add('input-field__input--valid');
+      inputElement.classList.remove('input-field__input--invalid');
+    } else {
+      // Invalid email - show error
+      validationElement.style.display = 'block';
+      validationElement.textContent = '✗ Please enter a valid email';
+      validationElement.className = 'input-field__validation input-field__validation--invalid';
+      inputElement.classList.remove('input-field__input--valid');
+      inputElement.classList.add('input-field__input--invalid');
+    }
+  };
+
+  // Don't show validation initially - only show when user interacts with field
+  // Validation will appear when user focuses the field
 
   // Helper text
   if (helperText && !errorMessage) {
@@ -193,6 +256,8 @@ function createInputField(options = {}) {
         countElement.textContent = `${current} / ${maxLength}`;
       }
       resizeTextarea();
+      // Update validation if email type
+      updateEmailValidation();
     },
 
     clear() {
@@ -201,6 +266,21 @@ function createInputField(options = {}) {
         countElement.textContent = `0 / ${maxLength}`;
       }
       resizeTextarea();
+      // Clear validation
+      if (validationElement) {
+        validationElement.style.display = 'none';
+        inputElement.classList.remove('input-field__input--valid');
+        inputElement.classList.remove('input-field__input--invalid');
+      }
+    },
+
+    clearValidation() {
+      // Reset validation to default state (hide all validation)
+      if (validationElement) {
+        validationElement.style.display = 'none';
+        inputElement.classList.remove('input-field__input--valid');
+        inputElement.classList.remove('input-field__input--invalid');
+      }
     },
 
     focus() {

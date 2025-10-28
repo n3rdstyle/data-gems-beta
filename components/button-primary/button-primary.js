@@ -16,6 +16,7 @@
 function createPrimaryButton(options = {}) {
   const {
     label = 'Button',
+    icon = null,
     onClick = null,
     disabled = false,
     ariaLabel = '',
@@ -26,8 +27,22 @@ function createPrimaryButton(options = {}) {
   // Create button element
   const button = document.createElement('button');
   button.type = 'button';
-  button.textContent = label;
   button.disabled = disabled;
+
+  // Add icon and label if icon is provided
+  if (icon) {
+    const iconSpan = document.createElement('span');
+    iconSpan.className = 'button-primary__icon';
+    const iconSvg = getIcon(icon);
+    iconSpan.innerHTML = iconSvg;
+    button.appendChild(iconSpan);
+
+    const labelSpan = document.createElement('span');
+    labelSpan.textContent = label;
+    button.appendChild(labelSpan);
+  } else {
+    button.textContent = label;
+  }
 
   // Apply variant and text-style classes
   if (variant === 'neutral') {
@@ -74,10 +89,22 @@ function createPrimaryButton(options = {}) {
     element: button,
 
     setLabel(newLabel) {
-      button.textContent = newLabel;
+      if (icon) {
+        // If button has icon, update only the label span
+        const labelSpan = button.querySelector('span:not(.button-primary__icon)');
+        if (labelSpan) {
+          labelSpan.textContent = newLabel;
+        }
+      } else {
+        button.textContent = newLabel;
+      }
     },
 
     getLabel() {
+      if (icon) {
+        const labelSpan = button.querySelector('span:not(.button-primary__icon)');
+        return labelSpan ? labelSpan.textContent : '';
+      }
       return button.textContent;
     },
 

@@ -15,16 +15,15 @@
 .content-preferences__headline {
   position: sticky;
   top: 0;
+  flex-shrink: 0;
   background-color: var(--color-secondary-10);
   z-index: 10;
-  padding-bottom: var(--spacing-component-internal); /* 16px */
-  margin-bottom: calc(-1 * var(--spacing-component-internal)); /* -16px to maintain gap */
 }
 
 .content-preferences__tags {
-  /* Tag list wrapper - no additional styles needed */
+  flex-shrink: 0;
 }
 
 .content-preferences__list {
-  /* Data list wrapper - no additional styles needed */
+  /* Data list container - no special styling needed */
 }
