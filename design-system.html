@@ -2127,11 +2127,21 @@
         </div>
 
         <div class="demo-subsection">
-          <h3>Toggle Variant</h3>
-          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Setting with toggle switch on the right (label optional, caption required)</p>
+          <h3>Toggle Variant (with Label)</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Setting with label, caption, and toggle switch</p>
           <div class="demo-example">
             <div style="max-width: 400px;">
-              <div id="action-button-toggle-demo"></div>
+              <div id="action-button-toggle-with-label-demo"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-subsection">
+          <h3>Toggle Variant (without Label)</h3>
+          <p style="font-size: 14px; color: var(--color-neutral-70); margin-bottom: 12px;">Setting with only caption and toggle switch (no label)</p>
+          <div class="demo-example">
+            <div style="max-width: 400px;">
+              <div id="action-button-toggle-no-label-demo"></div>
             </div>
           </div>
         </div>
@@ -3278,16 +3288,27 @@
       });
       ctaContainer.appendChild(ctaButton.element);
 
-      // Toggle variant
-      const toggleContainer = document.getElementById('action-button-toggle-demo');
-      const toggleButton = createActionButton({
-        label: 'Profile Injection',
-        caption: 'Automatically inject profile on supported websites',
+      // Toggle variant with label
+      const toggleWithLabelContainer = document.getElementById('action-button-toggle-with-label-demo');
+      const toggleWithLabelButton = createActionButton({
+        label: 'Auto-inject profile',
+        caption: 'Automatically inject your profile when opening a new chat in supported AI platforms',
         variant: 'toggle',
         toggleActive: true,
-        onToggleChange: (isActive) => console.log('Toggle state changed:', isActive)
+        onToggleChange: (isActive) => console.log('Toggle with label state changed:', isActive)
       });
-      toggleContainer.appendChild(toggleButton.element);
+      toggleWithLabelContainer.appendChild(toggleWithLabelButton.element);
+
+      // Toggle variant without label
+      const toggleNoLabelContainer = document.getElementById('action-button-toggle-no-label-demo');
+      const toggleNoLabelButton = createActionButton({
+        label: '',
+        caption: 'Automatically export backup after 50 entries and every 50 entries thereafter',
+        variant: 'toggle',
+        toggleActive: false,
+        onToggleChange: (isActive) => console.log('Toggle without label state changed:', isActive)
+      });
+      toggleNoLabelContainer.appendChild(toggleNoLabelButton.element);
 
       // Two-line variant with caption
       const twoLineContainer = document.getElementById('action-button-two-line-demo');
