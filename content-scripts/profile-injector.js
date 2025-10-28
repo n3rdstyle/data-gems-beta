@@ -626,33 +626,132 @@ async function attachFileToChat(file) {
       console.log('[Data Gems] ✗ Error with Gemini Method 3 (custom input):', error);
     }
 
-    // Method 3b: Look for hidden upload trigger buttons and existing file inputs
-    console.log('[Data Gems] Trying Method 3b: Search for existing file inputs in Gemini');
+    // Method 3b: Try to trigger Angular's file selector and observe for file inputs
+    console.log('[Data Gems] Trying Method 3b: Trigger Angular file selector and observe');
 
     const hiddenFileButton = document.querySelector('button[data-test-id="hidden-local-file-upload-button"]');
     const hiddenImageButton = document.querySelector('button[data-test-id="hidden-local-image-upload-button"]');
+    const fileSelectTriggers = document.querySelectorAll('[xapfileselectortrigger]');
 
     console.log('[Data Gems] Found hidden file button:', !!hiddenFileButton);
     console.log('[Data Gems] Found hidden image button:', !!hiddenImageButton);
+    console.log('[Data Gems] Found xapfileselectortrigger elements:', fileSelectTriggers.length);
 
-    // Look for ALL input elements, including those that might be hidden or in shadow DOM
-    const allInputs = document.querySelectorAll('input[type="file"], input[type="FILE"], input:not([type])');
-    console.log('[Data Gems] Found', allInputs.length, 'potential input elements');
+    // Strategy: Observe for new file inputs that appear when upload is triggered
+    try {
+      const observerResult = await new Promise((resolve) => {
+        let resolved = false;
+        const observer = new MutationObserver((mutations) => {
+          if (resolved) return;
+
+          for (const mutation of mutations) {
+            for (const node of mutation.addedNodes) {
+              if (node.nodeType === 1) { // Element node
+                // Check if the added node is a file input
+                if (node.tagName === 'INPUT' && node.type === 'file') {
+                  console.log('[Data Gems] Detected new file input via MutationObserver!');
+                  resolved = true;
+                  observer.disconnect();
+                  resolve(node);
+                  return;
+                }
+                // Check if the added node contains a file input
+                const fileInput = node.querySelector?.('input[type="file"]');
+                if (fileInput) {
+                  console.log('[Data Gems] Detected file input in added node!');
+                  resolved = true;
+                  observer.disconnect();
+                  resolve(fileInput);
+                  return;
+                }
+              }
+            }
+          }
+        });
+
+        // Start observing
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true
+        });
+
+        console.log('[Data Gems] Started MutationObserver, clicking upload button...');
+
+        // Click the main upload button to trigger file input creation
+        const mainUploadButton = document.querySelector('button.upload-card-button, uploader button[mat-icon-button]');
+        if (mainUploadButton) {
+          console.log('[Data Gems] Clicking main upload button');
+          mainUploadButton.click();
+        } else if (hiddenFileButton) {
+          console.log('[Data Gems] Clicking hidden file button');
+          hiddenFileButton.click();
+        }
+
+        // Timeout after 3 seconds
+        setTimeout(() => {
+          if (!resolved) {
+            resolved = true;
+            observer.disconnect();
+            console.log('[Data Gems] MutationObserver timeout - no file input detected');
+            resolve(null);
+          }
+        }, 3000);
+      });
+
+      if (observerResult) {
+        console.log('[Data Gems] Using detected file input');
+        const input = observerResult;
+
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        input.files = dataTransfer.files;
+
+        // Trigger events
+        ['change', 'input'].forEach(eventType => {
+          const event = new Event(eventType, { bubbles: true, cancelable: true });
+          input.dispatchEvent(event);
+        });
+
+        console.log('[Data Gems] Waiting 2000ms for UI update...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        const afterBodyText = document.body.textContent.toLowerCase();
+        if (afterBodyText.includes(file.name.toLowerCase()) || afterBodyText.includes('data-gems-profile')) {
+          console.log('[Data Gems] ✓ Success: Gemini Method 3b (observer) worked');
+          return true;
+        }
+      }
+    } catch (error) {
+      console.log('[Data Gems] ✗ Error with Gemini Method 3b observer:', error);
+    }
+
+    // Fallback: Search ALL inputs (not just type="file")
+    console.log('[Data Gems] Observer method failed, searching all input elements');
+    const allInputs = document.querySelectorAll('input');
+    console.log('[Data Gems] Found', allInputs.length, 'total input elements');
 
     for (const input of allInputs) {
-      // Check if it could be a file input (even if type is not set)
-      if (input.type === 'file' || input.accept || input.hasAttribute('accept')) {
+      // Check if it could be a file input
+      if (input.type === 'file' || input.accept || input.hasAttribute('accept') || input.hasAttribute('xapfileselectortrigger')) {
         try {
-          console.log('[Data Gems] Trying potential file input:', {
+          console.log('[Data Gems] Trying input:', {
             type: input.type,
             accept: input.accept,
             id: input.id,
-            class: input.className
+            class: input.className,
+            hasXapTrigger: input.hasAttribute('xapfileselectortrigger')
           });
 
           const dataTransfer = new DataTransfer();
           dataTransfer.items.add(file);
-          input.files = dataTransfer.files;
+
+          // Try to set files property
+          try {
+            input.files = dataTransfer.files;
+          } catch (e) {
+            console.log('[Data Gems] Could not set files property:', e.message);
+            continue;
+          }
 
           // Trigger all possible events
           const events = ['change', 'input', 'blur', 'focus'];
@@ -661,17 +760,17 @@ async function attachFileToChat(file) {
             input.dispatchEvent(event);
           });
 
-          console.log('[Data Gems] Waiting 2000ms for UI update...');
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          console.log('[Data Gems] Waiting 1500ms for UI update...');
+          await new Promise(resolve => setTimeout(resolve, 1500));
 
           // Check for success
           const afterBodyText = document.body.textContent.toLowerCase();
           if (afterBodyText.includes(file.name.toLowerCase()) || afterBodyText.includes('data-gems-profile')) {
-            console.log('[Data Gems] ✓ Success: Gemini Method 3b worked');
+            console.log('[Data Gems] ✓ Success: Gemini Method 3b fallback worked');
             return true;
           }
         } catch (error) {
-          console.log('[Data Gems] ✗ Error with Gemini Method 3b input:', error);
+          console.log('[Data Gems] ✗ Error with input:', error);
         }
       }
     }
