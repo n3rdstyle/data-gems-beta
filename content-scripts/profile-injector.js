@@ -572,27 +572,90 @@ async function attachFileToChat(file) {
     }
   }
 
-  // Method 3: For Gemini - look for upload button and try to access its associated file input
+  // Method 3: For Gemini - create file input dynamically and attach to upload system
   if (currentPlatform.name === 'Gemini') {
-    console.log('[Data Gems] Method 2 failed, trying Method 3: Gemini-specific file input search');
+    console.log('[Data Gems] Method 2 failed, trying Method 3: Gemini dynamic file input injection');
 
-    // Wait a bit and try to find file inputs again (they might be dynamically created)
-    await new Promise(resolve => setTimeout(resolve, 500));
+    try {
+      // Look for the uploader component container
+      const uploaderContainer = document.querySelector('uploader, [class*="uploader"], [class*="file-uploader"]');
+      console.log('[Data Gems] Found uploader container:', !!uploaderContainer);
 
-    const allInputs = document.querySelectorAll('input[type="file"]');
-    console.log('[Data Gems] Found', allInputs.length, 'file inputs (second attempt)');
+      // Strategy: Create our own file input, attach the file, then trigger it
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = '*/*';
+      fileInput.style.display = 'none';
+      fileInput.setAttribute('data-data-gems-injected', 'true');
 
-    if (allInputs.length > 0) {
-      for (const input of allInputs) {
+      // Attach to the uploader container or body
+      const attachPoint = uploaderContainer || document.body;
+      attachPoint.appendChild(fileInput);
+      console.log('[Data Gems] Created and attached file input to', attachPoint.tagName);
+
+      // Set the file on our input
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(file);
+      fileInput.files = dataTransfer.files;
+      console.log('[Data Gems] Set file on custom input:', fileInput.files.length, 'files');
+
+      // Trigger change event - Gemini's Angular might listen for this
+      const changeEvent = new Event('change', { bubbles: true, cancelable: true });
+      fileInput.dispatchEvent(changeEvent);
+
+      // Also try input event
+      const inputEvent = new Event('input', { bubbles: true, cancelable: true });
+      fileInput.dispatchEvent(inputEvent);
+
+      console.log('[Data Gems] Dispatched events on custom input');
+
+      // Wait and check
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const afterBodyText = document.body.textContent.toLowerCase();
+      if (afterBodyText.includes(file.name.toLowerCase()) || afterBodyText.includes('data-gems-profile')) {
+        console.log('[Data Gems] ✓ Success: Gemini Method 3 (custom input) worked');
+        fileInput.remove();
+        return true;
+      }
+
+      console.log('[Data Gems] Custom input method did not trigger attachment');
+      fileInput.remove();
+
+    } catch (error) {
+      console.log('[Data Gems] ✗ Error with Gemini Method 3 (custom input):', error);
+    }
+
+    // Method 3b: Look for hidden upload trigger buttons and existing file inputs
+    console.log('[Data Gems] Trying Method 3b: Search for existing file inputs in Gemini');
+
+    const hiddenFileButton = document.querySelector('button[data-test-id="hidden-local-file-upload-button"]');
+    const hiddenImageButton = document.querySelector('button[data-test-id="hidden-local-image-upload-button"]');
+
+    console.log('[Data Gems] Found hidden file button:', !!hiddenFileButton);
+    console.log('[Data Gems] Found hidden image button:', !!hiddenImageButton);
+
+    // Look for ALL input elements, including those that might be hidden or in shadow DOM
+    const allInputs = document.querySelectorAll('input[type="file"], input[type="FILE"], input:not([type])');
+    console.log('[Data Gems] Found', allInputs.length, 'potential input elements');
+
+    for (const input of allInputs) {
+      // Check if it could be a file input (even if type is not set)
+      if (input.type === 'file' || input.accept || input.hasAttribute('accept')) {
         try {
-          console.log('[Data Gems] Gemini Method 3: Trying file input');
+          console.log('[Data Gems] Trying potential file input:', {
+            type: input.type,
+            accept: input.accept,
+            id: input.id,
+            class: input.className
+          });
 
           const dataTransfer = new DataTransfer();
           dataTransfer.items.add(file);
           input.files = dataTransfer.files;
 
           // Trigger all possible events
-          const events = ['change', 'input', 'blur'];
+          const events = ['change', 'input', 'blur', 'focus'];
           events.forEach(eventType => {
             const event = new Event(eventType, { bubbles: true, cancelable: true });
             input.dispatchEvent(event);
@@ -604,11 +667,11 @@ async function attachFileToChat(file) {
           // Check for success
           const afterBodyText = document.body.textContent.toLowerCase();
           if (afterBodyText.includes(file.name.toLowerCase()) || afterBodyText.includes('data-gems-profile')) {
-            console.log('[Data Gems] ✓ Success: Gemini Method 3 worked');
+            console.log('[Data Gems] ✓ Success: Gemini Method 3b worked');
             return true;
           }
         } catch (error) {
-          console.log('[Data Gems] ✗ Error with Gemini Method 3:', error);
+          console.log('[Data Gems] ✗ Error with Gemini Method 3b input:', error);
         }
       }
     }
