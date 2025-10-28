@@ -34,10 +34,22 @@ const PLATFORMS = {
     selectors: {
       promptInput: 'div[contenteditable="true"].ql-editor, rich-textarea[class*="input-area"]',
       inputContainer: 'div[class*="input-area-container"]',
-      uploadButton: 'button[aria-label*="upload" i], button[aria-label*="attach" i], button[aria-label*="file" i], button.upload-button'
+      uploadButton: 'button[aria-label*="upload" i], button[aria-label*="attach" i], button[aria-label*="file" i], button.upload-button, input[type="file"]'
     },
     isContentEditable: true,
-    injectionMethod: 'file' // Gemini: attach file
+    injectionMethod: 'file', // Try file attachment, fall back to text if fails
+    dropZones: [
+      'div[class*="input-area-container"]',
+      'div[class*="input-area"]',
+      'rich-textarea',
+      'form',
+      '.input-area-container'
+    ],
+    // NOTE: Gemini's file upload mechanism is challenging to automate:
+    // - File inputs may be hidden or in shadow DOM
+    // - Gemini may reject JSON files (prefers images/docs)
+    // - Drag & drop events may not be properly handled
+    // As a result, text injection is commonly used as fallback
   },
   // PERPLEXITY: Disabled - Perplexity blocks content scripts via CSP
   // PERPLEXITY: {
@@ -378,24 +390,48 @@ function formatProfileAsJSON(hasProfile) {
  * Attach file to chat (ChatGPT, Gemini, etc.)
  */
 async function attachFileToChat(file) {
+  console.log('[Data Gems] Starting file attachment for:', file.name);
+  console.log('[Data Gems] Platform:', currentPlatform.name);
+
   // Method 0: DON'T click upload button (opens file picker which requires user activation)
   // Instead, directly find and set the file input element
 
   // Method 1: Try to find and use file input directly
   const fileInputs = document.querySelectorAll('input[type="file"]');
+  console.log('[Data Gems] Found', fileInputs.length, 'file inputs');
 
   for (const input of fileInputs) {
+    console.log('[Data Gems] Checking file input:', {
+      accept: input.accept,
+      multiple: input.multiple,
+      classList: Array.from(input.classList),
+      id: input.id,
+      visibility: window.getComputedStyle(input).display,
+      parentVisibility: input.parentElement ? window.getComputedStyle(input.parentElement).display : 'n/a'
+    });
+
+    // For Gemini, try ALL file inputs regardless of accept attribute
+    const isGemini = currentPlatform.name === 'Gemini';
 
     // Skip image-only inputs (unless platform is Gemini which might need it)
-    if (input.accept && input.accept.includes('image/') && !input.accept.includes('*') && !input.accept.includes('json')) {
+    if (!isGemini && input.accept && input.accept.includes('image/') && !input.accept.includes('*') && !input.accept.includes('json')) {
+      console.log('[Data Gems] Skipping image-only input');
       continue;
     }
 
     try {
+      console.log('[Data Gems] Attempting file attachment via input element');
+
       // Take snapshot BEFORE attaching to detect changes
       const beforeAttachments = document.querySelectorAll('[class*="attachment"], [class*="file-"], [data-testid*="file"], [data-testid*="attachment"]').length;
       const beforeBodyText = document.body.textContent.toLowerCase();
       const fileNameLower = file.name.toLowerCase();
+
+      console.log('[Data Gems] Before state:', {
+        attachmentCount: beforeAttachments,
+        hasFileName: beforeBodyText.includes(fileNameLower),
+        hasProfileString: beforeBodyText.includes('data-gems-profile')
+      });
 
       // Create DataTransfer object with our file
       const dataTransfer = new DataTransfer();
@@ -403,59 +439,83 @@ async function attachFileToChat(file) {
 
       // Set files property (this doesn't require user activation!)
       input.files = dataTransfer.files;
+      console.log('[Data Gems] Files set to input:', input.files.length, 'files');
 
       // Trigger change event
       const changeEvent = new Event('change', { bubbles: true });
       input.dispatchEvent(changeEvent);
+      console.log('[Data Gems] Dispatched change event');
 
       // Also trigger input event
       const inputEvent = new Event('input', { bubbles: true });
       input.dispatchEvent(inputEvent);
+      console.log('[Data Gems] Dispatched input event');
 
       // Wait to see if attachment appears in UI
+      console.log('[Data Gems] Waiting 1500ms for UI update...');
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       // Take snapshot AFTER to compare
       const afterAttachments = document.querySelectorAll('[class*="attachment"], [class*="file-"], [data-testid*="file"], [data-testid*="attachment"]').length;
       const afterBodyText = document.body.textContent.toLowerCase();
 
+      console.log('[Data Gems] After state:', {
+        attachmentCount: afterAttachments,
+        hasFileName: afterBodyText.includes(fileNameLower),
+        hasProfileString: afterBodyText.includes('data-gems-profile')
+      });
+
       // Only report success if there's a CLEAR NEW CHANGE
       // Check 1: Attachment element count increased
       if (afterAttachments > beforeAttachments) {
+        console.log('[Data Gems] ✓ Success: Attachment count increased');
         return true;
       }
 
       // Check 2: File name appears in DOM (and wasn't there before)
       if (!beforeBodyText.includes(fileNameLower) && afterBodyText.includes(fileNameLower)) {
+        console.log('[Data Gems] ✓ Success: File name appeared in DOM');
         return true;
       }
 
       // Check 3: "data-gems-profile" appears in DOM (and wasn't there before)
       if (!beforeBodyText.includes('data-gems-profile') && afterBodyText.includes('data-gems-profile')) {
+        console.log('[Data Gems] ✓ Success: Profile string appeared in DOM');
         return true;
       }
 
+      console.log('[Data Gems] ✗ Failed: No UI changes detected for this input');
+
     } catch (error) {
-      // Silent error handling
+      console.log('[Data Gems] ✗ Error with file input:', error);
     }
   }
 
   // Method 2: Try to simulate drop event (for platforms that support drag & drop)
-  const dropTargets = [
+  console.log('[Data Gems] Method 1 failed, trying Method 2: drop event simulation');
+
+  // Use platform-specific dropZones if available, otherwise fallback to defaults
+  const dropTargets = currentPlatform.dropZones || [
     'form.group\\/composer',
     '[class*="composer"]',
     'form[class*="composer"]',
     currentPlatform.selectors?.inputContainer
-  ].filter(Boolean);
+  ];
+
+  console.log('[Data Gems] Drop target selectors:', dropTargets.filter(Boolean));
 
   for (const targetSelector of dropTargets) {
     const target = document.querySelector(targetSelector);
 
     if (target) {
+      console.log('[Data Gems] Found drop target:', targetSelector);
+
       try {
         // Take snapshot before drop to detect changes
         const beforeAttachments = document.querySelectorAll('[class*="attachment"], [class*="file-"], [data-testid*="file"]').length;
         const beforeBodyText = document.body.textContent;
+
+        console.log('[Data Gems] Before drop:', { attachmentCount: beforeAttachments });
 
         const dataTransfer = new DataTransfer();
         dataTransfer.items.add(file);
@@ -467,8 +527,10 @@ async function attachFileToChat(file) {
         });
 
         target.dispatchEvent(dropEvent);
+        console.log('[Data Gems] Dispatched drop event');
 
         // Wait to see if attachment appears
+        console.log('[Data Gems] Waiting 2000ms for UI update...');
         await new Promise(resolve => setTimeout(resolve, 2000));
 
         // Check for attachment UI - more robust verification
@@ -477,26 +539,124 @@ async function attachFileToChat(file) {
         const beforeBodyTextLower = beforeBodyText.toLowerCase();
         const fileNameLower = file.name.toLowerCase();
 
+        console.log('[Data Gems] After drop:', {
+          attachmentCount: afterAttachments,
+          hasFileName: afterBodyText.includes(fileNameLower),
+          hasProfileString: afterBodyText.includes('data-gems-profile')
+        });
+
         // Check if attachment count increased OR if file name appears in DOM
         if (afterAttachments > beforeAttachments) {
+          console.log('[Data Gems] ✓ Success: Attachment count increased via drop');
           return true;
         }
 
         if (!beforeBodyTextLower.includes(fileNameLower) && afterBodyText.includes(fileNameLower)) {
+          console.log('[Data Gems] ✓ Success: File name appeared via drop');
           return true;
         }
 
         // Also check for generic file indicators
         if (!beforeBodyTextLower.includes('data-gems-profile') && afterBodyText.includes('data-gems-profile')) {
+          console.log('[Data Gems] ✓ Success: Profile string appeared via drop');
           return true;
         }
 
+        console.log('[Data Gems] ✗ Failed: No UI changes detected for drop target');
+
       } catch (error) {
-        // Silent error handling
+        console.log('[Data Gems] ✗ Error with drop event:', error);
+      }
+    } else {
+      console.log('[Data Gems] Drop target not found:', targetSelector);
+    }
+  }
+
+  // Method 3: For Gemini - look for upload button and try to access its associated file input
+  if (currentPlatform.name === 'Gemini') {
+    console.log('[Data Gems] Method 2 failed, trying Method 3: Gemini-specific file input search');
+
+    // Wait a bit and try to find file inputs again (they might be dynamically created)
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    const allInputs = document.querySelectorAll('input[type="file"]');
+    console.log('[Data Gems] Found', allInputs.length, 'file inputs (second attempt)');
+
+    if (allInputs.length > 0) {
+      for (const input of allInputs) {
+        try {
+          console.log('[Data Gems] Gemini Method 3: Trying file input');
+
+          const dataTransfer = new DataTransfer();
+          dataTransfer.items.add(file);
+          input.files = dataTransfer.files;
+
+          // Trigger all possible events
+          const events = ['change', 'input', 'blur'];
+          events.forEach(eventType => {
+            const event = new Event(eventType, { bubbles: true, cancelable: true });
+            input.dispatchEvent(event);
+          });
+
+          console.log('[Data Gems] Waiting 2000ms for UI update...');
+          await new Promise(resolve => setTimeout(resolve, 2000));
+
+          // Check for success
+          const afterBodyText = document.body.textContent.toLowerCase();
+          if (afterBodyText.includes(file.name.toLowerCase()) || afterBodyText.includes('data-gems-profile')) {
+            console.log('[Data Gems] ✓ Success: Gemini Method 3 worked');
+            return true;
+          }
+        } catch (error) {
+          console.log('[Data Gems] ✗ Error with Gemini Method 3:', error);
+        }
+      }
+    }
+
+    // Method 4: Try to find shadow DOM elements
+    console.log('[Data Gems] Method 3 failed, trying Method 4: Shadow DOM search');
+    const shadowRoots = [];
+
+    function findShadowRoots(element) {
+      if (element.shadowRoot) {
+        shadowRoots.push(element.shadowRoot);
+      }
+      for (const child of element.children) {
+        findShadowRoots(child);
+      }
+    }
+
+    findShadowRoots(document.body);
+    console.log('[Data Gems] Found', shadowRoots.length, 'shadow roots');
+
+    for (const shadowRoot of shadowRoots) {
+      const shadowInputs = shadowRoot.querySelectorAll('input[type="file"]');
+      console.log('[Data Gems] Found', shadowInputs.length, 'file inputs in shadow DOM');
+
+      for (const input of shadowInputs) {
+        try {
+          const dataTransfer = new DataTransfer();
+          dataTransfer.items.add(file);
+          input.files = dataTransfer.files;
+
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+
+          await new Promise(resolve => setTimeout(resolve, 2000));
+
+          const afterBodyText = document.body.textContent.toLowerCase();
+          if (afterBodyText.includes(file.name.toLowerCase()) || afterBodyText.includes('data-gems-profile')) {
+            console.log('[Data Gems] ✓ Success: Shadow DOM method worked');
+            return true;
+          }
+        } catch (error) {
+          console.log('[Data Gems] ✗ Error with shadow DOM method:', error);
+        }
       }
     }
   }
 
+  console.log('[Data Gems] ✗ All file attachment methods failed, falling back to text injection');
   return false;
 }
 
