@@ -33,23 +33,16 @@ const PLATFORMS = {
     hostPatterns: ['gemini.google.com'],
     selectors: {
       promptInput: 'div[contenteditable="true"].ql-editor, rich-textarea[class*="input-area"]',
-      inputContainer: 'div[class*="input-area-container"]',
-      uploadButton: 'button[aria-label*="upload" i], button[aria-label*="attach" i], button[aria-label*="file" i], button.upload-button, input[type="file"]'
+      inputContainer: 'div[class*="input-area-container"]'
     },
     isContentEditable: true,
-    injectionMethod: 'file', // Try file attachment, fall back to text if fails
-    dropZones: [
-      'div[class*="input-area-container"]',
-      'div[class*="input-area"]',
-      'rich-textarea',
-      'form',
-      '.input-area-container'
-    ],
-    // NOTE: Gemini's file upload mechanism is challenging to automate:
-    // - File inputs may be hidden or in shadow DOM
-    // - Gemini may reject JSON files (prefers images/docs)
-    // - Drag & drop events may not be properly handled
-    // As a result, text injection is commonly used as fallback
+    injectionMethod: 'text', // Gemini: text-only injection (file upload not automatable)
+    autoInjectDisabled: true, // Gemini: always require manual button click
+    // NOTE: Gemini file upload cannot be automated due to browser security:
+    // - File inputs are created dynamically only on real user clicks
+    // - Programmatic clicks don't trigger file dialog (browser security)
+    // - Drag & drop events are rejected (event.isTrusted check)
+    // Therefore: text injection only, via manual button click
   },
   // PERPLEXITY: Disabled - Perplexity blocks content scripts via CSP
   // PERPLEXITY: {
@@ -83,6 +76,7 @@ let promptElement = null;
 let hasProfile = null;
 let observerActive = false;
 let autoInjectEnabled = false;
+let hasInjectedInCurrentChat = false; // Track if we've injected in current chat
 
 // Session storage key for tracking injection per tab
 const SESSION_INJECTION_KEY = 'data_gems_has_auto_injected';
@@ -165,14 +159,25 @@ function getPromptValue() {
 }
 
 /**
- * Set prompt element value
+ * Set prompt element value (appends to existing text if any)
  */
 function setPromptValue(text) {
   if (!promptElement) return;
 
+  // Get current text and append the new text
+  const currentText = getPromptValue();
+
+  // For Gemini, add a separator line before the injected text
+  let separator = currentText.trim() ? '\n\n' : ''; // Add blank line if there's existing text
+  if (currentPlatform.name === 'Gemini' && currentText.trim()) {
+    separator = '\n\n--------------------\n\n';
+  }
+
+  const combinedText = currentText + separator + text;
+
   if (currentPlatform.isContentEditable) {
     // For contenteditable elements, set textContent
-    promptElement.textContent = text;
+    promptElement.textContent = combinedText;
 
     // Trigger input event
     const event = new Event('input', { bubbles: true });
@@ -190,7 +195,7 @@ function setPromptValue(text) {
     promptElement.focus();
   } else {
     // For textarea/input elements
-    promptElement.value = text;
+    promptElement.value = combinedText;
 
     // Trigger input and change events
     promptElement.dispatchEvent(new Event('input', { bubbles: true }));
@@ -198,7 +203,7 @@ function setPromptValue(text) {
 
     // Focus and place cursor at end
     promptElement.focus();
-    promptElement.setSelectionRange(text.length, text.length);
+    promptElement.setSelectionRange(combinedText.length, combinedText.length);
   }
 }
 
@@ -223,8 +228,9 @@ function createInjectionButton() {
  * Show the injection button
  */
 function showInjectionButton() {
-  // Don't show button if auto-inject is enabled
-  if (autoInjectEnabled) return;
+  // Don't show button if auto-inject is enabled (unless platform disables auto-inject)
+  const platformAutoInjectDisabled = currentPlatform?.autoInjectDisabled || false;
+  if (autoInjectEnabled && !platformAutoInjectDisabled) return;
 
   if (injectionButton || !promptElement) return;
 
@@ -320,6 +326,7 @@ async function handleInjection() {
     const success = await attachFileToChat(file);
 
     if (success) {
+      hasInjectedInCurrentChat = true; // Mark as injected
       hideInjectionButton();
       return;
     }
@@ -333,6 +340,7 @@ async function handleInjection() {
   });
 
   setPromptValue(profileText);
+  hasInjectedInCurrentChat = true; // Mark as injected
   hideInjectionButton();
 }
 
@@ -755,10 +763,17 @@ function updateButtonVisibility() {
     return;
   }
 
-  const chatIsNew = isNewChat();
   const hasData = hasInjectableData(hasProfile);
 
-  if (chatIsNew && hasData) {
+  // Don't show button if we've already injected in this chat
+  if (hasInjectedInCurrentChat) {
+    hideInjectionButton();
+    return;
+  }
+
+  // Show button if we have data to inject
+  // Button stays visible even if user starts typing
+  if (hasData) {
     showInjectionButton();
   } else {
     hideInjectionButton();
@@ -797,15 +812,21 @@ async function initializeProfileInjection() {
     if (promptElement) {
       clearInterval(waitForPrompt);
 
-      // If auto-inject is enabled and we haven't injected yet in this session, do it now
-      if (autoInjectEnabled && !hasAutoInjectedInSession()) {
+      // Check if auto-inject is disabled for this platform
+      const platformAutoInjectDisabled = currentPlatform.autoInjectDisabled || false;
+
+      // If auto-inject is enabled (globally) AND platform allows it AND we haven't injected yet
+      if (autoInjectEnabled && !platformAutoInjectDisabled && !hasAutoInjectedInSession()) {
         // Wait a bit for page to fully load
         setTimeout(async () => {
           await handleInjection();
           markAutoInjectedInSession();
         }, 1500);
       } else {
-        // Show button only if auto-inject is disabled
+        // Show button if:
+        // - Auto-inject is disabled globally, OR
+        // - Platform disables auto-inject (e.g., Gemini), OR
+        // - Already injected in this session
         updateButtonVisibility();
       }
 
@@ -857,6 +878,7 @@ function setupInputMonitoring() {
       hideInjectionButton();
       promptElement = null;
       observerActive = false;
+      hasInjectedInCurrentChat = false; // Reset injection flag for new chat
 
       // Reinitialize after a short delay
       setTimeout(() => {
@@ -1005,14 +1027,24 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 
     // If auto-inject was turned on, hide button and potentially auto-inject
     if (!oldAutoInject && newAutoInject) {
-      hideInjectionButton();
+      // Check if platform allows auto-inject
+      const platformAutoInjectDisabled = currentPlatform?.autoInjectDisabled || false;
 
-      // Auto-inject if we haven't already for this session
-      if (promptElement && !hasAutoInjectedInSession()) {
-        setTimeout(async () => {
-          await handleInjection();
-          markAutoInjectedInSession();
-        }, 500);
+      if (!platformAutoInjectDisabled) {
+        hideInjectionButton();
+
+        // Auto-inject if we haven't already for this session
+        if (promptElement && !hasAutoInjectedInSession()) {
+          setTimeout(async () => {
+            await handleInjection();
+            markAutoInjectedInSession();
+          }, 500);
+        }
+      } else {
+        // Platform disables auto-inject, keep showing button
+        if (!injectionButton) {
+          showInjectionButton();
+        }
       }
     }
   }
