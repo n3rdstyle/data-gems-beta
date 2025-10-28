@@ -44,6 +44,19 @@ export const colors = {
     90: '#1e2225',
   },
 
+  // Error Scale - Red/Coral Colors for error states
+  error: {
+    10: '#fef5f4',
+    20: '#fde8e6',
+    30: '#fbd4d1',
+    40: '#f9b8b3',
+    50: '#f78f86',
+    60: '#f57464',
+    70: '#e85644',
+    80: '#c94333',
+    90: '#a33528',
+  },
+
   // Semantic Colors
   semantic: {
     success: '#6fe6a8',

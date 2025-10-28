@@ -137,7 +137,7 @@
 
 .button-tertiary--text.button-tertiary--large .button-tertiary__text {
   font-size: var(--font-size-16);
-  line-height: 24px;
+  line-height: var(--line-height-button);
 }
 
 /* Medium text button: 40px height - default for text variant */
@@ -155,5 +155,5 @@
 
 .button-tertiary--text.button-tertiary--small .button-tertiary__text {
   font-size: var(--font-size-14);
-  line-height: 20px;
+  line-height: var(--line-height-button);
 }

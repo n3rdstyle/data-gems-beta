@@ -68,11 +68,11 @@
 .preference-options__buttons {
   display: flex;
   flex-direction: column;
-  gap: 12px; /* Non-standard: 12px provides optimal button spacing */
+  gap: var(--spacing-input-vertical); /* 12px provides optimal button spacing */
   align-items: flex-end;
   width: 100%;
   max-width: 368px;
-  padding-bottom: 12px; /* Non-standard: matches component spacing */
+  padding-bottom: var(--spacing-input-vertical); /* 12px matches component spacing */
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s ease;

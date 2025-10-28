@@ -129,7 +129,7 @@
   height: 48px;
   padding: var(--spacing-sm) var(--spacing-md);
   font-size: var(--font-size-16);
-  line-height: 24px;
+  line-height: var(--line-height-button);
 }
 
 /* Medium: 40px height - default size */
@@ -144,7 +144,7 @@
   height: 32px;
   padding: var(--spacing-xxs) var(--spacing-sm);
   font-size: var(--font-size-14);
-  line-height: 20px;
+  line-height: var(--line-height-button);
 }
 
 /* Icon styling */

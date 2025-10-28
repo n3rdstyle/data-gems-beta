@@ -37,6 +37,17 @@
   --color-neutral-80: #343a3f;
   --color-neutral-90: #1e2225;
 
+  /* Error Scale - Red/Coral Colors for error states */
+  --color-error-10: #fef5f4;
+  --color-error-20: #fde8e6;
+  --color-error-30: #fbd4d1;
+  --color-error-40: #f9b8b3;
+  --color-error-50: #f78f86;
+  --color-error-60: #f57464;
+  --color-error-70: #e85644;
+  --color-error-80: #c94333;
+  --color-error-90: #a33528;
+
   /* Semantic Colors */
   --color-success: #6fe6a8;
   --color-warning: #f8e87a;
@@ -73,10 +84,17 @@
   --color-surface-hover: var(--color-neutral-20);
   --color-surface-active: var(--color-primary-20);
 
-  /* Overlays */
+  /* Overlays - Dark overlays on light backgrounds */
   --overlay-light: rgba(0, 0, 0, 0.3);
   --overlay-default: rgba(0, 0, 0, 0.5);
   --overlay-dark: rgba(0, 0, 0, 0.7);
+
+  /* Overlays - White overlays on dark/gradient backgrounds */
+  --overlay-white-10: rgba(255, 255, 255, 0.1);
+  --overlay-white-20: rgba(255, 255, 255, 0.2);
+  --overlay-white-30: rgba(255, 255, 255, 0.3);
+  --overlay-white-40: rgba(255, 255, 255, 0.4);
+  --overlay-white-50: rgba(255, 255, 255, 0.5);
 }
 
 /* Dark Mode Support (optional) */

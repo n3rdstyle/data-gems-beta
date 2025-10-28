@@ -47,7 +47,7 @@
 }
 
 .random-question-modal__header .button-tertiary:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--overlay-white-20);
 }
 
 /* Answer field wrapper - button inside input field */
@@ -84,7 +84,7 @@
 .random-question-modal .input-field__input {
   background-color: var(--color-neutral-10);
   color: var(--color-neutral-90);
-  border-color: rgba(255, 255, 255, 0.3);
+  border-color: var(--overlay-white-30);
   padding-right: 52px; /* Space for tertiary button (40px + 12px gap) */
 }
 
@@ -93,10 +93,10 @@
 }
 
 .random-question-modal .input-field__input:focus {
-  border-color: rgba(255, 255, 255, 0.5);
+  border-color: var(--overlay-white-50);
   background-color: var(--color-neutral-10);
 }
 
 .random-question-modal .input-field__input:hover:not(:focus) {
-  border-color: rgba(255, 255, 255, 0.4);
+  border-color: var(--overlay-white-40);
 }
