@@ -60,11 +60,17 @@
   width: 100%;
 }
 
-.random-question-modal__answer .button-primary {
+.random-question-modal__answer .button-tertiary {
   position: absolute;
   right: 4px;
   top: 50%;
   transform: translateY(-50%);
+  color: var(--color-neutral-70);
+}
+
+.random-question-modal__answer .button-tertiary:hover {
+  background: var(--color-neutral-20);
+  color: var(--color-neutral-90);
 }
 
 /* Override input field styles for gradient background */
@@ -72,7 +78,7 @@
   background-color: var(--color-neutral-10);
   color: var(--color-neutral-90);
   border-color: rgba(255, 255, 255, 0.3);
-  padding-right: 100px; /* Space for button */
+  padding-right: 52px; /* Space for tertiary button (40px + 12px gap) */
 }
 
 .random-question-modal .input-field__input::placeholder {

@@ -50,9 +50,10 @@ function createRandomQuestionModal(options = {}) {
   });
 
   // Create answer button
-  const answerButton = createPrimaryButton({
-    label: 'Answer',
-    variant: 'neutral',
+  const answerButton = createTertiaryButton({
+    icon: 'send',
+    ariaLabel: 'Send answer',
+    size: 'default',
     onClick: () => {
       const answer = inputField.getValue().trim();
       if (answer && onAnswer) {
