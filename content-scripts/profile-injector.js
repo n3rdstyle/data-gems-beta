@@ -393,23 +393,29 @@ async function attachFileToChat(file) {
   console.log('[Data Gems] Starting file attachment for:', file.name);
   console.log('[Data Gems] Platform:', currentPlatform.name);
 
-  // IMPORTANT: For Gemini, click "Add" button first to reveal file input
+  // IMPORTANT: For Gemini, click upload button first to reveal file input
   // Based on working implementation from data-gems repo (Technical Documentation Section 6.4)
-  // Key insight: Click the "Add" button (reveals upload interface), NOT the hidden upload button (opens file picker)
+  // Key insight: Click the upload menu button (reveals upload interface), NOT the hidden upload button (opens file picker)
   if (currentPlatform.name === 'Gemini') {
-    // Use exact selectors from working extension
-    const uploadButton = document.querySelector('button[aria-label*="Add"], button[jsname*="upload"]');
+    // Support both English and German versions
+    const uploadButton = document.querySelector(
+      'button[aria-label*="Add" i], ' +               // English: "Add"
+      'button[aria-label*="hochladen" i], ' +         // German: "hochladen"
+      'button[aria-label*="upload" i], ' +            // Generic "upload"
+      'button.upload-card-button, ' +                 // Class selector
+      'button[jsname*="upload"]'                      // jsname attribute
+    );
 
     if (uploadButton) {
-      console.log('[Data Gems] Found Add button, clicking to reveal file input');
+      console.log('[Data Gems] Found upload button:', uploadButton.getAttribute('aria-label') || uploadButton.className);
       uploadButton.click();
-      console.log('[Data Gems] Clicked Add button');
+      console.log('[Data Gems] Clicked upload button');
 
       // Wait 500ms for file input to appear (as per working extension)
       console.log('[Data Gems] Waiting 500ms for file input to appear...');
       await new Promise(resolve => setTimeout(resolve, 500));
     } else {
-      console.log('[Data Gems] No Add button found, trying direct file input search');
+      console.log('[Data Gems] No upload button found, trying direct file input search');
     }
   }
 
