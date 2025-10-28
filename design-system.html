@@ -2057,7 +2057,7 @@
         <p class="description">Bottom-sheet style modal for searching and filtering preference data. Slides up from bottom with upward shadow (<code>--shadow-bottom-sheet-dark</code>).</p>
 
         <div class="demo-example" style="display: flex; justify-content: center; background-color: var(--color-neutral-20); padding: 40px;">
-          <p style="color: var(--color-neutral-60);">Search Modal - Interactive component requires overlay and runtime initialization</p>
+          <button id="show-search-modal-btn" class="button-primary button-primary--v2">Show Search Modal</button>
         </div>
       </section>
 
@@ -2067,7 +2067,7 @@
         <p class="description">Bottom-sheet modal for filtering preferences by collections. Multi-select tags with upward shadow (<code>--shadow-bottom-sheet</code>).</p>
 
         <div class="demo-example" style="display: flex; justify-content: center; background-color: var(--color-neutral-20); padding: 40px;">
-          <p style="color: var(--color-neutral-60);">Collection Filter Modal - Interactive component requires overlay and runtime initialization</p>
+          <button id="show-collection-filter-modal-btn" class="button-primary button-primary--v2">Show Collection Filter Modal</button>
         </div>
       </section>
 
@@ -2077,7 +2077,7 @@
         <p class="description">Centered modal that reminds users to backup their preference data regularly. Traditional modal design with scheduled reminder functionality.</p>
 
         <div class="demo-example" style="display: flex; justify-content: center; background-color: var(--color-neutral-20); padding: 40px;">
-          <p style="color: var(--color-neutral-60);">Backup Reminder Modal - Interactive component requires overlay and runtime initialization</p>
+          <button id="show-backup-reminder-modal-btn" class="button-primary button-primary--v2">Show Backup Reminder Modal</button>
         </div>
       </section>
 
@@ -3337,6 +3337,89 @@
       container.appendChild(messagesModal.element);
     }
 
+    function initSearchModalDemo() {
+      const showButton = document.getElementById('show-search-modal-btn');
+      if (!showButton) return;
+
+      // Sample data for search
+      const sampleData = [
+        { id: 1, text: 'Current running shoes: On CloudSurfer Max', collections: ['Sports', 'Running'] },
+        { id: 2, text: 'Favorite coffee: Espresso with oat milk', collections: ['Food', 'Beverages'] },
+        { id: 3, text: 'Morning routine: 30 min meditation', collections: ['Health', 'Wellness'] },
+        { id: 4, text: 'Laptop preference: MacBook Pro 16-inch', collections: ['Tech', 'Work'] },
+        { id: 5, text: 'Travel destination: Iceland', collections: ['Travel', 'Wishlist'] }
+      ];
+
+      showButton.addEventListener('click', () => {
+        const searchModal = createSearchModal({
+          placeholder: 'Search your preferences...',
+          onSearch: (query) => {
+            if (!query) return sampleData;
+            return sampleData.filter(item =>
+              item.text.toLowerCase().includes(query.toLowerCase())
+            );
+          },
+          onClose: () => {
+            console.log('Search modal closed');
+          }
+        });
+        searchModal.show();
+      });
+    }
+
+    function initCollectionFilterModalDemo() {
+      const showButton = document.getElementById('show-collection-filter-modal-btn');
+      if (!showButton) return;
+
+      showButton.addEventListener('click', () => {
+        const filterModal = createCollectionFilterModal({
+          collections: [
+            { id: 'all', name: 'All', count: 50 },
+            { id: 'sports', name: 'Sports', count: 12 },
+            { id: 'food', name: 'Food', count: 18 },
+            { id: 'travel', name: 'Travel', count: 8 },
+            { id: 'tech', name: 'Tech', count: 7 },
+            { id: 'health', name: 'Health', count: 5 }
+          ],
+          selectedCollections: ['sports', 'food'],
+          onApply: (selectedIds) => {
+            console.log('Apply filters with collections:', selectedIds);
+            alert('Filters applied: ' + selectedIds.join(', '));
+          },
+          onClear: () => {
+            console.log('Clear all filters');
+          },
+          onClose: () => {
+            console.log('Collection filter modal closed');
+          }
+        });
+        filterModal.show();
+      });
+    }
+
+    function initBackupReminderModalDemo() {
+      const showButton = document.getElementById('show-backup-reminder-modal-btn');
+      if (!showButton) return;
+
+      showButton.addEventListener('click', () => {
+        const reminderModal = createBackupReminderModal({
+          title: 'Time to Backup Your Data',
+          message: "It's been a while since your last backup. Keep your preferences safe by backing them up now.",
+          dismissLabel: 'Remind Me Later',
+          backupLabel: 'Backup Now',
+          onBackup: () => {
+            console.log('User chose to backup');
+            alert('Backup process started!');
+          },
+          onDismiss: () => {
+            console.log('User dismissed reminder');
+            alert('Reminder scheduled for next week');
+          }
+        });
+        reminderModal.show();
+      });
+    }
+
     function initOverlayDemo() {
       // Basic overlay demo
       const basicContainer = document.getElementById('overlay-demo-container');
@@ -3455,6 +3538,9 @@
       initAppFooterDemo();
       initActionButtonDemo();
       initMessagesModalDemo();
+      initSearchModalDemo();
+      initCollectionFilterModalDemo();
+      initBackupReminderModalDemo();
       initDataEditorModalDemo();
       initContentPreferencesDemo();
 
