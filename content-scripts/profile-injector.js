@@ -71,8 +71,31 @@ let promptElement = null;
 let hasProfile = null;
 let observerActive = false;
 let autoInjectEnabled = false;
-let hasAutoInjected = false; // Track if we've already auto-injected for this page
-let lastAutoInjectUrl = ''; // Track URL to detect new chats
+
+// Session storage key for tracking injection per tab
+const SESSION_INJECTION_KEY = 'data_gems_has_auto_injected';
+
+/**
+ * Check if we've already auto-injected in this browser tab session
+ */
+function hasAutoInjectedInSession() {
+  try {
+    return sessionStorage.getItem(SESSION_INJECTION_KEY) === 'true';
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
+ * Mark that we've auto-injected in this session
+ */
+function markAutoInjectedInSession() {
+  try {
+    sessionStorage.setItem(SESSION_INJECTION_KEY, 'true');
+  } catch (error) {
+    // Silent error - sessionStorage might be disabled
+  }
+}
 
 /**
  * Detect current platform
@@ -528,19 +551,12 @@ async function initializeProfileInjection() {
     if (promptElement) {
       clearInterval(waitForPrompt);
 
-      // Check if this is a new chat (URL changed)
-      const currentUrl = window.location.href;
-      if (currentUrl !== lastAutoInjectUrl) {
-        hasAutoInjected = false;
-        lastAutoInjectUrl = currentUrl;
-      }
-
-      // If auto-inject is enabled and we haven't injected yet, do it now
-      if (autoInjectEnabled && !hasAutoInjected) {
+      // If auto-inject is enabled and we haven't injected yet in this session, do it now
+      if (autoInjectEnabled && !hasAutoInjectedInSession()) {
         // Wait a bit for page to fully load
         setTimeout(async () => {
           await handleInjection();
-          hasAutoInjected = true;
+          markAutoInjectedInSession();
         }, 1500);
       } else {
         // Show button only if auto-inject is disabled
@@ -591,9 +607,7 @@ function setupInputMonitoring() {
     if (currentUrl !== lastUrl) {
       lastUrl = currentUrl;
 
-      // Reset state for new chat
-      hasAutoInjected = false;
-      lastAutoInjectUrl = currentUrl;
+      // Reset UI state for new chat (but keep session injection tracking)
       hideInjectionButton();
       promptElement = null;
       observerActive = false;
@@ -747,11 +761,11 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     if (!oldAutoInject && newAutoInject) {
       hideInjectionButton();
 
-      // Auto-inject if we haven't already for this page
-      if (promptElement && !hasAutoInjected) {
+      // Auto-inject if we haven't already for this session
+      if (promptElement && !hasAutoInjectedInSession()) {
         setTimeout(async () => {
           await handleInjection();
-          hasAutoInjected = true;
+          markAutoInjectedInSession();
         }, 500);
       }
     }
