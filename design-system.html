@@ -3351,6 +3351,15 @@
       ];
 
       showButton.addEventListener('click', () => {
+        // Create overlay
+        const overlay = createOverlay({
+          opacity: 'default',
+          onClick: () => {
+            searchModal.hide();
+          }
+        });
+
+        // Create search modal
         const searchModal = createSearchModal({
           placeholder: 'Search your preferences...',
           onSearch: (query) => {
@@ -3361,9 +3370,19 @@
           },
           onClose: () => {
             console.log('Search modal closed');
+            overlay.hide();
           }
         });
-        searchModal.show();
+
+        // Append to body
+        document.body.appendChild(overlay.element);
+        overlay.element.appendChild(searchModal.element);
+
+        // Show with animation
+        setTimeout(() => {
+          overlay.show();
+          searchModal.show();
+        }, 10);
       });
     }
 
@@ -3372,16 +3391,25 @@
       if (!showButton) return;
 
       showButton.addEventListener('click', () => {
+        // Create overlay
+        const overlay = createOverlay({
+          opacity: 'default',
+          onClick: () => {
+            filterModal.hide();
+          }
+        });
+
+        // Create collection filter modal
         const filterModal = createCollectionFilterModal({
           collections: [
-            { id: 'all', name: 'All', count: 50 },
-            { id: 'sports', name: 'Sports', count: 12 },
-            { id: 'food', name: 'Food', count: 18 },
-            { id: 'travel', name: 'Travel', count: 8 },
-            { id: 'tech', name: 'Tech', count: 7 },
-            { id: 'health', name: 'Health', count: 5 }
+            { label: 'All', count: 50 },
+            { label: 'Sports', count: 12 },
+            { label: 'Food', count: 18 },
+            { label: 'Travel', count: 8 },
+            { label: 'Tech', count: 7 },
+            { label: 'Health', count: 5 }
           ],
-          selectedCollections: ['sports', 'food'],
+          selectedCollections: ['Sports', 'Food'],
           onApply: (selectedIds) => {
             console.log('Apply filters with collections:', selectedIds);
             alert('Filters applied: ' + selectedIds.join(', '));
@@ -3391,9 +3419,19 @@
           },
           onClose: () => {
             console.log('Collection filter modal closed');
+            overlay.hide();
           }
         });
-        filterModal.show();
+
+        // Append to body
+        document.body.appendChild(overlay.element);
+        overlay.element.appendChild(filterModal.element);
+
+        // Show with animation
+        setTimeout(() => {
+          overlay.show();
+          filterModal.show();
+        }, 10);
       });
     }
 
