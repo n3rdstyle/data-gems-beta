@@ -393,14 +393,33 @@ async function attachFileToChat(file) {
   console.log('[Data Gems] Starting file attachment for:', file.name);
   console.log('[Data Gems] Platform:', currentPlatform.name);
 
-  // Method 0: DON'T click upload button (opens file picker which requires user activation)
-  // Instead, directly find and set the file input element
-
-  // IMPORTANT: For Gemini, wait for file inputs to be created in DOM
+  // IMPORTANT: For Gemini, click upload button first to create file inputs
   // Based on working implementation from data-gems repo
   if (currentPlatform.name === 'Gemini') {
-    console.log('[Data Gems] Waiting 1000ms for Gemini file inputs to load...');
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const uploadButtonSelectors = [
+      'button.hidden-local-upload-button',
+      'button.hidden-local-file-upload-button',
+      'button[data-test-id*="upload"]',
+      'button[aria-label*="upload" i]'
+    ];
+
+    let uploadButton = null;
+    for (const selector of uploadButtonSelectors) {
+      uploadButton = document.querySelector(selector);
+      if (uploadButton) {
+        console.log('[Data Gems] Found upload button:', selector);
+        uploadButton.click();
+        console.log('[Data Gems] Clicked upload button');
+        break;
+      }
+    }
+
+    if (uploadButton) {
+      console.log('[Data Gems] Waiting 1000ms for file input to appear after button click...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    } else {
+      console.log('[Data Gems] No upload button found, trying direct file input search');
+    }
   }
 
   // Method 1: Try to find file input with retry logic for Gemini
