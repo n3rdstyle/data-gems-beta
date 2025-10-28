@@ -50,19 +50,21 @@
   background: rgba(255, 255, 255, 0.2);
 }
 
-/* Answer field wrapper */
+/* Answer field wrapper - button inside input field */
 .random-question-modal__answer {
-  display: flex;
-  gap: var(--spacing-xs);
+  position: relative;
   width: 100%;
 }
 
 .random-question-modal__answer .input-field {
-  flex: 1;
+  width: 100%;
 }
 
 .random-question-modal__answer .button-primary {
-  flex-shrink: 0;
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 /* Override input field styles for gradient background */
@@ -70,6 +72,7 @@
   background-color: var(--color-neutral-10);
   color: var(--color-neutral-90);
   border-color: rgba(255, 255, 255, 0.3);
+  padding-right: 100px; /* Space for button */
 }
 
 .random-question-modal .input-field__input::placeholder {
