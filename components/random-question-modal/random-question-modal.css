@@ -68,9 +68,16 @@
   color: var(--color-neutral-70);
 }
 
-.random-question-modal__answer .button-tertiary:hover {
+.random-question-modal__answer .button-tertiary:hover:not(:disabled) {
   background: var(--color-neutral-20);
   color: var(--color-neutral-90);
+}
+
+.random-question-modal__answer .button-tertiary:disabled,
+.random-question-modal__answer .button-tertiary.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 /* Override input field styles for gradient background */

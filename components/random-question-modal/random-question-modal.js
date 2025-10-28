@@ -35,21 +35,7 @@ function createRandomQuestionModal(options = {}) {
   const answerWrapper = document.createElement('div');
   answerWrapper.className = 'random-question-modal__answer';
 
-  // Create input field
-  const inputField = createInputField({
-    type: 'text',
-    placeholder: 'Type your answer',
-    onKeyDown: (e) => {
-      if (e.key === 'Enter') {
-        const answer = inputField.getValue().trim();
-        if (answer) {
-          answerButton.element.click();
-        }
-      }
-    }
-  });
-
-  // Create answer button
+  // Create answer button (before input field so we can reference it)
   const answerButton = createTertiaryButton({
     icon: 'send',
     ariaLabel: 'Send answer',
@@ -59,6 +45,35 @@ function createRandomQuestionModal(options = {}) {
       if (answer && onAnswer) {
         onAnswer(answer, question);
         hide(false); // Don't clear the field on submit
+      }
+    }
+  });
+
+  // Initially disable button
+  answerButton.element.disabled = true;
+  answerButton.element.classList.add('disabled');
+
+  // Create input field
+  const inputField = createInputField({
+    type: 'text',
+    placeholder: 'Type your answer',
+    onInput: (value) => {
+      // Enable/disable button based on input value
+      const hasValue = value.trim().length > 0;
+      answerButton.element.disabled = !hasValue;
+
+      if (hasValue) {
+        answerButton.element.classList.remove('disabled');
+      } else {
+        answerButton.element.classList.add('disabled');
+      }
+    },
+    onKeyDown: (e) => {
+      if (e.key === 'Enter') {
+        const answer = inputField.getValue().trim();
+        if (answer) {
+          answerButton.element.click();
+        }
       }
     }
   });
@@ -80,6 +95,10 @@ function createRandomQuestionModal(options = {}) {
   const show = () => {
     // Clear field when opening modal
     inputField.clear();
+
+    // Disable button when modal opens (field is empty)
+    answerButton.element.disabled = true;
+    answerButton.element.classList.add('disabled');
 
     // Trigger reflow for animation
     setTimeout(() => {
