@@ -39,7 +39,10 @@ function createHome(options = {}) {
     getAutoInjectEnabled = null, // Changed to getter function
     onAutoInjectToggle = null,
     getAutoBackupEnabled = null, // Changed to getter function
-    onAutoBackupToggle = null
+    onAutoBackupToggle = null,
+    isBetaUser = false,
+    onJoinBeta = null,
+    onRevokeBeta = null
   } = options;
 
   // Create home container
@@ -177,7 +180,10 @@ function createHome(options = {}) {
       autoInjectEnabled: getAutoInjectEnabled ? getAutoInjectEnabled() : false,
       onAutoInjectToggle: onAutoInjectToggle,
       autoBackupEnabled: getAutoBackupEnabled ? getAutoBackupEnabled() : false,
-      onAutoBackupToggle: onAutoBackupToggle
+      onAutoBackupToggle: onAutoBackupToggle,
+      isBetaUser: isBetaUser,
+      onJoinBeta: onJoinBeta,
+      onRevokeBeta: onRevokeBeta
     });
 
     // Add settings screen to parent
@@ -379,11 +385,16 @@ function createHome(options = {}) {
   scrollToTopButton.element.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
   scrollToTopButton.element.style.pointerEvents = 'none';
 
+  // Get the actual scrolling element (data list container)
+  const scrollableContainer = contentPreferences.element.querySelector('.content-preferences__list');
+
   scrollToTopButton.element.addEventListener('click', () => {
-    contentWrapper.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
+    if (scrollableContainer) {
+      scrollableContainer.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
   });
 
   screenElement.appendChild(scrollToTopButton.element);
@@ -391,33 +402,35 @@ function createHome(options = {}) {
   // Add scroll listener to hide preference options when scrolling
   let lastScrollTop = 0;
 
-  contentWrapper.addEventListener('scroll', () => {
-    if (!preferenceOptions) return;
+  if (scrollableContainer) {
+    scrollableContainer.addEventListener('scroll', () => {
+      if (!preferenceOptions) return;
 
-    const currentScrollTop = contentWrapper.scrollTop;
+      const currentScrollTop = scrollableContainer.scrollTop;
 
-    // Hide overlay if it's open
-    if (preferenceOptions.isOpen()) {
-      preferenceOptions.hide();
-    }
+      // Hide overlay if it's open
+      if (preferenceOptions.isOpen()) {
+        preferenceOptions.hide();
+      }
 
-    // Detect scroll direction
-    if (currentScrollTop > lastScrollTop) {
-      // Scrolling down - hide preference options, show scroll-to-top button
-      preferenceOptions.element.classList.add('hidden-by-scroll');
-      scrollToTopButton.element.style.opacity = '1';
-      scrollToTopButton.element.style.transform = 'translateY(0)';
-      scrollToTopButton.element.style.pointerEvents = 'auto';
-    } else {
-      // Scrolling up - show preference options, hide scroll-to-top button
-      preferenceOptions.element.classList.remove('hidden-by-scroll');
-      scrollToTopButton.element.style.opacity = '0';
-      scrollToTopButton.element.style.transform = 'translateY(20px)';
-      scrollToTopButton.element.style.pointerEvents = 'none';
-    }
+      // Detect scroll direction
+      if (currentScrollTop > lastScrollTop) {
+        // Scrolling down - hide preference options, show scroll-to-top button
+        preferenceOptions.element.classList.add('hidden-by-scroll');
+        scrollToTopButton.element.style.opacity = '1';
+        scrollToTopButton.element.style.transform = 'translateY(0)';
+        scrollToTopButton.element.style.pointerEvents = 'auto';
+      } else {
+        // Scrolling up - show preference options, hide scroll-to-top button
+        preferenceOptions.element.classList.remove('hidden-by-scroll');
+        scrollToTopButton.element.style.opacity = '0';
+        scrollToTopButton.element.style.transform = 'translateY(20px)';
+        scrollToTopButton.element.style.pointerEvents = 'none';
+      }
 
-    lastScrollTop = currentScrollTop;
-  });
+      lastScrollTop = currentScrollTop;
+    });
+  }
 
   // Initialize calibration with current card count
   updateCalibrationFromCards();
@@ -517,56 +530,62 @@ function createHome(options = {}) {
       // Get the first available question
       const questionObj = availableQuestions[0];
 
-      // Show modal with the question text
-      preferenceOptions.showModal(questionObj.question);
-    },
-    onModalSend: (answer, question) => {
-      // When user sends an answer, create a new preference card
-      if (answer && answer.trim()) {
-        // Get the current question object (first in available list)
-        const questionObj = availableQuestions[0];
+      // Create and show Random Question Modal
+      const randomQuestionModal = createRandomQuestionModal({
+        question: questionObj.question,
+        onAnswer: (answer, question) => {
+          // When user sends an answer, create a new preference card
+          if (answer && answer.trim()) {
+            // Format: "Question: Answer"
+            const cardText = `${question}\n${answer}`;
 
-        // Format: "Question: Answer"
-        const cardText = `${question}\n${answer}`;
+            // Save to HSP protocol storage
+            if (onPreferenceAdd) {
+              onPreferenceAdd(cardText, 'default', [questionObj.tag]);
+              // Note: renderCurrentScreen() in app.js will rebuild the UI
+            } else {
+              // Fallback: Add to UI only (not persistent)
+              const dataList = contentPreferences.getDataList();
+              const newCard = dataList.addCard(cardText, 'default', [questionObj.tag]);
 
-        // Save to HSP protocol storage
-        if (onPreferenceAdd) {
-          onPreferenceAdd(cardText, 'default', [questionObj.tag]);
-          // Note: renderCurrentScreen() in app.js will rebuild the UI
-        } else {
-          // Fallback: Add to UI only (not persistent)
-          const dataList = contentPreferences.getDataList();
-          const newCard = dataList.addCard(cardText, 'default', [questionObj.tag]);
+              // Move card to the top
+              dataList.element.insertBefore(newCard.element, dataList.element.firstChild);
 
-          // Move card to the top
-          dataList.element.insertBefore(newCard.element, dataList.element.firstChild);
+              // Update tag counts
+              contentPreferences.updateTagCounts();
 
-          // Update tag counts
-          contentPreferences.updateTagCounts();
+              // Update calibration
+              updateCalibrationFromCards();
+            }
 
-          // Update calibration
-          updateCalibrationFromCards();
+            // Mark this question as used
+            const usedQuestion = availableQuestions.shift();
+            usedQuestions.push(usedQuestion);
+
+            // Save used questions to AppState via callback
+            if (onRandomQuestionUsed) {
+              onRandomQuestionUsed(usedQuestion.question);
+            }
+
+            // Update button label and state
+            if (availableQuestions.length > 0) {
+              // Show next available question
+              preferenceOptions.setRandomQuestionLabel(availableQuestions[0].question);
+            } else {
+              // All questions used - disable button
+              preferenceOptions.setRandomQuestionLabel('New questions soon');
+              preferenceOptions.setRandomQuestionDisabled(true);
+            }
+          }
+        },
+        onClose: () => {
+          // Modal closed without answering
         }
+      });
 
-        // Mark this question as used
-        const usedQuestion = availableQuestions.shift();
-        usedQuestions.push(usedQuestion);
-
-        // Save used questions to AppState via callback
-        if (onRandomQuestionUsed) {
-          onRandomQuestionUsed(usedQuestion.question);
-        }
-
-        // Update button label and state
-        if (availableQuestions.length > 0) {
-          // Show next available question
-          preferenceOptions.setRandomQuestionLabel(availableQuestions[0].question);
-        } else {
-          // All questions used - disable button
-          preferenceOptions.setRandomQuestionLabel('New questions soon');
-          preferenceOptions.setRandomQuestionDisabled(true);
-        }
-      }
+      // Append modal to screen
+      screenElement.appendChild(randomQuestionModal.element);
+      randomQuestionModal.show();
     }
   });
 
