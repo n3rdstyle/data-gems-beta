@@ -126,6 +126,9 @@ function createContentPreferences(options = {}) {
   // Store reference to tag list wrapper for show/hide
   let tagListWrapper = null;
 
+  // Store reference to the search modal (to prevent duplicates)
+  let searchModal = null;
+
   // Function to update tag counts (will be defined later)
   const updateTagCountsInternal = () => {
     // Recalculate tag counts based on current data
@@ -288,7 +291,13 @@ function createContentPreferences(options = {}) {
 
   // Function to open search modal
   const openSearchModal = () => {
-    const searchModal = createSearchModal({
+    // Prevent opening multiple modals
+    if (searchModal && searchModal.element.parentElement) {
+      // Modal already exists and is in the DOM
+      return;
+    }
+
+    searchModal = createSearchModal({
       placeholder: searchPlaceholder,
       onSearch: (value) => {
         // Filter data list based on search (live filtering)
@@ -337,7 +346,8 @@ function createContentPreferences(options = {}) {
         headline.setSearchActive(value, clearSearchTerm);
       },
       onClose: () => {
-        // Modal closed
+        // Reset modal reference when closed
+        searchModal = null;
       }
     });
 
