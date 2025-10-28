@@ -395,14 +395,16 @@ async function attachFileToChat(file) {
 
   // IMPORTANT: For Gemini, click upload button first to reveal file input
   // Based on working implementation from data-gems repo
-  // Key insight: Must click the HIDDEN upload button, not the visible menu button
+  // Key insight: Must click the HIDDEN upload buttons (no aria-label), not the visible menu button
   if (currentPlatform.name === 'Gemini') {
-    // Exact selector order from working extension (line 580-587 in INJECTION_CODE_EXTRACT.js)
+    // Target the HIDDEN buttons directly - they have NO aria-label!
     const uploadButtonSelectors = [
-      'button[aria-label*="upload" i]',               // Finds all buttons, querySelector takes FIRST
-      'button.upload-card-button',
-      'button[class*="upload"]',
-      'button mat-icon-button[aria-label*="upload" i]'
+      'button.hidden-local-upload-button',              // Hidden image upload button
+      'button.hidden-local-file-upload-button',         // Hidden file upload button
+      'button[data-test-id="hidden-local-image-upload-button"]',
+      'button[data-test-id="hidden-local-file-upload-button"]',
+      'button[aria-label*="upload" i]',                 // Fallback (finds the menu button)
+      'button.upload-card-button'                       // Menu button (wrong one)
     ];
 
     let uploadButton = null;
@@ -412,6 +414,7 @@ async function attachFileToChat(file) {
         console.log('[Data Gems] Found upload button with selector:', selector);
         console.log('[Data Gems] Button classes:', uploadButton.className);
         console.log('[Data Gems] Button aria-label:', uploadButton.getAttribute('aria-label'));
+        console.log('[Data Gems] Button data-test-id:', uploadButton.getAttribute('data-test-id'));
         uploadButton.click();
         console.log('[Data Gems] Clicked upload button');
 
