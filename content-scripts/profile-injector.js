@@ -393,44 +393,36 @@ async function attachFileToChat(file) {
   console.log('[Data Gems] Starting file attachment for:', file.name);
   console.log('[Data Gems] Platform:', currentPlatform.name);
 
-  // IMPORTANT: For Gemini, click upload button first to create file inputs
-  // Based on working implementation from data-gems repo
+  // IMPORTANT: For Gemini, click "Add" button first to reveal file input
+  // Based on working implementation from data-gems repo (Technical Documentation Section 6.4)
+  // Key insight: Click the "Add" button (reveals upload interface), NOT the hidden upload button (opens file picker)
   if (currentPlatform.name === 'Gemini') {
-    const uploadButtonSelectors = [
-      'button.hidden-local-upload-button',
-      'button.hidden-local-file-upload-button',
-      'button[data-test-id*="upload"]',
-      'button[aria-label*="upload" i]'
-    ];
-
-    let uploadButton = null;
-    for (const selector of uploadButtonSelectors) {
-      uploadButton = document.querySelector(selector);
-      if (uploadButton) {
-        console.log('[Data Gems] Found upload button:', selector);
-        uploadButton.click();
-        console.log('[Data Gems] Clicked upload button');
-        break;
-      }
-    }
+    // Use exact selectors from working extension
+    const uploadButton = document.querySelector('button[aria-label*="Add"], button[jsname*="upload"]');
 
     if (uploadButton) {
-      console.log('[Data Gems] Waiting 1000ms for file input to appear after button click...');
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('[Data Gems] Found Add button, clicking to reveal file input');
+      uploadButton.click();
+      console.log('[Data Gems] Clicked Add button');
+
+      // Wait 500ms for file input to appear (as per working extension)
+      console.log('[Data Gems] Waiting 500ms for file input to appear...');
+      await new Promise(resolve => setTimeout(resolve, 500));
     } else {
-      console.log('[Data Gems] No upload button found, trying direct file input search');
+      console.log('[Data Gems] No Add button found, trying direct file input search');
     }
   }
 
   // Method 1: Try to find file input with retry logic for Gemini
   let fileInput = null;
+  // Prioritize the exact selector from working extension (Technical Documentation Section 6.4)
   const fileInputSelectors = [
+    'input.file-upload-input[type="file"]',  // Gemini-specific from working extension
     'input[type="file"]',
     'input[accept*="image"]',
     'input.hidden-file-input',
     'input[accept*="application"]',
-    'input[accept*="text"]',
-    'input.file-upload-input'
+    'input[accept*="text"]'
   ];
 
   // For Gemini, use retry logic with visibility checks
