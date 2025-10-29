@@ -392,6 +392,31 @@
       background: var(--gradient-sundown);
     }
 
+    /* Card Count Buttons */
+    .card-count-button {
+      padding: 8px 16px;
+      border: 1px solid var(--color-neutral-40);
+      border-radius: 8px;
+      background: white;
+      color: var(--color-neutral-80);
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .card-count-button:hover {
+      background: var(--color-neutral-10);
+      border-color: var(--color-neutral-50);
+    }
+
+    .card-count-button.active {
+      background: var(--color-neutral-90);
+      color: white;
+      border-color: var(--color-neutral-90);
+    }
+
     /* Utility */
     .hidden {
       display: none !important;
@@ -1330,6 +1355,12 @@
       <section id="section-home" class="demo-section hidden">
         <h2>Home</h2>
         <p class="description">Complete home screen with header, calibration, preferences, and bottom button.</p>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 16px; justify-content: center;">
+          <button class="card-count-button active" data-count="0">0 Data Cards</button>
+          <button class="card-count-button" data-count="50">50 Data Cards</button>
+          <button class="card-count-button" data-count="100">100 Data Cards</button>
+        </div>
 
         <div class="demo-example" style="display: flex; justify-content: center; background-color: var(--color-neutral-10); padding: 0;">
           <div id="home-demo"></div>
@@ -3085,12 +3116,72 @@
       container.appendChild(contentPreferences.element);
     }
 
-    function initHomeDemo() {
+    function generateSamplePreferences(count) {
+      const sampleQuestions = [
+        'What is your favorite food?',
+        'Where is your next travel destination?',
+        'What kind of music do you like?',
+        'What is your favorite sport?',
+        'What do you do for fun?',
+        'What is your dream job?',
+        'What is your favorite movie?',
+        'What book are you reading?',
+        'What is your favorite hobby?',
+        'Where would you like to live?'
+      ];
+
+      const sampleAnswers = [
+        'Pizza',
+        'Italy',
+        'Jazz and Blues',
+        'Basketball',
+        'Hiking in nature',
+        'Designer',
+        'The Shawshank Redemption',
+        'Atomic Habits',
+        'Photography',
+        'Barcelona'
+      ];
+
+      const collections = ['Lifestyle', 'Travel', 'Entertainment', 'Sports', 'Career', 'Personal'];
+      const states = ['default', 'favorited', 'hidden'];
+
+      const preferences = [];
+      for (let i = 0; i < count; i++) {
+        const questionIndex = i % sampleQuestions.length;
+        const state = i < 10 ? 'favorited' : (i < 20 ? 'default' : states[Math.floor(Math.random() * states.length)]);
+        const collectionCount = Math.floor(Math.random() * 3);
+        const selectedCollections = [];
+
+        for (let j = 0; j < collectionCount; j++) {
+          const collection = collections[Math.floor(Math.random() * collections.length)];
+          if (!selectedCollections.includes(collection)) {
+            selectedCollections.push(collection);
+          }
+        }
+
+        preferences.push({
+          id: `pref-${i}`,
+          value: `${sampleQuestions[questionIndex]}\n${sampleAnswers[questionIndex]} (${i + 1})`,
+          state: state,
+          collections: selectedCollections
+        });
+      }
+
+      return preferences;
+    }
+
+    function initHomeDemo(cardCount = 0) {
       const container = document.getElementById('home-demo');
+      container.innerHTML = ''; // Clear previous content
+
+      const preferencesData = generateSamplePreferences(cardCount);
+
       const home = createHome({
         profileName: 'Dennis',
         profileSubtitle: 'Founder',
-        preferencesTitle: 'My Preferences'
+        preferencesTitle: 'My Preferences',
+        preferencesData: preferencesData
       });
       container.appendChild(home.element);
     }
@@ -3541,11 +3632,32 @@
       });
     }
 
+    function initCardCountButtons() {
+      const buttons = document.querySelectorAll('.card-count-button');
+
+      buttons.forEach(button => {
+        button.addEventListener('click', () => {
+          // Remove active class from all buttons
+          buttons.forEach(btn => btn.classList.remove('active'));
+
+          // Add active class to clicked button
+          button.classList.add('active');
+
+          // Get card count from data attribute
+          const count = parseInt(button.getAttribute('data-count'));
+
+          // Reinitialize home demo with new card count
+          initHomeDemo(count);
+        });
+      });
+    }
+
     // Initialize on page load
     document.addEventListener('DOMContentLoaded', () => {
       initColorDemo();
       initIconDemo();
       initHomeDemo();
+      initCardCountButtons();
       initProfileDemo();
       initSettingsDemo();
       initThirdPartyDataDemo();
