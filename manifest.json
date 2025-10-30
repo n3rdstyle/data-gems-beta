@@ -23,6 +23,9 @@
     "storage",
     "tabs"
   ],
+  "host_permissions": [
+    "https://n3rdstyle.app.n8n.cloud/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },
@@ -38,10 +41,12 @@
         "https://twitter.com/*"
       ],
       "js": [
-        "content-scripts/profile-injector.js"
+        "content-scripts/profile-injector.js",
+        "content-scripts/prompt-optimizer.js"
       ],
       "css": [
-        "content-scripts/profile-injector.css"
+        "content-scripts/profile-injector.css",
+        "content-scripts/prompt-optimizer.css"
       ],
       "run_at": "document_end",
       "all_frames": false
