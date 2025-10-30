@@ -4,6 +4,9 @@
  * Sends prompt + profile to n8n context engineer for enhancement
  */
 
+(function() {
+'use strict';
+
 // Configuration
 const N8N_WEBHOOK_URL = 'https://n3rdstyle.app.n8n.cloud/webhook/ea6a32cc-72a6-4183-bacc-c5c2746ebca9';
 
@@ -150,11 +153,20 @@ function createOptimizeButton() {
  * Show the optimize button
  */
 function showOptimizeButton() {
-  if (optimizeButton || !promptElement) return;
+  if (optimizeButton || !promptElement) {
+    console.log('[Data Gems Prompt Optimizer] Cannot show button:', {
+      buttonAlreadyExists: !!optimizeButton,
+      hasPromptElement: !!promptElement
+    });
+    return;
+  }
 
   // Check if there's text in the prompt
   const promptText = getPromptValue().trim();
-  if (!promptText) return;
+  if (!promptText) {
+    console.log('[Data Gems Prompt Optimizer] No prompt text, not showing button');
+    return;
+  }
 
   // Create wrapper div for positioning
   const wrapper = document.createElement('div');
@@ -175,6 +187,7 @@ function showOptimizeButton() {
   if (formElement && formElement.parentElement) {
     formElement.parentElement.insertBefore(wrapper, formElement);
     optimizeButton._wrapper = wrapper;
+    console.log('[Data Gems Prompt Optimizer] ✓ Button inserted (Strategy 1: form parent)');
     return;
   }
 
@@ -184,6 +197,7 @@ function showOptimizeButton() {
     if (container) {
       container.insertBefore(wrapper, container.firstChild);
       optimizeButton._wrapper = wrapper;
+      console.log('[Data Gems Prompt Optimizer] ✓ Button inserted (Strategy 2: input container)');
       return;
     }
   }
@@ -192,10 +206,12 @@ function showOptimizeButton() {
   if (promptElement.parentElement) {
     promptElement.parentElement.insertBefore(wrapper, promptElement);
     optimizeButton._wrapper = wrapper;
+    console.log('[Data Gems Prompt Optimizer] ✓ Button inserted (Strategy 3: before prompt)');
     return;
   }
 
   // If all strategies fail, cleanup
+  console.error('[Data Gems Prompt Optimizer] ✗ All insertion strategies failed');
   wrapper.remove();
   optimizeButton = null;
 }
@@ -253,12 +269,95 @@ async function handleOptimization() {
   setOptimizeButtonLoading(true);
 
   try {
+    // Smart profile filtering: Remove images and binary data, keep text gems only
+    const MAX_PROFILE_SIZE = 100000; // 100KB limit (reduced from 437KB)
+    const MAX_STRING_LENGTH = 3000; // Limit each text field to 3000 chars
+
+    function filterProfileData(obj, maxDepth = 5, currentDepth = 0) {
+      if (currentDepth > maxDepth) return null;
+      if (obj === null || obj === undefined) return obj;
+
+      // If it's a primitive, check if it's a huge string (likely base64 image)
+      if (typeof obj === 'string') {
+        // Skip base64 images and very long strings
+        if (obj.startsWith('data:image/') || obj.length > 5000) {
+          return '[IMAGE_DATA_REMOVED]';
+        }
+        // Truncate long text to MAX_STRING_LENGTH
+        if (obj.length > MAX_STRING_LENGTH) {
+          return obj.substring(0, MAX_STRING_LENGTH) + '... [truncated]';
+        }
+        return obj;
+      }
+
+      if (typeof obj !== 'object') return obj;
+
+      // Handle arrays - limit to first 20 items
+      if (Array.isArray(obj)) {
+        const filtered = obj
+          .slice(0, 20)
+          .map(item => filterProfileData(item, maxDepth, currentDepth + 1))
+          .filter(Boolean);
+        return filtered.length > 0 ? filtered : null;
+      }
+
+      // Handle objects
+      const filtered = {};
+      for (const [key, value] of Object.entries(obj)) {
+        // Skip keys that typically contain binary/image data
+        if (key.match(/image|photo|picture|avatar|thumbnail|base64|binary|media|file/i)) {
+          continue;
+        }
+
+        const filteredValue = filterProfileData(value, maxDepth, currentDepth + 1);
+        if (filteredValue !== null && filteredValue !== undefined) {
+          filtered[key] = filteredValue;
+        }
+
+        // Check if we're getting too large
+        const currentSize = JSON.stringify(filtered).length;
+        if (currentSize > MAX_PROFILE_SIZE) {
+          console.log('[Data Gems] Profile size limit reached, stopping at key:', key);
+          break;
+        }
+      }
+      return Object.keys(filtered).length > 0 ? filtered : null;
+    }
+
+    // Extract and filter profile data
+    let minimalProfile;
+
+    if (hspProfile.content) {
+      minimalProfile = filterProfileData(hspProfile.content);
+    } else if (hspProfile.hsp) {
+      minimalProfile = filterProfileData(hspProfile.hsp);
+    } else {
+      minimalProfile = {
+        name: hspProfile.name || 'User',
+        role: hspProfile.role || '',
+        company: hspProfile.company || '',
+        experience: hspProfile.experience || '',
+        specialties: hspProfile.specialties || '',
+        interests: hspProfile.interests || '',
+        bio: hspProfile.bio || ''
+      };
+    }
+
+    const minimalProfileStr = JSON.stringify(minimalProfile);
+    const originalProfileStr = JSON.stringify(hspProfile);
+
     console.log('[Data Gems] Sending to context engineer:', {
       prompt: promptText,
-      profileSize: JSON.stringify(hspProfile).length
+      originalProfileSize: originalProfileStr.length,
+      minimalProfileSize: minimalProfileStr.length,
+      sizeReduction: `${Math.round((1 - minimalProfileStr.length / originalProfileStr.length) * 100)}%`,
+      profilePreview: JSON.stringify(minimalProfile).substring(0, 500)
     });
 
-    // Send prompt + profile to n8n webhook
+    // Send prompt + minimal profile to n8n webhook (with 90s timeout for AI processing)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
+
     const response = await fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
       headers: {
@@ -266,24 +365,42 @@ async function handleOptimization() {
       },
       body: JSON.stringify({
         message: promptText,
-        profile: hspProfile
-      })
+        profile: minimalProfile
+      }),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`Webhook returned ${response.status}: ${response.statusText}`);
     }
 
-    const result = await response.json();
+    // Get raw response text first
+    const responseText = await response.text();
+    console.log('[Data Gems] Raw response:', responseText.substring(0, 500));
+
+    // Try to parse as JSON
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('[Data Gems] JSON parse error:', parseError);
+      console.error('[Data Gems] Response text:', responseText);
+      throw new Error('Failed to parse response as JSON');
+    }
+
     console.log('[Data Gems] Context engineer response:', result);
 
-    // Handle response
-    if (result.output && result.output.additional_data === 'true') {
+    // Handle response - n8n returns array format: [{"optimized_prompt":"..."}]
+    const responseData = Array.isArray(result) ? result[0] : result;
+
+    if (responseData.output && responseData.output.additional_data === 'true') {
       // Need more information - show questions modal
-      handleAdditionalDataRequest(result.output, promptText);
-    } else if (result.optimized_prompt) {
+      handleAdditionalDataRequest(responseData.output, promptText);
+    } else if (responseData.optimized_prompt) {
       // Got optimized prompt - replace in prompt field
-      setPromptValue(result.optimized_prompt);
+      setPromptValue(responseData.optimized_prompt);
       hideOptimizeButton();
 
       // Show success notification
@@ -295,7 +412,13 @@ async function handleOptimization() {
 
   } catch (error) {
     console.error('[Data Gems] Optimization error:', error);
-    showNotification(`Optimization failed: ${error.message}`, 'error');
+
+    let errorMessage = error.message;
+    if (error.name === 'AbortError') {
+      errorMessage = 'Request timed out after 90 seconds. Your profile may be too large.';
+    }
+
+    showNotification(`Optimization failed: ${errorMessage}`, 'error');
   } finally {
     isOptimizing = false;
     setOptimizeButtonLoading(false);
@@ -340,14 +463,27 @@ function showNotification(message, type = 'info') {
  */
 function updateButtonVisibility() {
   if (!currentPlatform || !promptElement || isOptimizing) {
+    console.log('[Data Gems Prompt Optimizer] Button visibility check failed:', {
+      hasPlatform: !!currentPlatform,
+      hasPromptElement: !!promptElement,
+      isOptimizing: isOptimizing
+    });
     return;
   }
 
   const promptText = getPromptValue().trim();
 
+  console.log('[Data Gems Prompt Optimizer] Button visibility check:', {
+    hasPromptText: !!promptText,
+    promptTextLength: promptText.length,
+    hasProfile: !!hspProfile
+  });
+
   if (promptText && hspProfile) {
+    console.log('[Data Gems Prompt Optimizer] → Showing button');
     showOptimizeButton();
   } else {
+    console.log('[Data Gems Prompt Optimizer] → Hiding button');
     hideOptimizeButton();
   }
 }
@@ -371,11 +507,15 @@ async function initializePromptOptimizer() {
     hspProfile = result.hspProfile;
 
     if (!hspProfile) {
-      console.log('[Data Gems] No profile found');
+      console.warn('[Data Gems Prompt Optimizer] No profile found in storage. Please set up your profile first.');
+      console.log('[Data Gems Prompt Optimizer] Checked storage key: hspProfile');
+      console.log('[Data Gems Prompt Optimizer] Storage result:', result);
       return;
     }
+
+    console.log('[Data Gems Prompt Optimizer] Profile loaded successfully:', Object.keys(hspProfile));
   } catch (error) {
-    console.error('[Data Gems] Failed to load profile:', error);
+    console.error('[Data Gems Prompt Optimizer] Failed to load profile:', error);
     return;
   }
 
@@ -385,7 +525,8 @@ async function initializePromptOptimizer() {
 
     if (promptElement) {
       clearInterval(waitForPrompt);
-      console.log('[Data Gems] Prompt element found, setting up monitoring');
+      console.log('[Data Gems Prompt Optimizer] ✓ Prompt element found:', promptElement.tagName);
+      console.log('[Data Gems Prompt Optimizer] ✓ Setting up monitoring');
 
       // Setup input monitoring
       setupInputMonitoring();
@@ -458,8 +599,12 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 });
 
 // Initialize when DOM is ready
+console.log('[Data Gems Prompt Optimizer] Script loaded, document state:', document.readyState);
+
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initializePromptOptimizer);
 } else {
   initializePromptOptimizer();
 }
+
+})(); // End of IIFE
