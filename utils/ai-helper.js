@@ -1,7 +1,8 @@
 /**
  * AI Helper Module
  * Provides on-device AI capabilities using Chrome's Built-in AI (Gemini Nano)
- * Requires Chrome 127+ with Prompt API enabled
+ * Requires Chrome 138+ with Prompt API
+ * Uses LanguageModel API (Extensions)
  */
 
 class AIHelper {
@@ -18,24 +19,24 @@ class AIHelper {
    */
   async checkAvailability() {
     try {
-      // Check if window.ai is available (Chrome Built-in AI)
-      if (!window.ai || !window.ai.languageModel) {
-        console.log('[AI Helper] Chrome Built-in AI not available');
+      // Check if LanguageModel is available (Chrome Built-in AI - Extensions API)
+      if (typeof LanguageModel === 'undefined') {
+        console.log('[AI Helper] LanguageModel API not available');
         return false;
       }
 
-      const availability = await window.ai.languageModel.capabilities();
+      const availability = await LanguageModel.availability();
 
-      if (availability.available === 'readily') {
+      if (availability === 'readily' || availability === 'available') {
         this.isAvailable = true;
         console.log('[AI Helper] AI ready to use');
         return true;
-      } else if (availability.available === 'after-download') {
+      } else if (availability === 'downloadable' || availability === 'after-download') {
         console.log('[AI Helper] AI model needs to be downloaded first');
         this.isAvailable = false;
         return false;
       } else {
-        console.log('[AI Helper] AI not available:', availability.available);
+        console.log('[AI Helper] AI not available:', availability);
         this.isAvailable = false;
         return false;
       }
@@ -71,7 +72,8 @@ class AIHelper {
           return false;
         }
 
-        this.session = await window.ai.languageModel.create({
+        this.session = await LanguageModel.create({
+          language: 'en',
           systemPrompt: `You are a helpful assistant that categorizes user preferences and data.
 Your task is to analyze text and suggest relevant category tags.
 IMPORTANT: Always respond with ONLY a valid JSON array of category names, nothing else.
@@ -106,10 +108,10 @@ DO NOT add any explanation, markdown, or extra text. ONLY the JSON array.`
    * Suggest categories for given text using AI
    * @param {string} text - Text to analyze
    * @param {Array<string>} existingCategories - Already existing categories in the system
-   * @param {number} timeout - Timeout in milliseconds (default: 5000)
+   * @param {number} timeout - Timeout in milliseconds (default: 15000)
    * @returns {Promise<Array<string>>} - Suggested category names
    */
-  async suggestCategories(text, existingCategories = [], timeout = 5000) {
+  async suggestCategories(text, existingCategories = [], timeout = 15000) {
     try {
       if (!text || text.trim().length === 0) {
         return [];
