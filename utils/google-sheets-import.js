@@ -224,48 +224,95 @@ function parseCSV(csvText) {
  * @param {string} sheetTitle - Title of the sheet
  * @returns {string} Formatted text
  */
-function formatSheetAsText(rows, sheetTitle = 'Training Plan') {
+function formatSheetAsText(rows, sheetTitle = 'Imported Sheet') {
   if (!rows || rows.length === 0) {
     return sheetTitle;
   }
 
   let text = `${sheetTitle}\n\n`;
 
-  // Get all unique exercises
-  const exercises = {};
-  rows.forEach(row => {
-    const exercise = row.Exercise || row.exercise;
-    if (!exercise) return;
+  // Check if this is a training/workout sheet (has Exercise column)
+  const hasExerciseColumn = rows.some(row => row.Exercise || row.exercise);
 
-    if (!exercises[exercise]) {
-      exercises[exercise] = [];
-    }
-    exercises[exercise].push(row);
-  });
+  if (hasExerciseColumn) {
+    // Format as training plan
+    const exercises = {};
+    rows.forEach(row => {
+      const exercise = row.Exercise || row.exercise;
+      if (!exercise) return;
 
-  // Format each exercise group
-  Object.keys(exercises).forEach(exerciseName => {
-    const sets = exercises[exerciseName];
-    text += `${exerciseName}\n`;
-
-    sets.forEach((set, index) => {
-      const setNum = set['Number.Set'] || set['Number Set'] || (index + 1);
-      const reps = set.Reps || set.reps || '';
-      const weight = set.Weight || set.weight || '';
-      const nonstop = set['Nonstop?'] || set.nonstop || '';
-
-      text += `  Set ${setNum}: ${reps} reps`;
-      if (weight && weight !== 'Body') {
-        text += ` @ ${weight}`;
+      if (!exercises[exercise]) {
+        exercises[exercise] = [];
       }
-      if (nonstop === 'Yes' || nonstop === 'yes') {
-        text += ' (nonstop)';
-      }
-      text += '\n';
+      exercises[exercise].push(row);
     });
 
-    text += '\n';
-  });
+    // Format each exercise group
+    Object.keys(exercises).forEach(exerciseName => {
+      const sets = exercises[exerciseName];
+      text += `${exerciseName}\n`;
+
+      sets.forEach((set, index) => {
+        const setNum = set['Number.Set'] || set['Number Set'] || (index + 1);
+        const reps = set.Reps || set.reps || '';
+        const weight = set.Weight || set.weight || '';
+        const nonstop = set['Nonstop?'] || set.nonstop || '';
+
+        text += `  Set ${setNum}: ${reps} reps`;
+        if (weight && weight !== 'Body') {
+          text += ` @ ${weight}`;
+        }
+        if (nonstop === 'Yes' || nonstop === 'yes') {
+          text += ' (nonstop)';
+        }
+        text += '\n';
+      });
+
+      text += '\n';
+    });
+  } else {
+    // Generic format for any other sheet type
+    // Get all column names from first row
+    const columns = Object.keys(rows[0]);
+
+    // Format each row as a list item
+    rows.forEach((row, index) => {
+      // Collect all non-empty values
+      const values = [];
+      columns.forEach(col => {
+        const value = row[col];
+        if (value && value.trim() !== '') {
+          values.push({ column: col, value: value.trim() });
+        }
+      });
+
+      // Skip completely empty rows
+      if (values.length === 0) return;
+
+      // If only one value, show it directly
+      if (values.length === 1) {
+        text += `${values[0].value}\n`;
+        return;
+      }
+
+      // If first column has a value, use it as the main item
+      const firstColValue = row[columns[0]];
+      if (firstColValue && firstColValue.trim() !== '') {
+        text += `${firstColValue.trim()}`;
+
+        // Add remaining columns as metadata
+        const additionalInfo = values.slice(1).map(v => `${v.column}: ${v.value}`);
+        if (additionalInfo.length > 0) {
+          text += ` (${additionalInfo.join(', ')})`;
+        }
+      } else {
+        // First column is empty, format all values with column names
+        text += values.map(v => `${v.column}: ${v.value}`).join(', ');
+      }
+
+      text += '\n';
+    });
+  }
 
   return text.trim();
 }
