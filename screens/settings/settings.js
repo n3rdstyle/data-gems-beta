@@ -25,6 +25,9 @@ function createSettings(options = {}) {
     onAutoInjectToggle = null,
     autoBackupEnabled = false,
     onAutoBackupToggle = null,
+    autoCategorizeEnabled = true,
+    onAutoCategorizeToggle = null,
+    onBulkAutoCategorize = null,
     isBetaUser = false,
     onJoinBeta = null,
     onRevokeBeta = null
@@ -107,6 +110,20 @@ function createSettings(options = {}) {
   });
   configurationSection.appendChild(autoInject.element);
 
+  // Auto-categorization toggle
+  const autoCategorize = createActionButton({
+    label: 'Auto-categorization',
+    caption: 'Automatically suggest categories for new preferences using on-device AI',
+    variant: 'toggle',
+    toggleActive: autoCategorizeEnabled,
+    onToggleChange: (isActive) => {
+      if (onAutoCategorizeToggle) {
+        onAutoCategorizeToggle(isActive);
+      }
+    }
+  });
+  configurationSection.appendChild(autoCategorize.element);
+
   const configurationDivider = createDivider();
   configurationSection.appendChild(configurationDivider.element);
 
@@ -169,6 +186,19 @@ function createSettings(options = {}) {
     onClick: onThirdPartyData || (() => {})
   });
   dataCenterSection.appendChild(thirdPartyData.element);
+
+  const bulkAutoCategorize = createActionButton({
+    label: 'Auto-categorize all cards',
+    caption: 'Apply AI category suggestions to all existing cards without collections',
+    variant: 'cta',
+    ctaLabel: 'Run',
+    onClick: () => {
+      if (onBulkAutoCategorize) {
+        onBulkAutoCategorize();
+      }
+    }
+  });
+  dataCenterSection.appendChild(bulkAutoCategorize.element);
 
   const dataCenterDivider = createDivider();
   dataCenterSection.appendChild(dataCenterDivider.element);

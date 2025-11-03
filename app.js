@@ -702,6 +702,63 @@ async function renderCurrentScreen() {
             BackupState.autoBackupEnabled = isEnabled;
             await saveBackupState();
           },
+          getAutoCategorizeEnabled: () => AppState?.settings?.categorization?.auto_categorize ?? true,
+          onAutoCategorizeToggle: async (isEnabled) => {
+            // Ensure settings.categorization exists
+            if (!AppState.settings) {
+              AppState.settings = {};
+            }
+            if (!AppState.settings.categorization) {
+              AppState.settings.categorization = {};
+            }
+
+            // Update the setting
+            AppState.settings.categorization.auto_categorize = isEnabled;
+            await saveData();
+          },
+          onBulkAutoCategorize: async () => {
+            // Get all preferences without collections
+            const items = AppState?.content?.preferences?.items || [];
+            const itemsWithoutCollections = items.filter(item =>
+              !item.collections || item.collections.length === 0
+            );
+
+            if (itemsWithoutCollections.length === 0) {
+              alert('No cards without collections found.');
+              return;
+            }
+
+            // Get all existing collections for context
+            const allCollections = [...new Set(items.flatMap(item => item.collections || []))];
+
+            // Confirm with user
+            const confirmed = confirm(`Auto-categorize ${itemsWithoutCollections.length} cards without collections?`);
+            if (!confirmed) return;
+
+            let categorizedCount = 0;
+
+            // Process each item
+            for (const item of itemsWithoutCollections) {
+              try {
+                const suggestions = await aiHelper.suggestCategories(item.value, allCollections);
+                if (suggestions.length > 0) {
+                  item.collections = suggestions;
+                  categorizedCount++;
+                }
+              } catch (error) {
+                console.error('[Bulk Auto-Categorize] Error for item:', item.id, error);
+              }
+            }
+
+            // Save updated data
+            await saveData();
+
+            // Show result
+            alert(`✓ ${categorizedCount} cards auto-categorized`);
+
+            // Refresh UI
+            renderCurrentScreen();
+          },
           isBetaUser: homeIsBetaUser,
           onJoinBeta: () => {
             console.log('🎯 [Home] Join Beta button clicked from Settings!');
@@ -902,6 +959,63 @@ async function renderCurrentScreen() {
           onAutoBackupToggle: async (isEnabled) => {
             BackupState.autoBackupEnabled = isEnabled;
             await saveBackupState();
+          },
+          autoCategorizeEnabled: AppState?.settings?.categorization?.auto_categorize ?? true,
+          onAutoCategorizeToggle: async (isEnabled) => {
+            // Ensure settings.categorization exists
+            if (!AppState.settings) {
+              AppState.settings = {};
+            }
+            if (!AppState.settings.categorization) {
+              AppState.settings.categorization = {};
+            }
+
+            // Update the setting
+            AppState.settings.categorization.auto_categorize = isEnabled;
+            await saveData();
+          },
+          onBulkAutoCategorize: async () => {
+            // Get all preferences without collections
+            const items = AppState?.content?.preferences?.items || [];
+            const itemsWithoutCollections = items.filter(item =>
+              !item.collections || item.collections.length === 0
+            );
+
+            if (itemsWithoutCollections.length === 0) {
+              alert('No cards without collections found.');
+              return;
+            }
+
+            // Get all existing collections for context
+            const allCollections = [...new Set(items.flatMap(item => item.collections || []))];
+
+            // Confirm with user
+            const confirmed = confirm(`Auto-categorize ${itemsWithoutCollections.length} cards without collections?`);
+            if (!confirmed) return;
+
+            let categorizedCount = 0;
+
+            // Process each item
+            for (const item of itemsWithoutCollections) {
+              try {
+                const suggestions = await aiHelper.suggestCategories(item.value, allCollections);
+                if (suggestions.length > 0) {
+                  item.collections = suggestions;
+                  categorizedCount++;
+                }
+              } catch (error) {
+                console.error('[Bulk Auto-Categorize] Error for item:', item.id, error);
+              }
+            }
+
+            // Save updated data
+            await saveData();
+
+            // Show result
+            alert(`✓ ${categorizedCount} cards auto-categorized`);
+
+            // Refresh UI
+            renderCurrentScreen();
           },
           isBetaUser: isBetaUser,
           onJoinBeta: () => {

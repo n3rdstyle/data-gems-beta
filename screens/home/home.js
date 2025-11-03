@@ -40,6 +40,9 @@ function createHome(options = {}) {
     onAutoInjectToggle = null,
     getAutoBackupEnabled = null, // Changed to getter function
     onAutoBackupToggle = null,
+    getAutoCategorizeEnabled = null, // Getter function for auto-categorize setting
+    onAutoCategorizeToggle = null,
+    onBulkAutoCategorize = null,
     isBetaUser = false,
     onJoinBeta = null,
     onRevokeBeta = null
@@ -181,6 +184,9 @@ function createHome(options = {}) {
       onAutoInjectToggle: onAutoInjectToggle,
       autoBackupEnabled: getAutoBackupEnabled ? getAutoBackupEnabled() : false,
       onAutoBackupToggle: onAutoBackupToggle,
+      autoCategorizeEnabled: getAutoCategorizeEnabled ? getAutoCategorizeEnabled() : true,
+      onAutoCategorizeToggle: onAutoCategorizeToggle,
+      onBulkAutoCategorize: onBulkAutoCategorize,
       isBetaUser: isBetaUser,
       onJoinBeta: onJoinBeta,
       onRevokeBeta: onRevokeBeta
@@ -299,6 +305,7 @@ function createHome(options = {}) {
         preferenceFavorited: card.getState() === 'favorited',
         collections: card.getCollections(),
         existingTags: existingTags,
+        autoCategorizeEnabled: getAutoCategorizeEnabled ? getAutoCategorizeEnabled() : true,
         onSave: (data) => {
           // Determine new state
           let newState = 'default';
@@ -476,6 +483,7 @@ function createHome(options = {}) {
             preferenceFavorited: false,
             collections: [],
             existingTags: existingTags,
+            autoCategorizeEnabled: getAutoCategorizeEnabled ? getAutoCategorizeEnabled() : true,
             onSave: (data) => {
               // Only add card if text is not empty
               if (data.text && data.text.trim()) {

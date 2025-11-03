@@ -18,12 +18,17 @@ function createDataEditorModal(options = {}) {
     preferenceFavorited = false,
     collections = [],
     existingTags = [], // All existing tags in the system
+    autoCategorizeEnabled = true, // Whether AI auto-categorization is enabled
     onSave = null,
     onDelete = null,
     onToggleHidden = null,
     onToggleFavorite = null,
     onAddCollection = null
   } = options;
+
+  // Track AI-suggested collections
+  let aiSuggestedCollections = [];
+  let debounceTimer = null;
 
   // Create modal overlay using overlay component
   const overlay = createOverlay({
@@ -90,10 +95,57 @@ function createDataEditorModal(options = {}) {
     placeholder: 'Enter preference details...',
     hidden: preferenceHidden,
     favorited: preferenceFavorited,
-    onTextChange: (newText) => {
+    onTextChange: async (newText) => {
       // Enable/disable save button based on text content
       const isEmpty = !newText || newText.trim() === '';
       saveButton.setDisabled(isEmpty);
+
+      // AI Auto-Categorization
+      if (autoCategorizeEnabled && !isEmpty && typeof aiHelper !== 'undefined') {
+        // Clear previous debounce timer
+        if (debounceTimer) {
+          clearTimeout(debounceTimer);
+        }
+
+        // Debounce AI call by 500ms
+        debounceTimer = setTimeout(async () => {
+          try {
+            // Only suggest if no collections manually added yet
+            const currentCollections = collectionEditField.getCollections();
+            const manualCollections = currentCollections.filter(c => !aiSuggestedCollections.includes(c));
+
+            // If user has manually added collections, don't override with AI
+            if (manualCollections.length > 0) {
+              return;
+            }
+
+            // Get AI suggestions
+            const suggestions = await aiHelper.suggestCategories(newText, existingTags);
+
+            if (suggestions.length > 0) {
+              console.log('[Data Editor Modal] AI suggested categories:', suggestions);
+
+              // Remove old AI suggestions
+              const tagList = collectionEditField.getTagList();
+              const currentTags = tagList.getTags();
+              aiSuggestedCollections.forEach(oldSuggestion => {
+                const tagToRemove = currentTags.find(t => t.getLabel() === oldSuggestion);
+                if (tagToRemove) {
+                  collectionEditField.removeCollection(tagToRemove);
+                }
+              });
+
+              // Add new AI suggestions
+              aiSuggestedCollections = suggestions;
+              suggestions.forEach(suggestion => {
+                collectionEditField.addCollection(suggestion);
+              });
+            }
+          } catch (error) {
+            console.error('[Data Editor Modal] AI categorization error:', error);
+          }
+        }, 500);
+      }
     },
     onEnter: () => {
       // Trigger save button on Enter if not disabled
