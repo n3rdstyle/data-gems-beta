@@ -194,6 +194,7 @@ async function fetchGoogleSheetCSV(spreadsheetId, gid = null) {
 
 /**
  * Parse CSV text into array of objects
+ * Handles quoted fields and escaped characters according to RFC 4180
  * @param {string} csvText - Raw CSV data
  * @returns {Array<Object>} Array of row objects
  */
@@ -201,13 +202,51 @@ function parseCSV(csvText) {
   const lines = csvText.trim().split('\n');
   if (lines.length === 0) return [];
 
-  // First line is headers
-  const headers = lines[0].split(',').map(h => h.trim());
+  /**
+   * Parse a CSV line respecting quotes and escaped characters
+   * @param {string} line - CSV line to parse
+   * @returns {Array<string>} Array of field values
+   */
+  function parseCSVLine(line) {
+    const fields = [];
+    let field = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      const nextChar = line[i + 1];
+
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          // Escaped quote within quoted field
+          field += '"';
+          i++; // Skip next quote
+        } else {
+          // Toggle quote mode
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        // Field separator (only if not within quotes)
+        fields.push(field.trim());
+        field = '';
+      } else {
+        field += char;
+      }
+    }
+
+    // Add last field
+    fields.push(field.trim());
+
+    return fields;
+  }
+
+  // Parse headers
+  const headers = parseCSVLine(lines[0]);
 
   // Parse remaining lines
   const rows = [];
   for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(',').map(v => v.trim());
+    const values = parseCSVLine(lines[i]);
     const row = {};
     headers.forEach((header, index) => {
       row[header] = values[index] || '';
