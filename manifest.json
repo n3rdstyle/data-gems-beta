@@ -41,6 +41,8 @@
         "https://twitter.com/*"
       ],
       "js": [
+        "utils/ai-helper.js",
+        "utils/context-selector.js",
         "content-scripts/profile-injector.js",
         "content-scripts/prompt-optimizer.js"
       ],

@@ -8,7 +8,8 @@
 'use strict';
 
 // Configuration
-const N8N_WEBHOOK_URL = 'https://n3rdstyle.app.n8n.cloud/webhook/ea6a32cc-72a6-4183-bacc-c5c2746ebca9';
+// N8N_WEBHOOK_URL - Commented out, using local optimization instead
+// const N8N_WEBHOOK_URL = 'https://n3rdstyle.app.n8n.cloud/webhook/ea6a32cc-72a6-4183-bacc-c5c2746ebca9';
 
 // Platform detection (reuse from profile-injector)
 const PLATFORMS = {
@@ -269,6 +270,29 @@ async function handleOptimization() {
   setOptimizeButtonLoading(true);
 
   try {
+    console.log('[Data Gems] Optimizing prompt locally with context selector');
+
+    // ========================================
+    // NEW: Local optimization with context selector
+    // ========================================
+
+    // Use the context selector to find relevant gems and format prompt
+    // Request up to 8 gems for richer context (was 5)
+    const optimizedPrompt = await optimizePromptWithContext(promptText, hspProfile, true, 8);
+
+    console.log('[Data Gems] Optimized prompt:', optimizedPrompt.substring(0, 200) + '...');
+
+    // Set the optimized prompt in the input field
+    setPromptValue(optimizedPrompt);
+    hideOptimizeButton();
+
+    // Show success notification
+    showNotification('Prompt enriched with relevant context from your Data Gems!', 'success');
+
+    // ========================================
+    // OLD: n8n Webhook Integration (COMMENTED OUT)
+    // ========================================
+    /*
     // Smart profile filtering: Remove images and binary data, keep text gems only
     const MAX_PROFILE_SIZE = 100000; // 100KB limit (reduced from 437KB)
     const MAX_STRING_LENGTH = 3000; // Limit each text field to 3000 chars
@@ -409,6 +433,7 @@ async function handleOptimization() {
       console.warn('[Data Gems] Unexpected response format:', result);
       showNotification('Received response but could not extract optimized prompt', 'warning');
     }
+    */
 
   } catch (error) {
     console.error('[Data Gems] Optimization error:', error);
@@ -427,7 +452,9 @@ async function handleOptimization() {
 
 /**
  * Handle additional data request (questions from workflow)
+ * COMMENTED OUT - Not used with local optimization
  */
+/*
 function handleAdditionalDataRequest(output, originalPrompt) {
   console.log('[Data Gems] Additional data needed:', output);
 
@@ -440,6 +467,7 @@ function handleAdditionalDataRequest(output, originalPrompt) {
     console.log('[Data Gems] Questions to answer:', questions);
   }
 }
+*/
 
 /**
  * Show notification
