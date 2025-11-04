@@ -118,8 +118,10 @@ Category Selection Rules:
 5. CRITICAL: Only add categories that are CLEARLY and DIRECTLY relevant
    - If uncertain, prefer fewer categories
    - 1 perfect match is better than 2 approximate matches
-   - Avoid generic/broad categories unless highly specific to content
-   - When in doubt, use only 1 category
+   - NEVER add vague categories like "Hobbies", "Personal", "Other", "Lifestyle"
+   - Second category must be AS SPECIFIC as the first, not loosely related
+   - Example: "My go-to drink: Spezi" → ["Food"] NOT ["Food", "Hobbies"]
+   - When in doubt, use ONLY 1 category
 
 Example valid response: ["Technology"]
 Example valid response: ["Food", "Italian"]
