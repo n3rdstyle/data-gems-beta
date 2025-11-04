@@ -5,6 +5,34 @@
  * Uses LanguageModel API (Extensions)
  */
 
+/**
+ * Predefined categories for consistent auto-categorization
+ * AI will prefer these categories but can create new ones if needed
+ */
+const PREDEFINED_CATEGORIES = [
+  // Technology & Digital
+  'Technology', 'Privacy', 'Security', 'Software', 'Hardware',
+  'Internet', 'Social Media', 'AI', 'Development', 'Design',
+
+  // Content & Media
+  'Entertainment', 'Music', 'Movies', 'Gaming', 'Books',
+  'Podcasts', 'News', 'Blog', 'Video',
+
+  // Lifestyle
+  'Food', 'Cooking', 'Travel', 'Health', 'Fitness',
+  'Fashion', 'Home', 'Garden', 'Pets',
+
+  // Professional & Education
+  'Work', 'Productivity', 'Education', 'Career', 'Finance',
+  'Business', 'Marketing', 'Research',
+
+  // Shopping & Services
+  'Shopping', 'E-commerce', 'Services', 'Subscriptions',
+
+  // Personal
+  'Personal', 'Family', 'Friends', 'Hobbies', 'Sports'
+];
+
 class AIHelper {
   constructor() {
     this.session = null;
@@ -76,16 +104,25 @@ class AIHelper {
           language: 'en',
           systemPrompt: `You are a helpful assistant that categorizes user preferences and data.
 Your task is to analyze text and suggest relevant category tags.
-IMPORTANT: Always respond with ONLY a valid JSON array of category names, nothing else.
-Categories should be:
-- Concise (1-2 words maximum)
-- Relevant to the content
-- Capitalized (e.g., "Technology", "Food")
-- Limited to maximum 3 categories
-- Prefer reusing existing categories when relevant
 
-Example valid response: ["Technology", "Privacy"]
-Example valid response: ["Food", "Italian", "Nutrition"]
+IMPORTANT: Always respond with ONLY a valid JSON array of category names, nothing else.
+
+Category Selection Rules:
+1. PREFER selecting from existing categories when they match the content
+2. If no existing category fits well, create a new one in the same style
+3. New categories must follow these rules:
+   - Concise (1-2 words maximum)
+   - Capitalized (e.g., "Technology", "Food")
+   - Clear and specific
+4. Maximum 1-2 categories per item (only add second if HIGHLY relevant)
+5. CRITICAL: Only add categories that are CLEARLY and DIRECTLY relevant
+   - If uncertain, prefer fewer categories
+   - 1 perfect match is better than 2 approximate matches
+   - Avoid generic/broad categories unless highly specific to content
+   - When in doubt, use only 1 category
+
+Example valid response: ["Technology"]
+Example valid response: ["Food", "Italian"]
 
 DO NOT add any explanation, markdown, or extra text. ONLY the JSON array.`
         });
@@ -130,10 +167,11 @@ DO NOT add any explanation, markdown, or extra text. ONLY the JSON array.`
       let prompt = `Analyze this text and suggest relevant categories:\n\n"${text}"\n\n`;
 
       if (existingCategories.length > 0) {
-        prompt += `Existing categories to prefer if relevant: ${existingCategories.join(', ')}\n\n`;
+        prompt += `EXISTING CATEGORIES (prefer these when relevant):\n${existingCategories.join(', ')}\n\n`;
+        prompt += `Choose from existing categories OR create new ones if none fit well.\n\n`;
       }
 
-      prompt += `Respond with ONLY a JSON array of 1-3 category names.`;
+      prompt += `Respond with ONLY a JSON array of 1-2 HIGHLY RELEVANT category names. Prefer quality over quantity.`;
 
       // Create timeout promise
       const timeoutPromise = new Promise((_, reject) => {
@@ -163,6 +201,30 @@ DO NOT add any explanation, markdown, or extra text. ONLY the JSON array.`
   }
 
   /**
+   * Normalize category name to follow style guide
+   * @param {string} category - Raw category name
+   * @returns {string} - Normalized category name
+   */
+  normalizeCategory(category) {
+    // Trim whitespace
+    let normalized = category.trim();
+
+    // Capitalize first letter of each word
+    normalized = normalized
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+
+    // Limit to 2 words maximum
+    const words = normalized.split(' ');
+    if (words.length > 2) {
+      normalized = words.slice(0, 2).join(' ');
+    }
+
+    return normalized;
+  }
+
+  /**
    * Parse AI response to extract category array
    * @param {string} response - AI response text
    * @returns {Array<string>}
@@ -180,11 +242,12 @@ DO NOT add any explanation, markdown, or extra text. ONLY the JSON array.`
       if (jsonMatch) {
         const categories = JSON.parse(jsonMatch[0]);
         if (Array.isArray(categories)) {
-          // Filter and clean categories
+          // Filter, clean, and normalize categories
           return categories
             .filter(cat => typeof cat === 'string' && cat.trim().length > 0)
-            .map(cat => cat.trim())
-            .slice(0, 3); // Max 3 categories
+            .map(cat => this.normalizeCategory(cat))
+            .filter(cat => cat.length > 0) // Remove empty after normalization
+            .slice(0, 2); // Max 2 categories
         }
       }
 
@@ -193,8 +256,9 @@ DO NOT add any explanation, markdown, or extra text. ONLY the JSON array.`
       if (Array.isArray(parsed)) {
         return parsed
           .filter(cat => typeof cat === 'string' && cat.trim().length > 0)
-          .map(cat => cat.trim())
-          .slice(0, 3);
+          .map(cat => this.normalizeCategory(cat))
+          .filter(cat => cat.length > 0)
+          .slice(0, 2);
       }
 
       return [];
@@ -232,6 +296,14 @@ DO NOT add any explanation, markdown, or extra text. ONLY the JSON array.`
       isInitializing: this.isInitializing,
       hasSession: !!this.session
     };
+  }
+
+  /**
+   * Get predefined categories
+   * @returns {Array<string>}
+   */
+  getPredefinedCategories() {
+    return [...PREDEFINED_CATEGORIES];
   }
 }
 

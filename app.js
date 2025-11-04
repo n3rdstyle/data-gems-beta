@@ -728,8 +728,10 @@ async function renderCurrentScreen() {
               return;
             }
 
-            // Get all existing collections for context
-            const allCollections = [...new Set(items.flatMap(item => item.collections || []))];
+            // Get all existing collections for context (predefined + user-created)
+            const existingCollections = [...new Set(items.flatMap(item => item.collections || []))];
+            const predefinedCategories = aiHelper.getPredefinedCategories();
+            const allCollections = [...new Set([...predefinedCategories, ...existingCollections])];
 
             // Confirm with user
             const confirmed = confirm(`Auto-categorize ${itemsWithoutCollections.length} cards without collections?`);
@@ -986,8 +988,10 @@ async function renderCurrentScreen() {
               return;
             }
 
-            // Get all existing collections for context
-            const allCollections = [...new Set(items.flatMap(item => item.collections || []))];
+            // Get all existing collections for context (predefined + user-created)
+            const existingCollections = [...new Set(items.flatMap(item => item.collections || []))];
+            const predefinedCategories = aiHelper.getPredefinedCategories();
+            const allCollections = [...new Set([...predefinedCategories, ...existingCollections])];
 
             // Confirm with user
             const confirmed = confirm(`Auto-categorize ${itemsWithoutCollections.length} cards without collections?`);

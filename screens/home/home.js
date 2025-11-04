@@ -289,12 +289,13 @@ function createHome(options = {}) {
       }
     },
     onCardClick: (card, container) => {
-      // Get all existing tags from all cards
+      // Get all existing tags from all cards (predefined + user-created)
       const allCards = contentPreferences.getDataList().getCards();
-      const allCollections = allCards.flatMap(c => c.getCollections());
+      const userCollections = allCards.flatMap(c => c.getCollections());
       const currentCollections = card.getCollections();
-      // Combine all collections with current card's collections and remove duplicates
-      const existingTags = [...new Set([...allCollections, ...currentCollections])];
+      const predefinedCategories = aiHelper.getPredefinedCategories();
+      // Combine predefined, user-created, and current collections, remove duplicates
+      const existingTags = [...new Set([...predefinedCategories, ...userCollections, ...currentCollections])];
 
       // Create and show modal when card is clicked
       const modal = createDataEditorModal({
@@ -470,9 +471,11 @@ function createHome(options = {}) {
         // Close the preference options overlay
         preferenceOptions.hide();
 
-        // Get all existing tags from all cards
+        // Get all existing tags from all cards (predefined + user-created)
         const allCards = contentPreferences.getDataList().getCards();
-        const existingTags = [...new Set(allCards.flatMap(c => c.getCollections()))];
+        const userCollections = allCards.flatMap(c => c.getCollections());
+        const predefinedCategories = aiHelper.getPredefinedCategories();
+        const existingTags = [...new Set([...predefinedCategories, ...userCollections])];
 
         // Open empty Data Editor Modal
         const modal = createDataEditorModal({
