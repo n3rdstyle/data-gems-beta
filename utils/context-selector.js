@@ -537,8 +537,11 @@ function formatPromptWithContext(originalPrompt, selectedGems) {
     return originalPrompt;
   }
 
-  // New format: No quotes, double line break, each gem on separate line
+  // Start with original prompt
   let formatted = `${originalPrompt}\n\n`;
+
+  // Add introductory text
+  formatted += `Please consider the following personal information about me:\n\n`;
 
   selectedGems.forEach(gem => {
     // Determine type from collections or use generic "context"
@@ -550,7 +553,7 @@ function formatPromptWithContext(originalPrompt, selectedGems) {
     // Format the value with more complete information
     let value = gem.value.trim();
 
-    // If multiline, include more content
+    // If multiline, include more content but format compactly
     const lines = value.split('\n').filter(line => line.trim().length > 0);
     if (lines.length > 1) {
       // For structured data (like Training/Protein logs), include all items
@@ -559,6 +562,7 @@ function formatPromptWithContext(originalPrompt, selectedGems) {
       // Include all data lines (up to 8 items to keep it reasonable)
       if (lines.length > 1) {
         const dataLines = lines.slice(1, Math.min(lines.length, 9));
+        // Use line breaks within the gem data
         value = `${value}\n${dataLines.join('\n')}`;
       }
     }
@@ -575,11 +579,11 @@ function formatPromptWithContext(originalPrompt, selectedGems) {
       }
     }
 
-    // Format: @type value (each on new line)
-    formatted += `@${type} ${value}\n`;
+    // Format: @type value (each gem on new line with blank line between)
+    formatted += `@${type} ${value}\n\n`;
   });
 
-  return formatted.trim(); // Remove trailing newline
+  return formatted.trim(); // Remove trailing newlines
 }
 
 /**

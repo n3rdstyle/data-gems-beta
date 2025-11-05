@@ -104,9 +104,22 @@ function getPromptValue() {
 function setPromptValue(text) {
   if (!promptElement) return;
 
+  console.log('[Data Gems] Setting prompt value:', {
+    isContentEditable: currentPlatform.isContentEditable,
+    textLength: text.length,
+    hasNewlines: text.includes('\n'),
+    newlineCount: (text.match(/\n/g) || []).length
+  });
+
   if (currentPlatform.isContentEditable) {
     // Convert \n to <br> for contentEditable elements
     const htmlText = text.replace(/\n/g, '<br>');
+    console.log('[Data Gems] Converted to HTML:', {
+      htmlLength: htmlText.length,
+      hasBr: htmlText.includes('<br>'),
+      brCount: (htmlText.match(/<br>/g) || []).length,
+      preview: htmlText.substring(0, 200)
+    });
     promptElement.innerHTML = htmlText;
 
     // Trigger input event
