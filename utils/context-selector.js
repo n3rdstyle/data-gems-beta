@@ -366,6 +366,7 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, pr
     console.log(`[Context Selector] Found ${allCategories.length} unique categories`);
 
     let candidateGems = dataGems;
+    let stage15Applied = false; // Track if Stage 1.5 filtering was successfully applied
 
     if (allCategories.length > 0) {
       // Ask AI which categories are relevant
@@ -425,6 +426,7 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, pr
                 // Only apply SubCategory filter if it returns at least 3 gems
                 if (subCategoryFiltered.length >= 3) {
                   candidateGems = subCategoryFiltered;
+                  stage15Applied = true; // Mark that Stage 1.5 successfully filtered
                   console.log(`[Context Selector] Stage 1.5: Reduced to ${candidateGems.length} gems (${((1 - candidateGems.length / filterGemsByCategories(dataGems, relevantCategories).length) * 100).toFixed(1)}% reduction)`);
                 } else {
                   console.log(`[Context Selector] Stage 1.5: Only ${subCategoryFiltered.length} gems after SubCategory filter, keeping all ${candidateGems.length} category-filtered gems`);
@@ -475,7 +477,8 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, pr
     }
 
     // SMART PRE-FILTER: Reduce to top candidates before AI scoring
-    const MAX_AI_SCORING = 30; // Score max 30 gems with AI (~30 seconds)
+    // If Stage 1.5 already filtered, increase limit since gems are semantically relevant
+    const MAX_AI_SCORING = stage15Applied ? 50 : 30; // Higher limit if Stage 1.5 filtered
 
     if (candidateGems.length > MAX_AI_SCORING) {
       console.log(`[Context Selector] Too many gems (${candidateGems.length}), pre-filtering to ${MAX_AI_SCORING}`);
@@ -483,19 +486,36 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, pr
       // Priority 1: Favorited gems (always include)
       const favorited = candidateGems.filter(gem => gem.state === 'favorited');
 
-      // Priority 2: Keyword matching on ALL category-filtered gems
-      // (Since we now use TOP 1 category, all gems have same confidence)
-      const nonFavorited = candidateGems.filter(gem => gem.state !== 'favorited');
-      const keywordMatched = selectRelevantGemsByKeywords(
-        promptText,
-        nonFavorited,
-        MAX_AI_SCORING - favorited.length
-      );
+      if (stage15Applied) {
+        // Stage 1.5 already did semantic filtering, so randomly sample remaining gems
+        // This preserves the semantic quality from SubCategory filtering
+        const nonFavorited = candidateGems.filter(gem => gem.state !== 'favorited');
+        const sampleSize = Math.min(MAX_AI_SCORING - favorited.length, nonFavorited.length);
 
-      candidateGems = [...favorited, ...keywordMatched].slice(0, MAX_AI_SCORING);
-      console.log(`[Context Selector] Pre-filtered to ${candidateGems.length} gems (${favorited.length} favorited, ${keywordMatched.length} keyword-matched)`);
+        // Shuffle and take first N items (Fisher-Yates shuffle)
+        const shuffled = [...nonFavorited];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        const randomSample = shuffled.slice(0, sampleSize);
+
+        candidateGems = [...favorited, ...randomSample];
+        console.log(`[Context Selector] Stage 1.5 applied: randomly sampled ${sampleSize} gems (${favorited.length} favorited, ${randomSample.length} random from SubCategory-filtered gems)`);
+      } else {
+        // No Stage 1.5, use keyword matching as before
+        const nonFavorited = candidateGems.filter(gem => gem.state !== 'favorited');
+        const keywordMatched = selectRelevantGemsByKeywords(
+          promptText,
+          nonFavorited,
+          MAX_AI_SCORING - favorited.length
+        );
+
+        candidateGems = [...favorited, ...keywordMatched].slice(0, MAX_AI_SCORING);
+        console.log(`[Context Selector] Pre-filtered to ${candidateGems.length} gems (${favorited.length} favorited, ${keywordMatched.length} keyword-matched)`);
+      }
     } else {
-      console.log(`[Context Selector] Will score all ${candidateGems.length} category-filtered gems with AI`);
+      console.log(`[Context Selector] Will score all ${candidateGems.length} ${stage15Applied ? 'SubCategory-' : 'category-'}filtered gems with AI`);
     }
 
     // If no candidates, fall back to keyword matching on all gems
