@@ -47,10 +47,11 @@ function createField(value, assurance = 'self_declared', reliability = 'high', s
  * @param {string} value - Preference text
  * @param {string} state - State ('default', 'favorited', 'hidden')
  * @param {Array<string>} collections - Collection IDs
+ * @param {Array<string>} subCollections - SubCategory names (optional, AI-generated)
  * @param {string} sourceUrl - Optional source URL (e.g., Google Sheets URL)
  * @returns {object} Preference object
  */
-function createPreference(value, state = 'default', collections = [], sourceUrl = null) {
+function createPreference(value, state = 'default', collections = [], subCollections = [], sourceUrl = null) {
   const pref = {
     id: generateId('pref'),
     value,
@@ -58,6 +59,7 @@ function createPreference(value, state = 'default', collections = [], sourceUrl 
     reliability: 'authoritative',
     state,
     collections,
+    subCollections,  // NEW: Array of subcategory names
     created_at: getTimestamp(),
     updated_at: getTimestamp()
   };
@@ -162,6 +164,13 @@ function createInitialProfile(userData = {}) {
       last_backup: null,
       currentScreen: 'home',
       usedRandomQuestions: []
+    },
+
+    // NEW: SubCategory Registry (AI-generated, granular organization)
+    subCategoryRegistry: {
+      // Example structure:
+      // "shoes": { parent: "Fashion", gemCount: 23, created_at: "2025-11-05T10:00:00.000Z" }
+      // "running": { parent: "Sports", gemCount: 25, created_at: "2025-11-05T10:00:00.000Z" }
     }
   };
 }
@@ -445,6 +454,97 @@ if (typeof module !== 'undefined' && module.exports) {
     updatePreference,
     deletePreference,
     findPreferenceBySourceUrl,
-    migrateThirdPartyAssurance
+    migrateThirdPartyAssurance,
+    // NEW: SubCategory functions
+    createSubCategory,
+    getSubCategory,
+    getAllSubCategoriesForParent,
+    incrementSubCategoryCount,
+    addSubCollectionToGem
   };
+}
+
+/**
+ * Create or get a SubCategory in the registry
+ * @param {object} profile - HSP profile
+ * @param {string} subCategoryName - Name of subcategory (e.g., "shoes")
+ * @param {string} parentCategory - Parent category name (e.g., "Fashion")
+ * @returns {object} SubCategory entry
+ */
+function createSubCategory(profile, subCategoryName, parentCategory) {
+  // Initialize registry if not exists
+  if (!profile.subCategoryRegistry) {
+    profile.subCategoryRegistry = {};
+  }
+
+  // Check if already exists
+  if (profile.subCategoryRegistry[subCategoryName]) {
+    return profile.subCategoryRegistry[subCategoryName];
+  }
+
+  // Create new subcategory
+  profile.subCategoryRegistry[subCategoryName] = {
+    parent: parentCategory,
+    gemCount: 0,
+    created_at: getTimestamp()
+  };
+
+  return profile.subCategoryRegistry[subCategoryName];
+}
+
+/**
+ * Get a SubCategory from the registry
+ * @param {object} profile - HSP profile
+ * @param {string} subCategoryName - Name of subcategory
+ * @returns {object|null} SubCategory entry or null
+ */
+function getSubCategory(profile, subCategoryName) {
+  return profile.subCategoryRegistry?.[subCategoryName] || null;
+}
+
+/**
+ * Get all SubCategories for a given parent category
+ * @param {object} profile - HSP profile
+ * @param {string} parentCategory - Parent category name (e.g., "Fashion")
+ * @returns {Array<string>} Array of subcategory names
+ */
+function getAllSubCategoriesForParent(profile, parentCategory) {
+  if (!profile.subCategoryRegistry) {
+    return [];
+  }
+
+  return Object.entries(profile.subCategoryRegistry)
+    .filter(([_, subCat]) => subCat.parent === parentCategory)
+    .map(([name, _]) => name);
+}
+
+/**
+ * Increment gem count for a SubCategory
+ * @param {object} profile - HSP profile
+ * @param {string} subCategoryName - Name of subcategory
+ * @returns {void}
+ */
+function incrementSubCategoryCount(profile, subCategoryName) {
+  if (profile.subCategoryRegistry?.[subCategoryName]) {
+    profile.subCategoryRegistry[subCategoryName].gemCount++;
+  }
+}
+
+/**
+ * Add SubCollection to a gem (preference)
+ * @param {object} gem - Preference object
+ * @param {string} subCategoryName - Name of subcategory
+ * @returns {object} Updated gem
+ */
+function addSubCollectionToGem(gem, subCategoryName) {
+  if (!gem.subCollections) {
+    gem.subCollections = [];
+  }
+
+  if (!gem.subCollections.includes(subCategoryName)) {
+    gem.subCollections.push(subCategoryName);
+  }
+
+  gem.updated_at = getTimestamp();
+  return gem;
 }
