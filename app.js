@@ -646,12 +646,13 @@ async function renderCurrentScreen() {
           },
           onPreferenceAdd: async (value, state, collections) => {
             // Check for duplicates before creating new gem
-            const existingGems = AppState.content?.preferences?.items || [];
+            try {
+              const existingGems = AppState.content?.preferences?.items || [];
 
-            // Check for similar gems
-            const duplicate = await checkForDuplicates(value, existingGems, 80);
+              // Check for similar gems
+              const duplicate = await checkForDuplicates(value, existingGems, 80);
 
-            if (duplicate) {
+              if (duplicate) {
               // Show consolidation modal
               return new Promise((resolve) => {
                 const modal = createDuplicateConsolidationModal({
@@ -716,6 +717,10 @@ async function renderCurrentScreen() {
 
                 modal.show();
               });
+              }
+            } catch (error) {
+              console.error('[Duplicate Detection] Error checking for duplicates on add:', error);
+              // Fall through to normal save if duplicate detection fails
             }
 
             // No duplicate found, proceed normally
@@ -730,14 +735,15 @@ async function renderCurrentScreen() {
           onPreferenceUpdate: async (prefId, updates) => {
             // Check for duplicates before saving (only if updating value)
             if (updates.value) {
-              const existingGems = AppState.content?.preferences?.items || [];
-              // Filter out the current gem being edited
-              const otherGems = existingGems.filter(g => g.id !== prefId);
+              try {
+                const existingGems = AppState.content?.preferences?.items || [];
+                // Filter out the current gem being edited
+                const otherGems = existingGems.filter(g => g.id !== prefId);
 
-              // Check for similar gems
-              const duplicate = await checkForDuplicates(updates.value, otherGems, 80);
+                // Check for similar gems
+                const duplicate = await checkForDuplicates(updates.value, otherGems, 80);
 
-              if (duplicate) {
+                if (duplicate) {
                 // Show consolidation modal
                 return new Promise((resolve) => {
                   const modal = createDuplicateConsolidationModal({
@@ -795,6 +801,10 @@ async function renderCurrentScreen() {
 
                   modal.show();
                 });
+                }
+              } catch (error) {
+                console.error('[Duplicate Detection] Error checking for duplicates on update:', error);
+                // Fall through to normal save if duplicate detection fails
               }
             }
 
