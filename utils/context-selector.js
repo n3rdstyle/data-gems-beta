@@ -537,20 +537,41 @@ function formatPromptWithContext(originalPrompt, selectedGems) {
     return originalPrompt;
   }
 
-  let formatted = `"${originalPrompt}"\n`;
+  // New format: No quotes, double line break, each gem on separate line
+  let formatted = `${originalPrompt}\n\n`;
 
   selectedGems.forEach(gem => {
     // Determine type from collections or use generic "context"
     let type = 'context';
     if (gem.collections && gem.collections.length > 0) {
-      type = gem.collections[0].toLowerCase();
+      type = gem.collections[0].toLowerCase().replace(/\s+/g, '_');
     }
 
-    // Format: @{type} {data}
-    formatted += `\n@${type} ${gem.value}`;
+    // Compact the value: take first line or first 100 chars
+    let value = gem.value.trim();
+
+    // If multiline, take first meaningful line
+    const lines = value.split('\n').filter(line => line.trim().length > 0);
+    if (lines.length > 1) {
+      // For structured data (like Training logs), create a compact summary
+      value = lines[0]; // Take title/first line
+
+      // If it's a date header, include next line with actual content
+      if (value.includes('|') && lines.length > 1) {
+        value = `${value}: ${lines.slice(1, 3).join('; ')}`;
+      }
+    }
+
+    // Limit to 150 chars
+    if (value.length > 150) {
+      value = value.substring(0, 147) + '...';
+    }
+
+    // Format: @type value (each on new line)
+    formatted += `@${type} ${value}\n`;
   });
 
-  return formatted;
+  return formatted.trim(); // Remove trailing newline
 }
 
 /**
