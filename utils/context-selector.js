@@ -15,21 +15,23 @@ async function selectRelevantCategoriesWithAI(promptText, allCategories) {
     const session = await LanguageModel.create({
       language: 'en',
       systemPrompt: `You are a contextual category selector.
-Your goal is to identify all categories that are semantically or contextually relevant
-to the user's prompt, including both direct and supportive connections.
+Identify categories that could provide useful personal context for answering the user's request.
 
 Rules:
-1. Include a category if the prompt implies its topic, even indirectly.
-   Example: "prepare for summer" implies "Training" and "Nutrition".
-2. Prefer precision but do not abstain when weak signals exist.
-3. Output up to 3 categories, ranked by confidence (1–10).
-4. If no category shows any connection, return [].
+1. Focus on the PRIMARY topic first (what the query is directly about)
+2. Include supportive categories only if highly relevant
+3. When in doubt, be INCLUSIVE rather than strict
+4. Output 1-3 categories, ranked by confidence (1-10)
+5. ALWAYS return at least 1 category if any connection exists
 
-Output format (JSON array of objects):
-[{"category":"Training","score":9},
- {"category":"Nutrition","score":6}]
+Examples:
+- "healthy breakfast" → Nutrition(10), Health(7)
+- "post-workout meal" → Nutrition(10), Fitness(6)  [primary = food, not exercise]
+- "improve endurance" → Fitness(10), Sports(7), Health(6)
+- "Paris for 3 days" → Travel(10)
+- "project management tools" → Productivity(10), Work(7), Technology(6)
 
-Purpose: map the prompt into specific, atomic knowledge domains.`
+Output JSON only: [{"category":"Nutrition","score":10}]`
     });
 
     const categoriesStr = allCategories.join(', ');
@@ -127,19 +129,21 @@ async function selectRelevantSubCategoriesWithAI(promptText, availableSubCategor
     const session = await LanguageModel.create({
       language: 'en',
       systemPrompt: `You are a contextual SubCategory selector.
-Your goal is to identify specific SubCategories that are directly relevant to the user's prompt.
+Select SubCategories that contain useful personal preferences for this query.
 
 Rules:
-1. Only select SubCategories that are DIRECTLY related to the prompt topic.
-2. Be specific - if prompt is about "shoes", select fashion_style/fashion_brands, NOT fashion_colors.
-3. Output up to 3 SubCategories, ranked by relevance (1–10).
-4. If no SubCategory is highly relevant, return [].
+1. Select SubCategories that are DIRECTLY relevant to the query topic
+2. Include SubCategories that provide useful background context
+3. Output 3-5 SubCategories, ranked by relevance (1-10)
+4. When unsure, be INCLUSIVE - it's better to include than exclude
 
-Output format (JSON array of objects):
-[{"subCategory":"fashion_style","score":9},
- {"subCategory":"fashion_brands","score":7}]
+Examples:
+- "healthy breakfast" + Nutrition subcats → nutrition_preferences(9), nutrition_diet(7)
+- "post-workout meal" + Nutrition subcats → nutrition_preferences(9), nutrition_cooking(6)
+- "improve endurance" + Fitness subcats → fitness_endurance(10), fitness_training(8)
+- "comfortable shoes" + Fashion subcats → fashion_style(9), fashion_brands(7)
 
-Purpose: narrow down to the most specific, relevant knowledge for this query.`
+Output JSON only: [{"subCategory":"nutrition_preferences","score":9}]`
     });
 
     // Build human-readable SubCategory list
@@ -351,17 +355,17 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, pr
       // Ask AI which categories are relevant
       let relevantCategories = await selectRelevantCategoriesWithAI(promptText, allCategories);
 
-      // OPTIMIZATION: Select all high-confidence categories (score ≥8)
+      // OPTIMIZATION: Select all high-confidence categories (score ≥7)
       // This balances precision with recall
       if (relevantCategories.length > 0) {
-        const highConfidenceCategories = relevantCategories.filter(cat => cat.score >= 8);
+        const highConfidenceCategories = relevantCategories.filter(cat => cat.score >= 7);
 
         if (highConfidenceCategories.length > 0) {
           relevantCategories = highConfidenceCategories;
-          console.log(`[Context Selector] Selected ${relevantCategories.length} high-confidence categories (≥8):`,
+          console.log(`[Context Selector] Selected ${relevantCategories.length} high-confidence categories (≥7):`,
             relevantCategories.map(c => `${c.category}(${c.score})`).join(', '));
         } else {
-          // Fallback: If no category scored ≥8, take top 1
+          // Fallback: If no category scored ≥7, take top 1
           relevantCategories = [relevantCategories[0]];
           console.log(`[Context Selector] No high-confidence categories, using TOP 1: ${relevantCategories[0].category} (${relevantCategories[0].score})`);
         }
@@ -392,24 +396,25 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, pr
             );
 
             if (relevantSubCategories.length > 0) {
-              // Filter by high-confidence SubCategories (≥7)
-              const highConfidenceSubCategories = relevantSubCategories.filter(sub => sub.score >= 7);
+              // Filter by high-confidence SubCategories (≥6)
+              const highConfidenceSubCategories = relevantSubCategories.filter(sub => sub.score >= 6);
 
               if (highConfidenceSubCategories.length > 0) {
-                console.log(`[Context Selector] Stage 1.5: Selected ${highConfidenceSubCategories.length} high-confidence SubCategories (≥7):`,
+                console.log(`[Context Selector] Stage 1.5: Selected ${highConfidenceSubCategories.length} high-confidence SubCategories (≥6):`,
                   highConfidenceSubCategories.map(s => `${s.subCategory}(${s.score})`).join(', '));
 
                 // Filter gems by selected SubCategories
                 const subCategoryFiltered = filterGemsBySubCategories(candidateGems, highConfidenceSubCategories);
 
-                if (subCategoryFiltered.length > 0) {
+                // Only apply SubCategory filter if it returns at least 3 gems
+                if (subCategoryFiltered.length >= 3) {
                   candidateGems = subCategoryFiltered;
                   console.log(`[Context Selector] Stage 1.5: Reduced to ${candidateGems.length} gems (${((1 - candidateGems.length / filterGemsByCategories(dataGems, relevantCategories).length) * 100).toFixed(1)}% reduction)`);
                 } else {
-                  console.log(`[Context Selector] Stage 1.5: SubCategory filter too strict, keeping all ${candidateGems.length} category-filtered gems`);
+                  console.log(`[Context Selector] Stage 1.5: Only ${subCategoryFiltered.length} gems after SubCategory filter, keeping all ${candidateGems.length} category-filtered gems`);
                 }
               } else {
-                console.log(`[Context Selector] Stage 1.5: No high-confidence SubCategories (all < 7), skipping SubCategory filter`);
+                console.log(`[Context Selector] Stage 1.5: No high-confidence SubCategories (all < 6), skipping SubCategory filter`);
               }
             } else {
               console.log(`[Context Selector] Stage 1.5: AI returned no relevant SubCategories`);
@@ -629,7 +634,23 @@ Your rating (just the number):`;
 
     console.log(`[Context Selector] Found ${results.length} gems with score ≥7`);
 
-    console.log(`[Context Selector] Selected ${results.length} gems (scores: ${scoredGems.slice(0, 5).map(s => s.score).join(', ')}...)`);
+    // Deduplicate gems by ID to prevent repetition
+    const seenIds = new Set();
+    const beforeDedup = results.length;
+    results = results.filter(gem => {
+      if (seenIds.has(gem.id)) {
+        console.log(`[Context Selector] Skipping duplicate gem: ${gem.value.substring(0, 40)}...`);
+        return false;
+      }
+      seenIds.add(gem.id);
+      return true;
+    });
+
+    if (beforeDedup !== results.length) {
+      console.log(`[Context Selector] Removed ${beforeDedup - results.length} duplicate gems`);
+    }
+
+    console.log(`[Context Selector] Selected ${results.length} unique gems (scores: ${scoredGems.slice(0, 5).map(s => s.score).join(', ')}...)`);
 
     return results;
 
