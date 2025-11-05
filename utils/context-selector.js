@@ -292,8 +292,12 @@ gem = "Favorite cuisine: Italian" → 0`
     // Score each candidate gem SEQUENTIALLY (not parallel - AI sessions don't handle parallel well)
     const scoredGems = [];
 
-    for (let index = 0; index < candidateGems.length; index++) {
-      const gem = candidateGems[index];
+    // TESTING: Only process first 5 gems to test if session state is the issue
+    const gemsToScore = candidateGems.slice(0, 5);
+    console.log(`[Context Selector] TESTING MODE: Only scoring first ${gemsToScore.length} gems`);
+
+    for (let index = 0; index < gemsToScore.length; index++) {
+      const gem = gemsToScore[index];
       try {
         // Build prompt with category context
         const category = gem._matchedCategory || 'unknown';
@@ -305,15 +309,13 @@ Data: "${gem.value.substring(0, 200)}"
 
 Rate relevance (0-10):`; // Simplified format - just user intent + data
 
-        // Debug: log first few prompts
-        if (index < 3) {
-          console.log(`[Context Selector] Gem ${index + 1} full context:`, {
-            category,
-            categoryConfidence,
-            gemValue: gem.value.substring(0, 100) + '...',
-            hasMatchedCategory: gem._matchedCategory !== undefined
-          });
-        }
+        // Debug: log ALL test gems
+        console.log(`[Context Selector] Gem ${index + 1} full context:`, {
+          category,
+          categoryConfidence,
+          gemValue: gem.value.substring(0, 100) + '...',
+          hasMatchedCategory: gem._matchedCategory !== undefined
+        });
 
         // Add timeout per gem (5 seconds max - increased from 3s)
         const timeoutPromise = new Promise((resolve) => {
@@ -330,10 +332,8 @@ Rate relevance (0-10):`; // Simplified format - just user intent + data
         const numberMatch = cleaned.match(/\d+/);
         const score = numberMatch ? parseInt(numberMatch[0]) : 0;
 
-        // Debug logging for first few gems
-        if (index < 3) {
-          console.log(`[Context Selector] Gem ${index + 1} - Response: "${cleaned}" → Score: ${score}`);
-        }
+        // Debug logging for ALL test gems
+        console.log(`[Context Selector] Gem ${index + 1} - Response: "${cleaned}" → Score: ${score}`);
 
         scoredGems.push({
           gem,
