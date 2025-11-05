@@ -289,61 +289,62 @@ gem = "Protein intake: 160g/day"  → 7
 gem = "Favorite cuisine: Italian" → 0`
     });
 
-    // Score each candidate gem with timeout per gem
-    const scoredGems = await Promise.all(
-      candidateGems.map(async (gem, index) => {
-        try {
-          // Build prompt with category context
-          const category = gem._matchedCategory || 'unknown';
-          const categoryConfidence = gem._categoryConfidence || 5;
+    // Score each candidate gem SEQUENTIALLY (not parallel - AI sessions don't handle parallel well)
+    const scoredGems = [];
 
-          const prompt = `prompt = "${promptText}"
+    for (let index = 0; index < candidateGems.length; index++) {
+      const gem = candidateGems[index];
+      try {
+        // Build prompt with category context
+        const category = gem._matchedCategory || 'unknown';
+        const categoryConfidence = gem._categoryConfidence || 5;
+
+        const prompt = `prompt = "${promptText}"
 category = "${category}"
 category_confidence = ${categoryConfidence}
 gem = "${gem.value.substring(0, 200)}"
 
 Score (0-10):`; // Truncate gem value to 200 chars, remove "Relevance score:" text
 
-          // Debug: log first few prompts
-          if (index < 3) {
-            console.log(`[Context Selector] Gem ${index + 1} full context:`, {
-              category,
-              categoryConfidence,
-              gemValue: gem.value.substring(0, 100) + '...',
-              hasMatchedCategory: gem._matchedCategory !== undefined
-            });
-          }
-
-          // Add timeout per gem (5 seconds max - increased from 3s)
-          const timeoutPromise = new Promise((resolve) => {
-            setTimeout(() => resolve('0'), 5000);
+        // Debug: log first few prompts
+        if (index < 3) {
+          console.log(`[Context Selector] Gem ${index + 1} full context:`, {
+            category,
+            categoryConfidence,
+            gemValue: gem.value.substring(0, 100) + '...',
+            hasMatchedCategory: gem._matchedCategory !== undefined
           });
-
-          const response = await Promise.race([
-            session.prompt(prompt),
-            timeoutPromise
-          ]);
-
-          // More robust parsing
-          const cleaned = response.trim();
-          const numberMatch = cleaned.match(/\d+/);
-          const score = numberMatch ? parseInt(numberMatch[0]) : 0;
-
-          // Debug logging for first few gems
-          if (index < 3) {
-            console.log(`[Context Selector] Gem ${index + 1} - Response: "${cleaned}" → Score: ${score}`);
-          }
-
-          return {
-            gem,
-            score: isNaN(score) ? 0 : Math.min(score, 10) // Cap at 10
-          };
-        } catch (error) {
-          console.warn('[Context Selector] Error scoring gem:', error);
-          return { gem, score: 0 };
         }
-      })
-    );
+
+        // Add timeout per gem (5 seconds max - increased from 3s)
+        const timeoutPromise = new Promise((resolve) => {
+          setTimeout(() => resolve('0'), 5000);
+        });
+
+        const response = await Promise.race([
+          session.prompt(prompt),
+          timeoutPromise
+        ]);
+
+        // More robust parsing
+        const cleaned = response.trim();
+        const numberMatch = cleaned.match(/\d+/);
+        const score = numberMatch ? parseInt(numberMatch[0]) : 0;
+
+        // Debug logging for first few gems
+        if (index < 3) {
+          console.log(`[Context Selector] Gem ${index + 1} - Response: "${cleaned}" → Score: ${score}`);
+        }
+
+        scoredGems.push({
+          gem,
+          score: isNaN(score) ? 0 : Math.min(score, 10) // Cap at 10
+        });
+      } catch (error) {
+        console.warn('[Context Selector] Error scoring gem:', error);
+        scoredGems.push({ gem, score: 0 });
+      }
+    }
 
     // Clean up session
     await session.destroy();
