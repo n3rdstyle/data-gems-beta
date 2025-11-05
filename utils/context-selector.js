@@ -61,7 +61,7 @@ Respond with JSON array only:`;
         scoreType: typeof item?.score
       })));
 
-      // Validate and normalize format - expecting [{category, score}]
+      // Validate and normalize format - expecting [{category, score}] or [{category, confidence}]
       const normalized = categories
         .filter(item => {
           // Handle both old format (string) and new format (object)
@@ -70,13 +70,17 @@ Respond with JSON array only:`;
             return true;
           }
 
-          // Check if item has required properties
-          const isValid = item && typeof item.category === 'string' && typeof item.score === 'number';
+          // Check if item has required properties (accept both 'score' and 'confidence')
+          const hasCategory = item && typeof item.category === 'string';
+          const hasScore = typeof item.score === 'number';
+          const hasConfidence = typeof item.confidence === 'number';
+          const isValid = hasCategory && (hasScore || hasConfidence);
 
           if (!isValid && item) {
             console.warn('[Context Selector] Invalid category object:', item, {
-              hasCategory: typeof item.category === 'string',
-              hasScore: typeof item.score === 'number'
+              hasCategory,
+              hasScore,
+              hasConfidence
             });
           }
 
@@ -87,9 +91,13 @@ Respond with JSON array only:`;
           if (typeof item === 'string') {
             return { category: item, score: 8 }; // Default score for old format
           }
+
+          // Accept both 'score' and 'confidence' properties
+          const scoreValue = item.score !== undefined ? item.score : item.confidence;
+
           return {
             category: item.category,
-            score: Math.max(1, Math.min(10, item.score)) // Clamp to 1-10
+            score: Math.max(1, Math.min(10, scoreValue)) // Clamp to 1-10
           };
         });
 
@@ -259,7 +267,11 @@ Rules:
    - 0–2 : Not relevant.
 2. Use both explicit and implied meaning, not keyword overlap.
 3. Optionally use the provided category_confidence as a weak signal of overall contextual fit.
-4. Output only a single number from 0 to 10 — no text, no explanation, no markdown.
+
+CRITICAL OUTPUT FORMAT:
+- Output ONLY a single digit or number: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, or 10
+- NO explanations, NO text, NO markdown, NO "Relevance score:", NO formatting
+- Just the raw number, nothing else
 
 Examples:
 prompt = "plan my workout"
