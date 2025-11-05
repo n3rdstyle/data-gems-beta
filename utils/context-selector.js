@@ -303,11 +303,20 @@ gem = "Favorite cuisine: Italian" → 0`
         const category = gem._matchedCategory || 'unknown';
         const categoryConfidence = gem._categoryConfidence || 5;
 
-        const prompt = `User wants: "${promptText}"
+        const prompt = `Task: Rate how relevant this data is for the user's request.
+
+User request: "${promptText}"
 
 Data: "${gem.value.substring(0, 200)}"
 
-Rate relevance (0-10):`; // Simplified format - just user intent + data
+Relevance scale:
+- 10 = Perfectly answers the request
+- 7-9 = Very helpful
+- 4-6 = Somewhat related
+- 1-3 = Barely related
+- 0 = Not related
+
+Your rating (just the number):`;
 
         // Debug: log ALL test gems
         console.log(`[Context Selector] Gem ${index + 1} full context:`, {
