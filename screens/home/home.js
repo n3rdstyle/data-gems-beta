@@ -43,6 +43,7 @@ function createHome(options = {}) {
     getAutoCategorizeEnabled = null, // Getter function for auto-categorize setting
     onAutoCategorizeToggle = null,
     onBulkAutoCategorize = null,
+    onMigrateSubCategories = null,  // NEW: SubCategory migration callback
     isBetaUser = false,
     onJoinBeta = null,
     onRevokeBeta = null
@@ -187,6 +188,7 @@ function createHome(options = {}) {
       autoCategorizeEnabled: getAutoCategorizeEnabled ? getAutoCategorizeEnabled() : true,
       onAutoCategorizeToggle: onAutoCategorizeToggle,
       onBulkAutoCategorize: onBulkAutoCategorize,
+      onMigrateSubCategories: onMigrateSubCategories,  // NEW: Pass through callback
       isBetaUser: isBetaUser,
       onJoinBeta: onJoinBeta,
       onRevokeBeta: onRevokeBeta
