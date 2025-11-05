@@ -207,12 +207,20 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5) {
       // Ask AI which categories are relevant
       let relevantCategories = await selectRelevantCategoriesWithAI(promptText, allCategories);
 
-      // OPTIMIZATION: Select only the TOP 1 most relevant category
-      // This dramatically reduces gems to score (e.g., 456 → ~20-80)
+      // OPTIMIZATION: Select all high-confidence categories (score ≥8)
+      // This balances precision with recall
       if (relevantCategories.length > 0) {
-        const topCategory = relevantCategories[0]; // Already sorted by score
-        relevantCategories = [topCategory];
-        console.log(`[Context Selector] Selected TOP 1 category: ${topCategory.category} (confidence: ${topCategory.score})`);
+        const highConfidenceCategories = relevantCategories.filter(cat => cat.score >= 8);
+
+        if (highConfidenceCategories.length > 0) {
+          relevantCategories = highConfidenceCategories;
+          console.log(`[Context Selector] Selected ${relevantCategories.length} high-confidence categories (≥8):`,
+            relevantCategories.map(c => `${c.category}(${c.score})`).join(', '));
+        } else {
+          // Fallback: If no category scored ≥8, take top 1
+          relevantCategories = [relevantCategories[0]];
+          console.log(`[Context Selector] No high-confidence categories, using TOP 1: ${relevantCategories[0].category} (${relevantCategories[0].score})`);
+        }
       }
 
       if (relevantCategories.length > 0) {
