@@ -52,6 +52,14 @@ Respond with JSON array only:`;
     if (match) {
       const categories = JSON.parse(match[0]);
       console.log('[Context Selector] AI raw response:', categories);
+      console.log('[Context Selector] AI raw response type check:', categories.map(item => ({
+        item,
+        type: typeof item,
+        hasCategory: item?.category !== undefined,
+        hasScore: item?.score !== undefined,
+        categoryType: typeof item?.category,
+        scoreType: typeof item?.score
+      })));
 
       // Validate and normalize format - expecting [{category, score}]
       const normalized = categories
@@ -61,7 +69,18 @@ Respond with JSON array only:`;
             console.warn('[Context Selector] Old format detected, converting:', item);
             return true;
           }
-          return item && typeof item.category === 'string' && typeof item.score === 'number';
+
+          // Check if item has required properties
+          const isValid = item && typeof item.category === 'string' && typeof item.score === 'number';
+
+          if (!isValid && item) {
+            console.warn('[Context Selector] Invalid category object:', item, {
+              hasCategory: typeof item.category === 'string',
+              hasScore: typeof item.score === 'number'
+            });
+          }
+
+          return isValid;
         })
         .map(item => {
           // Convert old format to new format
