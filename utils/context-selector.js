@@ -280,12 +280,10 @@ Provide your rating and optionally a brief reason.`
     // Score each candidate gem SEQUENTIALLY (not parallel - AI sessions don't handle parallel well)
     const scoredGems = [];
 
-    // TESTING: Only process first 5 gems to test if session state is the issue
-    const gemsToScore = candidateGems.slice(0, 5);
-    console.log(`[Context Selector] TESTING MODE: Only scoring first ${gemsToScore.length} gems`);
+    console.log(`[Context Selector] Scoring ALL ${candidateGems.length} filtered gems`);
 
-    for (let index = 0; index < gemsToScore.length; index++) {
-      const gem = gemsToScore[index];
+    for (let index = 0; index < candidateGems.length; index++) {
+      const gem = candidateGems[index];
       try {
         // Build prompt with category context
         const category = gem._matchedCategory || 'unknown';
@@ -306,13 +304,14 @@ Relevance scale:
 
 Your rating (just the number):`;
 
-        // Debug: log ALL test gems
-        console.log(`[Context Selector] Gem ${index + 1} full context:`, {
-          category,
-          categoryConfidence,
-          gemValue: gem.value.substring(0, 100) + '...',
-          hasMatchedCategory: gem._matchedCategory !== undefined
-        });
+        // Debug: log first 10 gems, then every 50th
+        if (index < 10 || index % 50 === 0) {
+          console.log(`[Context Selector] Gem ${index + 1}/${candidateGems.length}:`, {
+            category,
+            categoryConfidence,
+            gemValue: gem.value.substring(0, 80) + '...'
+          });
+        }
 
         // NO TIMEOUT for testing - let AI take as long as it needs
         const response = await session.prompt(prompt);
@@ -342,9 +341,15 @@ Your rating (just the number):`;
           }
         }
 
-        // Debug logging for ALL test gems - FULL RESPONSE
-        console.log(`[Context Selector] Gem ${index + 1} - FULL Response:`, cleaned);
-        console.log(`[Context Selector] Gem ${index + 1} - Extracted Score: ${score}`);
+        // Debug logging for first 10 gems, then every 50th
+        if (index < 10 || index % 50 === 0) {
+          console.log(`[Context Selector] Gem ${index + 1} Score: ${score}`, cleaned.length > 50 ? `(response: ${cleaned.substring(0, 50)}...)` : `(response: ${cleaned})`);
+        }
+
+        // Log high-scoring gems (≥7)
+        if (score >= 7) {
+          console.log(`[Context Selector] ✓ HIGH SCORE ${score}: "${gem.value.substring(0, 80)}..."`);
+        }
 
         scoredGems.push({
           gem,
