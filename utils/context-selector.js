@@ -14,13 +14,26 @@ async function selectRelevantCategoriesWithAI(promptText, allCategories) {
     // Create AI session for category selection
     const session = await LanguageModel.create({
       language: 'en',
-      systemPrompt: `You are a category relevance analyzer. Given a user prompt and a list of categories,
-identify which categories are relevant for finding useful context.
+      systemPrompt: `You are an ULTRA-STRICT category relevance analyzer.
 
-Respond with ONLY a JSON array of relevant category names, nothing else.
-Example: ["Training", "Health", "Food"]
+CRITICAL RULES:
+1. Select ONLY categories with DIRECT, SPECIFIC connection to the prompt
+2. NEVER select these generic categories: "Lifestyle", "Personal", "Preferences", "General", "Other", "Miscellaneous"
+3. NEVER select categories containing "&" (like "Lifestyle & Preferences") - these are too broad
+4. Maximum 2 categories (prefer 1 if possible)
+5. When uncertain, return EMPTY array [] rather than guessing
 
-If unsure, include the category. It's better to be inclusive than to miss relevant context.`
+GOOD Examples:
+- "plan my workout" → ["Training"]
+- "cook dinner" → ["Food"]
+- "book a hotel" → ["Travel"]
+
+BAD Examples (DO NOT DO THIS):
+- "plan my workout" → ["Lifestyle & Preferences"] ❌
+- "cook dinner" → ["Lifestyle", "Personal"] ❌
+- ANY category with "&" symbol ❌
+
+Output: JSON array ONLY. If no specific category fits, return [].`
     });
 
     const categoriesStr = allCategories.join(', ');
@@ -28,7 +41,8 @@ If unsure, include the category. It's better to be inclusive than to miss releva
 
 Available categories: ${categoriesStr}
 
-Which categories are relevant? Respond with JSON array only:`;
+Select ONLY specific, directly relevant categories. EXCLUDE generic categories and any with "&" symbol.
+Respond with JSON array only:`;
 
     console.log('[Context Selector] Asking AI for relevant categories...');
 
@@ -41,8 +55,27 @@ Which categories are relevant? Respond with JSON array only:`;
 
     if (match) {
       const categories = JSON.parse(match[0]);
-      console.log('[Context Selector] AI selected categories:', categories);
-      return categories.filter(cat => typeof cat === 'string');
+      console.log('[Context Selector] AI raw response:', categories);
+
+      // SAFETY FILTER: Explicitly exclude generic categories that might slip through
+      const genericKeywords = ['lifestyle', 'personal', 'preferences', 'general', 'other', 'miscellaneous', '&'];
+      const filtered = categories.filter(cat => {
+        if (typeof cat !== 'string') return false;
+
+        const catLower = cat.toLowerCase();
+
+        // Exclude if contains any generic keyword
+        const isGeneric = genericKeywords.some(keyword => catLower.includes(keyword));
+        if (isGeneric) {
+          console.log('[Context Selector] Filtered out generic category:', cat);
+          return false;
+        }
+
+        return true;
+      });
+
+      console.log('[Context Selector] AI selected categories (after filtering):', filtered);
+      return filtered;
     }
 
     console.warn('[Context Selector] Could not parse category response:', response);
@@ -61,22 +94,42 @@ Which categories are relevant? Respond with JSON array only:`;
  * @returns {Array} Filtered gems
  */
 function filterGemsByCategories(dataGems, categories) {
+  console.log('[Context Selector] Filtering gems by categories:', categories);
+  console.log('[Context Selector] Total gems before filter:', dataGems.length);
+
   if (!categories || categories.length === 0) {
+    console.log('[Context Selector] No categories provided, returning all gems');
     return dataGems;
   }
 
   const categoriesLower = categories.map(cat => cat.toLowerCase());
+  console.log('[Context Selector] Categories (lowercase):', categoriesLower);
 
-  return dataGems.filter(gem => {
+  const filtered = dataGems.filter(gem => {
     if (!gem.collections || gem.collections.length === 0) {
       return false; // Skip gems without categories
     }
 
     // Check if any of the gem's collections match the selected categories
-    return gem.collections.some(col =>
+    const matches = gem.collections.some(col =>
       categoriesLower.includes(col.toLowerCase())
     );
+
+    return matches;
   });
+
+  console.log('[Context Selector] Total gems after filter:', filtered.length);
+
+  // Log sample of filtered gems
+  if (filtered.length > 0) {
+    const samples = filtered.slice(0, 3).map(g => ({
+      collections: g.collections,
+      value: g.value.substring(0, 50) + '...'
+    }));
+    console.log('[Context Selector] Sample filtered gems:', samples);
+  }
+
+  return filtered;
 }
 
 /**
@@ -154,6 +207,13 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5) {
       candidateGems = [...favorited, ...keywordFiltered];
 
       console.log(`[Context Selector] Reduced to ${candidateGems.length} gems (${favorited.length} favorited + ${keywordFiltered.length} keyword-matched)`);
+
+      // QUALITY CHECK: If keyword filter reduced too much (e.g., 200 → 1), categories were probably wrong
+      if (candidateGems.length < 5 && dataGems.length > 50) {
+        console.log(`[Context Selector] Warning: Very few gems after keyword filter - category selection may be too broad`);
+        console.log(`[Context Selector] Falling back to keyword-only matching on all gems`);
+        return selectRelevantGemsByKeywords(promptText, dataGems, maxResults);
+      }
     }
 
     // If no candidates, fall back to keyword matching on all gems
@@ -235,24 +295,27 @@ Input: "Favorite color blue" for "plan workout" → Output: 0`
       .slice(0, maxResults)
       .map(item => item.gem);
 
-    // FALLBACK: If AI gave all 0 scores, fall back to keyword matching
+    // FALLBACK: If AI gave all 0 scores, be smarter about what we return
     if (results.length === 0 && candidateGems.length > 0) {
-      console.log('[Context Selector] AI scored all gems as 0, falling back to keyword matching');
-      // Try keyword matching on the category-filtered gems
+      console.log('[Context Selector] AI scored all gems as 0, trying fallback strategies...');
+
+      // Try keyword matching on the category-filtered gems (but with stricter threshold)
       const keywordResults = selectRelevantGemsByKeywords(promptText, candidateGems, maxResults);
+
+      // Only use keyword results if they have decent scores
       if (keywordResults.length > 0) {
-        console.log(`[Context Selector] Keyword matching found ${keywordResults.length} gems`);
+        console.log(`[Context Selector] Keyword matching found ${keywordResults.length} potential gems`);
         results = keywordResults;
       } else {
-        // Last resort: take favorited gems from candidates
+        // No good keyword matches - try favorited gems
         const favorited = candidateGems.filter(gem => gem.state === 'favorited').slice(0, maxResults);
         if (favorited.length > 0) {
-          console.log(`[Context Selector] Using ${favorited.length} favorited gems as last resort`);
+          console.log(`[Context Selector] Using ${favorited.length} favorited gems`);
           results = favorited;
         } else {
-          // Really last resort: first N candidates
-          console.log(`[Context Selector] Using first ${maxResults} candidates as last resort`);
-          results = candidateGems.slice(0, maxResults);
+          // Give up - return empty rather than random irrelevant gems
+          console.log('[Context Selector] No relevant gems found, returning empty');
+          results = [];
         }
       }
     }
@@ -275,6 +338,8 @@ Input: "Favorite color blue" for "plan workout" → Output: 0`
  * @returns {Array} Array of selected data gems
  */
 function selectRelevantGemsByKeywords(promptText, dataGems, maxResults = 5) {
+  console.log(`[Context Selector] Keyword matching on ${dataGems.length} gems for prompt: "${promptText}"`);
+
   if (!dataGems || dataGems.length === 0) {
     return [];
   }
@@ -288,6 +353,8 @@ function selectRelevantGemsByKeywords(promptText, dataGems, maxResults = 5) {
   const keywords = promptLower
     .split(/\W+/)
     .filter(word => word.length > 2 && !commonWords.has(word));
+
+  console.log('[Context Selector] Extracted keywords:', keywords);
 
   // Score each gem based on keyword matches
   const scoredGems = dataGems.map(gem => {
@@ -320,11 +387,20 @@ function selectRelevantGemsByKeywords(promptText, dataGems, maxResults = 5) {
   });
 
   // Sort by score and return top N
-  return scoredGems
+  const results = scoredGems
     .filter(item => item.score > 0) // Only include items with some relevance
     .sort((a, b) => b.score - a.score)
-    .slice(0, maxResults)
-    .map(item => item.gem);
+    .slice(0, maxResults);
+
+  console.log(`[Context Selector] Keyword matching found ${results.length} gems with scores:`,
+    results.slice(0, 5).map(r => ({
+      score: r.score,
+      collections: r.gem.collections,
+      value: r.gem.value.substring(0, 40) + '...'
+    }))
+  );
+
+  return results.map(item => item.gem);
 }
 
 /**
