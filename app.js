@@ -761,6 +761,35 @@ async function renderCurrentScreen() {
             // Refresh UI
             renderCurrentScreen();
           },
+          onMigrateSubCategories: async () => {
+            // Confirm with user
+            const confirmed = confirm('Migrate Fashion gems to SubCategories?\n\nThis will organize your Fashion gems into granular categories (shoes, tshirts, etc.) for better AI context matching.\n\nThis may take 1-2 minutes.');
+            if (!confirmed) return;
+
+            try {
+              // Show progress
+              alert('Migration started... This will take 1-2 minutes. You will see a confirmation when done.');
+
+              // Run migration
+              const results = await migrateToSubCategories(AppState, (current, total, message) => {
+                console.log(`[Migration Progress] ${current}/${total}: ${message}`);
+              });
+
+              // Save updated profile
+              await saveData();
+
+              // Show results
+              const message = `✓ Migration Complete!\n\nProcessed: ${results.processed}\nMigrated: ${results.migrated}\nSkipped: ${results.skipped}\nErrors: ${results.errors}\n\nNew SubCategories: ${results.subCategoriesCreated.length}\n(${results.subCategoriesCreated.join(', ')})\n\nDuration: ${(results.duration / 1000).toFixed(1)}s`;
+              alert(message);
+
+              // Refresh UI
+              renderCurrentScreen();
+
+            } catch (error) {
+              console.error('[Migration] Error:', error);
+              alert(`Migration failed: ${error.message}`);
+            }
+          },
           isBetaUser: homeIsBetaUser,
           onJoinBeta: () => {
             console.log('🎯 [Home] Join Beta button clicked from Settings!');

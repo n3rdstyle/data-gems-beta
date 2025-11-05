@@ -28,6 +28,7 @@ function createSettings(options = {}) {
     autoCategorizeEnabled = true,
     onAutoCategorizeToggle = null,
     onBulkAutoCategorize = null,
+    onMigrateSubCategories = null,  // NEW: SubCategory migration
     isBetaUser = false,
     onJoinBeta = null,
     onRevokeBeta = null
@@ -199,6 +200,20 @@ function createSettings(options = {}) {
     }
   });
   dataCenterSection.appendChild(bulkAutoCategorize.element);
+
+  // NEW: SubCategory Migration Button
+  const migrateSubCategories = createActionButton({
+    label: 'Migrate to SubCategories (Beta)',
+    caption: 'Organize Fashion gems into granular subcategories (shoes, tshirts, etc.) for better AI context matching',
+    variant: 'cta',
+    ctaLabel: 'Migrate',
+    onClick: () => {
+      if (onMigrateSubCategories) {
+        onMigrateSubCategories();
+      }
+    }
+  });
+  dataCenterSection.appendChild(migrateSubCategories.element);
 
   const dataCenterDivider = createDivider();
   dataCenterSection.appendChild(dataCenterDivider.element);
