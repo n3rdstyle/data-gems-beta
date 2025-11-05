@@ -172,6 +172,8 @@ Respond with JSON array only:`;
     if (match) {
       const subCategories = JSON.parse(match[0]);
       console.log('[Context Selector] AI raw SubCategory response:', subCategories);
+      console.log('[Context Selector] DEBUG: First item structure:', JSON.stringify(subCategories[0]));
+      console.log('[Context Selector] DEBUG: Available SubCategories:', availableSubCategories);
 
       // Validate and normalize
       const normalized = subCategories
@@ -181,12 +183,22 @@ Respond with JSON array only:`;
             return availableSubCategories.includes(item);
           }
 
-          const hasSubCategory = item && typeof item.subCategory === 'string';
-          const hasScore = typeof item.score === 'number';
-          const isValid = hasSubCategory && hasScore && availableSubCategories.includes(item.subCategory);
+          // Handle both "subCategory" and "subcategory" (case insensitive)
+          const subCatKey = item.subCategory || item.subcategory || item.SubCategory || item.sub_category;
+          const scoreValue = item.score || item.confidence;
+
+          const hasSubCategory = subCatKey && typeof subCatKey === 'string';
+          const hasScore = typeof scoreValue === 'number';
+          const isValid = hasSubCategory && hasScore && availableSubCategories.includes(subCatKey);
 
           if (!isValid && item) {
-            console.warn('[Context Selector] Invalid SubCategory object:', item);
+            console.warn('[Context Selector] Invalid SubCategory object:', item, {
+              subCatKey,
+              scoreValue,
+              hasSubCategory,
+              hasScore,
+              inRegistry: availableSubCategories.includes(subCatKey)
+            });
           }
 
           return isValid;
@@ -196,9 +208,13 @@ Respond with JSON array only:`;
             return { subCategory: item, score: 8 };
           }
 
+          // Handle both "subCategory" and "subcategory"
+          const subCatKey = item.subCategory || item.subcategory || item.SubCategory || item.sub_category;
+          const scoreValue = item.score || item.confidence;
+
           return {
-            subCategory: item.subCategory,
-            score: Math.max(1, Math.min(10, item.score))
+            subCategory: subCatKey,
+            score: Math.max(1, Math.min(10, scoreValue))
           };
         });
 
