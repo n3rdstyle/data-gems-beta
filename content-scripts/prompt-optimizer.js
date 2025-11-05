@@ -105,7 +105,9 @@ function setPromptValue(text) {
   if (!promptElement) return;
 
   if (currentPlatform.isContentEditable) {
-    promptElement.textContent = text;
+    // Convert \n to <br> for contentEditable elements
+    const htmlText = text.replace(/\n/g, '<br>');
+    promptElement.innerHTML = htmlText;
 
     // Trigger input event
     const event = new Event('input', { bubbles: true });
