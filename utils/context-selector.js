@@ -299,12 +299,11 @@ gem = "Favorite cuisine: Italian" → 0`
         const category = gem._matchedCategory || 'unknown';
         const categoryConfidence = gem._categoryConfidence || 5;
 
-        const prompt = `prompt = "${promptText}"
-category = "${category}"
-category_confidence = ${categoryConfidence}
-gem = "${gem.value.substring(0, 200)}"
+        const prompt = `User wants: "${promptText}"
 
-Score (0-10):`; // Truncate gem value to 200 chars, remove "Relevance score:" text
+Data: "${gem.value.substring(0, 200)}"
+
+Rate relevance (0-10):`; // Simplified format - just user intent + data
 
         // Debug: log first few prompts
         if (index < 3) {
