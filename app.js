@@ -289,6 +289,12 @@ async function mergeImportedData(importedData) {
   const conflicts = [];
   const additions = [];
 
+  // Always import subCategoryRegistry if it exists in imported data
+  if (importedData.subCategoryRegistry) {
+    AppState.subCategoryRegistry = importedData.subCategoryRegistry;
+    console.log('[Import] SubCategory Registry imported:', Object.keys(importedData.subCategoryRegistry).length, 'SubCategories');
+  }
+
   // Check identity fields for conflicts
   const identityFields = ['name', 'subtitle', 'avatarImage', 'email', 'age', 'gender', 'location', 'description', 'languages'];
   identityFields.forEach(fieldName => {

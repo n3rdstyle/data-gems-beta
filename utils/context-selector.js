@@ -115,6 +115,103 @@ Respond with JSON array only:`;
 }
 
 /**
+ * Use AI to identify relevant SubCategories for a prompt with confidence scores
+ * @param {string} promptText - The user's prompt
+ * @param {Array} availableSubCategories - Array of available SubCategory keys (e.g., ['fashion_style', 'fashion_brands'])
+ * @param {Object} subCategoryRegistry - SubCategory registry with parent info
+ * @returns {Promise<Array<{subCategory: string, score: number}>>} Array of {subCategory, score} objects
+ */
+async function selectRelevantSubCategoriesWithAI(promptText, availableSubCategories, subCategoryRegistry) {
+  try {
+    // Create AI session for SubCategory selection
+    const session = await LanguageModel.create({
+      language: 'en',
+      systemPrompt: `You are a contextual SubCategory selector.
+Your goal is to identify specific SubCategories that are directly relevant to the user's prompt.
+
+Rules:
+1. Only select SubCategories that are DIRECTLY related to the prompt topic.
+2. Be specific - if prompt is about "shoes", select fashion_style/fashion_brands, NOT fashion_colors.
+3. Output up to 3 SubCategories, ranked by relevance (1–10).
+4. If no SubCategory is highly relevant, return [].
+
+Output format (JSON array of objects):
+[{"subCategory":"fashion_style","score":9},
+ {"subCategory":"fashion_brands","score":7}]
+
+Purpose: narrow down to the most specific, relevant knowledge for this query.`
+    });
+
+    // Build human-readable SubCategory list
+    const subCatDescriptions = availableSubCategories.map(key => {
+      const info = subCategoryRegistry[key];
+      return `${key} (${info.parent} > ${info.displayName})`;
+    }).join(', ');
+
+    const prompt = `User prompt: "${promptText}"
+
+Available SubCategories: ${subCatDescriptions}
+
+Select the most relevant SubCategories with confidence scores (1-10).
+Only include SubCategories that are DIRECTLY related to the query topic.
+Respond with JSON array only:`;
+
+    console.log('[Context Selector] Asking AI for relevant SubCategories...');
+
+    const response = await session.prompt(prompt);
+    await session.destroy();
+
+    // Parse response
+    const cleaned = response.trim().replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    const match = cleaned.match(/\[.*?\]/s);
+
+    if (match) {
+      const subCategories = JSON.parse(match[0]);
+      console.log('[Context Selector] AI raw SubCategory response:', subCategories);
+
+      // Validate and normalize
+      const normalized = subCategories
+        .filter(item => {
+          if (typeof item === 'string') {
+            console.warn('[Context Selector] Old format detected, converting:', item);
+            return availableSubCategories.includes(item);
+          }
+
+          const hasSubCategory = item && typeof item.subCategory === 'string';
+          const hasScore = typeof item.score === 'number';
+          const isValid = hasSubCategory && hasScore && availableSubCategories.includes(item.subCategory);
+
+          if (!isValid && item) {
+            console.warn('[Context Selector] Invalid SubCategory object:', item);
+          }
+
+          return isValid;
+        })
+        .map(item => {
+          if (typeof item === 'string') {
+            return { subCategory: item, score: 8 };
+          }
+
+          return {
+            subCategory: item.subCategory,
+            score: Math.max(1, Math.min(10, item.score))
+          };
+        });
+
+      console.log('[Context Selector] AI selected SubCategories with confidence:', normalized);
+      return normalized;
+    }
+
+    console.warn('[Context Selector] Could not parse SubCategory response:', response);
+    return [];
+
+  } catch (error) {
+    console.error('[Context Selector] Error selecting SubCategories:', error);
+    return [];
+  }
+}
+
+/**
  * Filter gems by categories
  * @param {Array} dataGems - Array of preference objects
  * @param {Array<{category: string, score: number}>} categoriesWithScores - Categories with confidence scores
@@ -155,6 +252,53 @@ function filterGemsByCategories(dataGems, categoriesWithScores) {
       value: g.value.substring(0, 50) + '...'
     }));
     console.log('[Context Selector] Sample filtered gems:', samples);
+  }
+
+  return filtered;
+}
+
+/**
+ * Filter gems by SubCategories
+ * @param {Array} dataGems - Array of preference objects
+ * @param {Array<{subCategory: string, score: number}>} subCategoriesWithScores - SubCategories with confidence scores
+ * @returns {Array} Filtered gems
+ */
+function filterGemsBySubCategories(dataGems, subCategoriesWithScores) {
+  console.log('[Context Selector] Filtering gems by SubCategories:', subCategoriesWithScores);
+  console.log('[Context Selector] Total gems before SubCategory filter:', dataGems.length);
+
+  if (!subCategoriesWithScores || subCategoriesWithScores.length === 0) {
+    console.log('[Context Selector] No SubCategories provided, returning all gems');
+    return dataGems;
+  }
+
+  // Extract SubCategory keys
+  const subCategoryKeys = subCategoriesWithScores.map(item => item.subCategory);
+  console.log('[Context Selector] SubCategories:', subCategoryKeys);
+
+  const filtered = dataGems.filter(gem => {
+    if (!gem.subCollections || gem.subCollections.length === 0) {
+      return false; // Skip gems without SubCategories
+    }
+
+    // Check if any of the gem's subCollections match the selected SubCategories
+    const matches = gem.subCollections.some(sub =>
+      subCategoryKeys.includes(sub)
+    );
+
+    return matches;
+  });
+
+  console.log('[Context Selector] Total gems after SubCategory filter:', filtered.length);
+
+  // Log sample of filtered gems
+  if (filtered.length > 0) {
+    const samples = filtered.slice(0, 3).map(g => ({
+      collections: g.collections,
+      subCollections: g.subCollections,
+      value: g.value.substring(0, 50) + '...'
+    }));
+    console.log('[Context Selector] Sample SubCategory-filtered gems:', samples);
   }
 
   return filtered;
@@ -228,30 +372,47 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, pr
         candidateGems = filterGemsByCategories(dataGems, relevantCategories);
         console.log(`[Context Selector] Filtered to ${candidateGems.length} gems in ${relevantCategories.length} relevant categories`);
 
-        // STAGE 1.5: SubCategory Filtering (Fashion only for now)
-        const hasFashion = relevantCategories.some(cat =>
-          cat.category.toLowerCase() === 'fashion' ||
-          cat.category.toLowerCase() === 'lifestyle & preferences'
-        );
+        // STAGE 1.5: SubCategory Filtering (ALL categories)
+        if (profile?.subCategoryRegistry && candidateGems.length > 0) {
+          // Get all SubCategories that belong to the selected Main Categories
+          const selectedCategoryNames = relevantCategories.map(c => c.category);
+          const availableSubCategories = Object.keys(profile.subCategoryRegistry).filter(subCatKey => {
+            const subCatInfo = profile.subCategoryRegistry[subCatKey];
+            return selectedCategoryNames.includes(subCatInfo.parent);
+          });
 
-        if (hasFashion && profile?.subCategoryRegistry) {
-          const fashionSubs = Object.keys(profile.subCategoryRegistry).filter(subCat =>
-            profile.subCategoryRegistry[subCat].parent === 'Fashion'
-          );
+          console.log(`[Context Selector] Stage 1.5: Found ${availableSubCategories.length} SubCategories for selected categories`);
 
-          if (fashionSubs.length > 0) {
-            console.log(`[Context Selector] Stage 1.5: Found ${fashionSubs.length} Fashion SubCategories:`, fashionSubs);
-
-            // Filter to gems that have subCollections
-            const gemsWithSubCollections = candidateGems.filter(gem =>
-              gem.subCollections && gem.subCollections.length > 0
+          if (availableSubCategories.length > 0) {
+            // Ask AI which SubCategories are relevant
+            const relevantSubCategories = await selectRelevantSubCategoriesWithAI(
+              promptText,
+              availableSubCategories,
+              profile.subCategoryRegistry
             );
 
-            if (gemsWithSubCollections.length > 0) {
-              console.log(`[Context Selector] ${gemsWithSubCollections.length} gems have SubCategories`);
-              candidateGems = gemsWithSubCollections;
+            if (relevantSubCategories.length > 0) {
+              // Filter by high-confidence SubCategories (≥7)
+              const highConfidenceSubCategories = relevantSubCategories.filter(sub => sub.score >= 7);
+
+              if (highConfidenceSubCategories.length > 0) {
+                console.log(`[Context Selector] Stage 1.5: Selected ${highConfidenceSubCategories.length} high-confidence SubCategories (≥7):`,
+                  highConfidenceSubCategories.map(s => `${s.subCategory}(${s.score})`).join(', '));
+
+                // Filter gems by selected SubCategories
+                const subCategoryFiltered = filterGemsBySubCategories(candidateGems, highConfidenceSubCategories);
+
+                if (subCategoryFiltered.length > 0) {
+                  candidateGems = subCategoryFiltered;
+                  console.log(`[Context Selector] Stage 1.5: Reduced to ${candidateGems.length} gems (${((1 - candidateGems.length / filterGemsByCategories(dataGems, relevantCategories).length) * 100).toFixed(1)}% reduction)`);
+                } else {
+                  console.log(`[Context Selector] Stage 1.5: SubCategory filter too strict, keeping all ${candidateGems.length} category-filtered gems`);
+                }
+              } else {
+                console.log(`[Context Selector] Stage 1.5: No high-confidence SubCategories (all < 7), skipping SubCategory filter`);
+              }
             } else {
-              console.log(`[Context Selector] No gems have SubCategories yet (migration not run or incomplete)`);
+              console.log(`[Context Selector] Stage 1.5: AI returned no relevant SubCategories`);
             }
           }
         }
@@ -657,7 +818,9 @@ async function optimizePromptWithContext(promptText, profile, useAI = true, maxG
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     selectRelevantCategoriesWithAI,
+    selectRelevantSubCategoriesWithAI,
     filterGemsByCategories,
+    filterGemsBySubCategories,
     selectRelevantGemsWithAI,
     selectRelevantGemsByKeywords,
     formatPromptWithContext,
