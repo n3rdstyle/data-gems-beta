@@ -112,15 +112,29 @@ function setPromptValue(text) {
   });
 
   if (currentPlatform.isContentEditable) {
-    // Convert \n to <br> for contentEditable elements
-    const htmlText = text.replace(/\n/g, '<br>');
+    // Clear existing content
+    promptElement.innerHTML = '';
+
+    // Split text into lines and create proper DOM structure
+    const lines = text.split('\n');
     console.log('[Data Gems] Converted to HTML:', {
-      htmlLength: htmlText.length,
-      hasBr: htmlText.includes('<br>'),
-      brCount: (htmlText.match(/<br>/g) || []).length,
-      preview: htmlText.substring(0, 200)
+      htmlLength: text.length,
+      lineCount: lines.length,
+      preview: text.substring(0, 200)
     });
-    promptElement.innerHTML = htmlText;
+
+    // Create text nodes and br elements
+    lines.forEach((line, index) => {
+      // Add text node
+      const textNode = document.createTextNode(line);
+      promptElement.appendChild(textNode);
+
+      // Add br element between lines (but not after last line)
+      if (index < lines.length - 1) {
+        const brElement = document.createElement('br');
+        promptElement.appendChild(brElement);
+      }
+    });
 
     // Trigger input event
     const event = new Event('input', { bubbles: true });
