@@ -547,24 +547,32 @@ function formatPromptWithContext(originalPrompt, selectedGems) {
       type = gem.collections[0].toLowerCase().replace(/\s+/g, '_');
     }
 
-    // Compact the value: take first line or first 100 chars
+    // Format the value with more complete information
     let value = gem.value.trim();
 
-    // If multiline, take first meaningful line
+    // If multiline, include more content
     const lines = value.split('\n').filter(line => line.trim().length > 0);
     if (lines.length > 1) {
-      // For structured data (like Training logs), create a compact summary
-      value = lines[0]; // Take title/first line
+      // For structured data (like Training/Protein logs), include all items
+      value = lines[0]; // Title/header line
 
-      // If it's a date header, include next line with actual content
-      if (value.includes('|') && lines.length > 1) {
-        value = `${value}: ${lines.slice(1, 3).join('; ')}`;
+      // Include all data lines (up to 8 items to keep it reasonable)
+      if (lines.length > 1) {
+        const dataLines = lines.slice(1, Math.min(lines.length, 9));
+        value = `${value}\n${dataLines.join('\n')}`;
       }
     }
 
-    // Limit to 150 chars
-    if (value.length > 150) {
-      value = value.substring(0, 147) + '...';
+    // More generous character limit for structured data
+    if (value.length > 400) {
+      // Try to cut at a natural line break
+      const truncated = value.substring(0, 397);
+      const lastNewline = truncated.lastIndexOf('\n');
+      if (lastNewline > 200) {
+        value = value.substring(0, lastNewline) + '\n...';
+      } else {
+        value = truncated + '...';
+      }
     }
 
     // Format: @type value (each on new line)
