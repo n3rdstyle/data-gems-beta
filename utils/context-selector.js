@@ -355,18 +355,25 @@ Provide your rating and optionally a brief reason.`
         const category = gem._matchedCategory || 'unknown';
         const categoryConfidence = gem._categoryConfidence || 5;
 
-        const prompt = `Task: Rate how relevant this data is for the user's request.
+        const prompt = `Task: Rate how useful this personal data would be as CONTEXT for an AI assistant answering the user's request.
+
+Context is useful if it helps the AI understand the user's preferences, background, or constraints - even if it doesn't directly answer the question.
 
 User request: "${promptText}"
 
-Data: "${gem.value.substring(0, 200)}"
+Personal data: "${gem.value.substring(0, 200)}"
 
 Relevance scale:
-- 10 = Perfectly answers the request
-- 7-9 = Very helpful
-- 4-6 = Somewhat related
-- 1-3 = Barely related
-- 0 = Not related
+- 10 = Extremely useful context (directly relevant to preferences/needs)
+- 7-9 = Very useful context (helps understand user's style/preferences)
+- 4-6 = Somewhat useful (provides background but not critical)
+- 1-3 = Minimally useful (weak connection)
+- 0 = Not useful (completely unrelated)
+
+Examples:
+- Request: "recommend shoes" + Data: "favorite shoe: white sneakers" → 9 (shows preferences!)
+- Request: "recommend shoes" + Data: "favorite color: blue" → 5 (background info)
+- Request: "recommend shoes" + Data: "favorite food: pizza" → 0 (unrelated)
 
 Your rating (just the number):`;
 
