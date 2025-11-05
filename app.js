@@ -766,17 +766,53 @@ async function renderCurrentScreen() {
             const confirmed = confirm('Migrate Fashion gems to SubCategories?\n\nThis will organize your Fashion gems into granular categories (shoes, tshirts, etc.) for better AI context matching.\n\nThis may take 1-2 minutes.');
             if (!confirmed) return;
 
-            try {
-              // Show progress
-              alert('Migration started... This will take 1-2 minutes. You will see a confirmation when done.');
+            // Create progress overlay
+            const progressOverlay = document.createElement('div');
+            progressOverlay.style.cssText = `
+              position: fixed;
+              top: 0;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              background: rgba(0, 0, 0, 0.8);
+              z-index: 10000;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              color: white;
+              font-family: system-ui;
+            `;
 
-              // Run migration
+            const progressTitle = document.createElement('div');
+            progressTitle.textContent = 'Migrating to SubCategories...';
+            progressTitle.style.cssText = 'font-size: 20px; font-weight: 600; margin-bottom: 16px;';
+
+            const progressText = document.createElement('div');
+            progressText.style.cssText = 'font-size: 16px; margin-bottom: 8px;';
+            progressText.textContent = 'Starting...';
+
+            const progressDetail = document.createElement('div');
+            progressDetail.style.cssText = 'font-size: 12px; color: #aaa; max-width: 300px; text-align: center;';
+
+            progressOverlay.appendChild(progressTitle);
+            progressOverlay.appendChild(progressText);
+            progressOverlay.appendChild(progressDetail);
+            document.body.appendChild(progressOverlay);
+
+            try {
+              // Run migration with progress updates
               const results = await migrateToSubCategories(AppState, (current, total, message) => {
+                progressText.textContent = `Processing ${current} of ${total} gems`;
+                progressDetail.textContent = message;
                 console.log(`[Migration Progress] ${current}/${total}: ${message}`);
               });
 
               // Save updated profile
               await saveData();
+
+              // Remove progress overlay
+              progressOverlay.remove();
 
               // Show results
               const message = `✓ Migration Complete!\n\nProcessed: ${results.processed}\nMigrated: ${results.migrated}\nSkipped: ${results.skipped}\nErrors: ${results.errors}\n\nNew SubCategories: ${results.subCategoriesCreated.length}\n(${results.subCategoriesCreated.join(', ')})\n\nDuration: ${(results.duration / 1000).toFixed(1)}s`;
@@ -786,6 +822,10 @@ async function renderCurrentScreen() {
               renderCurrentScreen();
 
             } catch (error) {
+              // Remove progress overlay
+              if (progressOverlay.parentNode) {
+                progressOverlay.remove();
+              }
               console.error('[Migration] Error:', error);
               alert(`Migration failed: ${error.message}`);
             }
