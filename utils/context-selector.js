@@ -263,30 +263,18 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5) {
     // Create AI session for relevance scoring
     const session = await LanguageModel.create({
       language: 'en',
-      systemPrompt: `You are a contextual relevance scorer.
-Given a user prompt, its category, and one data gem, rate how relevant the gem is
-to the user's intent and context.
+      systemPrompt: `You are a helpful assistant that rates relevance.
 
-Rules:
-1. Rate semantic relevance on a 0–10 scale.
-   - 9–10: Directly fulfills or specifies the core intent.
-   - 6–8 : Indirectly supports it or adds meaningful context.
-   - 3–5 : Loosely related or situational.
-   - 0–2 : Not relevant.
-2. Use both explicit and implied meaning, not keyword overlap.
-3. Optionally use the provided category_confidence as a weak signal of overall contextual fit.
+Rate how relevant data is to a user's request on a 0-10 scale:
+- 10: Perfectly matches their need
+- 7-9: Very helpful and relevant
+- 4-6: Somewhat related
+- 1-3: Barely related
+- 0: Not related at all
 
-CRITICAL OUTPUT FORMAT:
-- Output ONLY a single digit or number: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, or 10
-- NO explanations, NO text, NO markdown, NO "Relevance score:", NO formatting
-- Just the raw number, nothing else
+Think about semantic meaning, not just keywords.
 
-Examples:
-prompt = "plan my workout"
-category = "Training"
-gem = "Bench Press 3x10"          → 9
-gem = "Protein intake: 160g/day"  → 7
-gem = "Favorite cuisine: Italian" → 0`
+Provide your rating and optionally a brief reason.`
     });
 
     // Score each candidate gem SEQUENTIALLY (not parallel - AI sessions don't handle parallel well)
@@ -336,13 +324,33 @@ Your rating (just the number):`;
           timeoutPromise
         ]);
 
-        // More robust parsing
+        // More robust parsing - extract number from natural language
         const cleaned = response.trim();
-        const numberMatch = cleaned.match(/\d+/);
-        const score = numberMatch ? parseInt(numberMatch[0]) : 0;
+
+        // Try to find a score in format "8/10", "score: 7", "rating: 9", or just "5"
+        let score = 0;
+
+        // Check for "X/10" or "X out of 10" pattern first
+        const outOfTenMatch = cleaned.match(/(\d+)\s*(?:\/|out of)\s*10/i);
+        if (outOfTenMatch) {
+          score = parseInt(outOfTenMatch[1]);
+        } else {
+          // Look for any number 0-10
+          const numbers = cleaned.match(/\d+/g);
+          if (numbers) {
+            // Find first number that's 0-10
+            for (const num of numbers) {
+              const n = parseInt(num);
+              if (n >= 0 && n <= 10) {
+                score = n;
+                break;
+              }
+            }
+          }
+        }
 
         // Debug logging for ALL test gems
-        console.log(`[Context Selector] Gem ${index + 1} - Response: "${cleaned}" → Score: ${score}`);
+        console.log(`[Context Selector] Gem ${index + 1} - Response: "${cleaned.substring(0, 100)}..." → Score: ${score}`);
 
         scoredGems.push({
           gem,
