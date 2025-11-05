@@ -645,6 +645,80 @@ async function renderCurrentScreen() {
             }
           },
           onPreferenceAdd: async (value, state, collections) => {
+            // Check for duplicates before creating new gem
+            const existingGems = AppState.content?.preferences?.items || [];
+
+            // Check for similar gems
+            const duplicate = await checkForDuplicates(value, existingGems, 80);
+
+            if (duplicate) {
+              // Show consolidation modal
+              return new Promise((resolve) => {
+                const modal = createDuplicateConsolidationModal({
+                  existingText: duplicate.gem.value,
+                  newText: value,
+                  similarity: duplicate.similarity,
+                  onReplace: async () => {
+                    // Delete the old gem, create the new one
+                    AppState = deletePreference(AppState, duplicate.gem.id);
+                    AppState = addPreference(AppState, value, state, collections);
+                    await saveData();
+                    renderCurrentScreen();
+                    await checkBetaCheckinModal();
+                    await checkBackupReminder();
+                    resolve();
+                  },
+                  onMerge: async () => {
+                    // Generate consolidated text
+                    const consolidatedText = await generateConsolidatedText([
+                      duplicate.gem.value,
+                      value
+                    ]);
+
+                    // Create merged gem with original sources
+                    const mergedFrom = [
+                      { text: duplicate.gem.value, timestamp: duplicate.gem.created_at },
+                      { text: value, timestamp: getTimestamp() }
+                    ];
+
+                    // Delete old gem
+                    AppState = deletePreference(AppState, duplicate.gem.id);
+
+                    // Add new merged gem
+                    AppState = addPreference(AppState, consolidatedText, state, collections);
+
+                    // Find the newly created gem and add mergedFrom
+                    const newGem = AppState.content.preferences.items[AppState.content.preferences.items.length - 1];
+                    if (newGem) {
+                      newGem.mergedFrom = mergedFrom;
+                    }
+
+                    await saveData();
+                    renderCurrentScreen();
+                    await checkBetaCheckinModal();
+                    await checkBackupReminder();
+                    resolve();
+                  },
+                  onKeepBoth: async () => {
+                    // Just save the new gem as is
+                    AppState = addPreference(AppState, value, state, collections);
+                    await saveData();
+                    renderCurrentScreen();
+                    await checkBetaCheckinModal();
+                    await checkBackupReminder();
+                    resolve();
+                  },
+                  onCancel: () => {
+                    // Don't save anything
+                    resolve();
+                  }
+                });
+
+                modal.show();
+              });
+            }
+
+            // No duplicate found, proceed normally
             AppState = addPreference(AppState, value, state, collections);
             await saveData();
             renderCurrentScreen();
