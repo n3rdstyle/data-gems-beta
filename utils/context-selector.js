@@ -172,7 +172,7 @@ function filterGemsByCategories(dataGems, categoriesWithScores) {
  * @param {number} maxResults - Maximum number of gems to return (default: 5)
  * @returns {Promise<Array>} Array of selected data gems
  */
-async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5) {
+async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, profile = null) {
   try {
     // Check if AI Helper is available
     if (typeof aiHelper === 'undefined' || !aiHelper) {
@@ -228,6 +228,34 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5) {
         candidateGems = filterGemsByCategories(dataGems, relevantCategories);
         console.log(`[Context Selector] Filtered to ${candidateGems.length} gems in ${relevantCategories.length} relevant categories`);
 
+        // STAGE 1.5: SubCategory Filtering (Fashion only for now)
+        const hasFashion = relevantCategories.some(cat =>
+          cat.category.toLowerCase() === 'fashion' ||
+          cat.category.toLowerCase() === 'lifestyle & preferences'
+        );
+
+        if (hasFashion && profile?.subCategoryRegistry) {
+          const fashionSubs = Object.keys(profile.subCategoryRegistry).filter(subCat =>
+            profile.subCategoryRegistry[subCat].parent === 'Fashion'
+          );
+
+          if (fashionSubs.length > 0) {
+            console.log(`[Context Selector] Stage 1.5: Found ${fashionSubs.length} Fashion SubCategories:`, fashionSubs);
+
+            // Filter to gems that have subCollections
+            const gemsWithSubCollections = candidateGems.filter(gem =>
+              gem.subCollections && gem.subCollections.length > 0
+            );
+
+            if (gemsWithSubCollections.length > 0) {
+              console.log(`[Context Selector] ${gemsWithSubCollections.length} gems have SubCategories`);
+              candidateGems = gemsWithSubCollections;
+            } else {
+              console.log(`[Context Selector] No gems have SubCategories yet (migration not run or incomplete)`);
+            }
+          }
+        }
+
         // Enrich each gem with its matching category and confidence score
         // A gem might match multiple categories - use the one with highest confidence
         candidateGems = candidateGems.map(gem => {
@@ -252,6 +280,7 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5) {
         // Log sample enrichment
         console.log('[Context Selector] Sample enriched gems:', candidateGems.slice(0, 3).map(g => ({
           collections: g.collections,
+          subCollections: g.subCollections,
           matchedCategory: g._matchedCategory,
           confidence: g._categoryConfidence,
           value: g.value.substring(0, 50) + '...'
@@ -601,7 +630,7 @@ async function optimizePromptWithContext(promptText, profile, useAI = true, maxG
     // Select relevant gems
     let selectedGems;
     if (useAI && typeof LanguageModel !== 'undefined') {
-      selectedGems = await selectRelevantGemsWithAI(promptText, visibleGems, maxGems);
+      selectedGems = await selectRelevantGemsWithAI(promptText, visibleGems, maxGems, profile);
     } else {
       selectedGems = selectRelevantGemsByKeywords(promptText, visibleGems, maxGems);
     }
