@@ -232,6 +232,14 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5) {
             _categoryConfidence: bestMatch.score
           };
         });
+
+        // Log sample enrichment
+        console.log('[Context Selector] Sample enriched gems:', candidateGems.slice(0, 3).map(g => ({
+          collections: g.collections,
+          matchedCategory: g._matchedCategory,
+          confidence: g._categoryConfidence,
+          value: g.value.substring(0, 50) + '...'
+        })));
       } else {
         console.log('[Context Selector] AI returned no categories, using all gems');
       }
@@ -292,9 +300,19 @@ gem = "Favorite cuisine: Italian" → 0`
           const prompt = `prompt = "${promptText}"
 category = "${category}"
 category_confidence = ${categoryConfidence}
-gem = "${gem.value}"
+gem = "${gem.value.substring(0, 200)}"
 
-Relevance score:`;
+Score (0-10):`; // Truncate gem value to 200 chars, remove "Relevance score:" text
+
+          // Debug: log first few prompts
+          if (index < 3) {
+            console.log(`[Context Selector] Gem ${index + 1} full context:`, {
+              category,
+              categoryConfidence,
+              gemValue: gem.value.substring(0, 100) + '...',
+              hasMatchedCategory: gem._matchedCategory !== undefined
+            });
+          }
 
           // Add timeout per gem (5 seconds max - increased from 3s)
           const timeoutPromise = new Promise((resolve) => {
