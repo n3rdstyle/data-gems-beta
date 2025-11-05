@@ -264,19 +264,17 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5) {
       // Priority 1: Favorited gems (always include)
       const favorited = candidateGems.filter(gem => gem.state === 'favorited');
 
-      // Priority 2: High-confidence categories (confidence >= 9)
-      const highConfidence = candidateGems.filter(gem =>
-        gem._categoryConfidence >= 9 && gem.state !== 'favorited'
+      // Priority 2: Keyword matching on ALL category-filtered gems
+      // (Since we now use TOP 1 category, all gems have same confidence)
+      const nonFavorited = candidateGems.filter(gem => gem.state !== 'favorited');
+      const keywordMatched = selectRelevantGemsByKeywords(
+        promptText,
+        nonFavorited,
+        MAX_AI_SCORING - favorited.length
       );
 
-      // Priority 3: Keyword matching for remaining slots
-      const remaining = candidateGems.filter(gem =>
-        gem.state !== 'favorited' && gem._categoryConfidence < 9
-      );
-      const keywordMatched = selectRelevantGemsByKeywords(promptText, remaining, MAX_AI_SCORING - favorited.length - highConfidence.length);
-
-      candidateGems = [...favorited, ...highConfidence, ...keywordMatched].slice(0, MAX_AI_SCORING);
-      console.log(`[Context Selector] Pre-filtered to ${candidateGems.length} gems (${favorited.length} favorited, ${highConfidence.length} high-confidence, ${keywordMatched.length} keyword-matched)`);
+      candidateGems = [...favorited, ...keywordMatched].slice(0, MAX_AI_SCORING);
+      console.log(`[Context Selector] Pre-filtered to ${candidateGems.length} gems (${favorited.length} favorited, ${keywordMatched.length} keyword-matched)`);
     } else {
       console.log(`[Context Selector] Will score all ${candidateGems.length} category-filtered gems with AI`);
     }
