@@ -51,7 +51,7 @@ function createField(value, assurance = 'self_declared', reliability = 'high', s
  * @param {string} sourceUrl - Optional source URL (e.g., Google Sheets URL)
  * @returns {object} Preference object
  */
-function createPreference(value, state = 'default', collections = [], subCollections = [], sourceUrl = null) {
+function createPreference(value, state = 'default', collections = [], subCollections = [], sourceUrl = null, mergedFrom = null) {
   const pref = {
     id: generateId('pref'),
     value,
@@ -67,6 +67,11 @@ function createPreference(value, state = 'default', collections = [], subCollect
   // Only add source_url if provided
   if (sourceUrl) {
     pref.source_url = sourceUrl;
+  }
+
+  // Add mergedFrom array if this gem was created from merging others
+  if (mergedFrom && Array.isArray(mergedFrom) && mergedFrom.length > 0) {
+    pref.mergedFrom = mergedFrom;
   }
 
   return pref;
