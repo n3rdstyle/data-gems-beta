@@ -314,15 +314,8 @@ Your rating (just the number):`;
           hasMatchedCategory: gem._matchedCategory !== undefined
         });
 
-        // Add timeout per gem (5 seconds max - increased from 3s)
-        const timeoutPromise = new Promise((resolve) => {
-          setTimeout(() => resolve('0'), 5000);
-        });
-
-        const response = await Promise.race([
-          session.prompt(prompt),
-          timeoutPromise
-        ]);
+        // NO TIMEOUT for testing - let AI take as long as it needs
+        const response = await session.prompt(prompt);
 
         // More robust parsing - extract number from natural language
         const cleaned = response.trim();
@@ -349,8 +342,9 @@ Your rating (just the number):`;
           }
         }
 
-        // Debug logging for ALL test gems
-        console.log(`[Context Selector] Gem ${index + 1} - Response: "${cleaned.substring(0, 100)}..." → Score: ${score}`);
+        // Debug logging for ALL test gems - FULL RESPONSE
+        console.log(`[Context Selector] Gem ${index + 1} - FULL Response:`, cleaned);
+        console.log(`[Context Selector] Gem ${index + 1} - Extracted Score: ${score}`);
 
         scoredGems.push({
           gem,
