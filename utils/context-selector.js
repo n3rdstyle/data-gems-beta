@@ -4,36 +4,32 @@
  */
 
 /**
- * Use AI to identify relevant categories for a prompt
+ * Use AI to identify relevant categories for a prompt with confidence scores
  * @param {string} promptText - The user's prompt
  * @param {Array} allCategories - Array of all available categories
- * @returns {Promise<Array<string>>} Array of relevant category names
+ * @returns {Promise<Array<{category: string, score: number}>>} Array of {category, score} objects
  */
 async function selectRelevantCategoriesWithAI(promptText, allCategories) {
   try {
     // Create AI session for category selection
     const session = await LanguageModel.create({
       language: 'en',
-      systemPrompt: `You are an ULTRA-STRICT category relevance analyzer.
+      systemPrompt: `You are a contextual category selector.
+Your goal is to identify all categories that are semantically or contextually relevant
+to the user's prompt, including both direct and supportive connections.
 
-CRITICAL RULES:
-1. Select ONLY categories with DIRECT, SPECIFIC connection to the prompt
-2. NEVER select these generic categories: "Lifestyle", "Personal", "Preferences", "General", "Other", "Miscellaneous"
-3. NEVER select categories containing "&" (like "Lifestyle & Preferences") - these are too broad
-4. Maximum 2 categories (prefer 1 if possible)
-5. When uncertain, return EMPTY array [] rather than guessing
+Rules:
+1. Include a category if the prompt implies its topic, even indirectly.
+   Example: "prepare for summer" implies "Training" and "Nutrition".
+2. Prefer precision but do not abstain when weak signals exist.
+3. Output up to 3 categories, ranked by confidence (1–10).
+4. If no category shows any connection, return [].
 
-GOOD Examples:
-- "plan my workout" → ["Training"]
-- "cook dinner" → ["Food"]
-- "book a hotel" → ["Travel"]
+Output format (JSON array of objects):
+[{"category":"Training","score":9},
+ {"category":"Nutrition","score":6}]
 
-BAD Examples (DO NOT DO THIS):
-- "plan my workout" → ["Lifestyle & Preferences"] ❌
-- "cook dinner" → ["Lifestyle", "Personal"] ❌
-- ANY category with "&" symbol ❌
-
-Output: JSON array ONLY. If no specific category fits, return [].`
+Purpose: map the prompt into specific, atomic knowledge domains.`
     });
 
     const categoriesStr = allCategories.join(', ');
@@ -41,7 +37,7 @@ Output: JSON array ONLY. If no specific category fits, return [].`
 
 Available categories: ${categoriesStr}
 
-Select ONLY specific, directly relevant categories. EXCLUDE generic categories and any with "&" symbol.
+Select relevant categories with confidence scores (1-10). Include both direct and supportive connections.
 Respond with JSON array only:`;
 
     console.log('[Context Selector] Asking AI for relevant categories...');
@@ -57,25 +53,29 @@ Respond with JSON array only:`;
       const categories = JSON.parse(match[0]);
       console.log('[Context Selector] AI raw response:', categories);
 
-      // SAFETY FILTER: Explicitly exclude generic categories that might slip through
-      const genericKeywords = ['lifestyle', 'personal', 'preferences', 'general', 'other', 'miscellaneous', '&'];
-      const filtered = categories.filter(cat => {
-        if (typeof cat !== 'string') return false;
+      // Validate and normalize format - expecting [{category, score}]
+      const normalized = categories
+        .filter(item => {
+          // Handle both old format (string) and new format (object)
+          if (typeof item === 'string') {
+            console.warn('[Context Selector] Old format detected, converting:', item);
+            return true;
+          }
+          return item && typeof item.category === 'string' && typeof item.score === 'number';
+        })
+        .map(item => {
+          // Convert old format to new format
+          if (typeof item === 'string') {
+            return { category: item, score: 8 }; // Default score for old format
+          }
+          return {
+            category: item.category,
+            score: Math.max(1, Math.min(10, item.score)) // Clamp to 1-10
+          };
+        });
 
-        const catLower = cat.toLowerCase();
-
-        // Exclude if contains any generic keyword
-        const isGeneric = genericKeywords.some(keyword => catLower.includes(keyword));
-        if (isGeneric) {
-          console.log('[Context Selector] Filtered out generic category:', cat);
-          return false;
-        }
-
-        return true;
-      });
-
-      console.log('[Context Selector] AI selected categories (after filtering):', filtered);
-      return filtered;
+      console.log('[Context Selector] AI selected categories with confidence:', normalized);
+      return normalized;
     }
 
     console.warn('[Context Selector] Could not parse category response:', response);
@@ -90,19 +90,20 @@ Respond with JSON array only:`;
 /**
  * Filter gems by categories
  * @param {Array} dataGems - Array of preference objects
- * @param {Array<string>} categories - Categories to filter by
+ * @param {Array<{category: string, score: number}>} categoriesWithScores - Categories with confidence scores
  * @returns {Array} Filtered gems
  */
-function filterGemsByCategories(dataGems, categories) {
-  console.log('[Context Selector] Filtering gems by categories:', categories);
+function filterGemsByCategories(dataGems, categoriesWithScores) {
+  console.log('[Context Selector] Filtering gems by categories:', categoriesWithScores);
   console.log('[Context Selector] Total gems before filter:', dataGems.length);
 
-  if (!categories || categories.length === 0) {
+  if (!categoriesWithScores || categoriesWithScores.length === 0) {
     console.log('[Context Selector] No categories provided, returning all gems');
     return dataGems;
   }
 
-  const categoriesLower = categories.map(cat => cat.toLowerCase());
+  // Extract category names (lowercase) for matching
+  const categoriesLower = categoriesWithScores.map(item => item.category.toLowerCase());
   console.log('[Context Selector] Categories (lowercase):', categoriesLower);
 
   const filtered = dataGems.filter(gem => {
@@ -183,6 +184,27 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5) {
         // Filter gems by relevant categories
         candidateGems = filterGemsByCategories(dataGems, relevantCategories);
         console.log(`[Context Selector] Filtered to ${candidateGems.length} gems in ${relevantCategories.length} relevant categories`);
+
+        // Enrich each gem with its matching category and confidence score
+        // A gem might match multiple categories - use the one with highest confidence
+        candidateGems = candidateGems.map(gem => {
+          const matchingCategories = relevantCategories.filter(catInfo =>
+            gem.collections && gem.collections.some(col =>
+              col.toLowerCase() === catInfo.category.toLowerCase()
+            )
+          );
+
+          // Find the highest confidence category
+          const bestMatch = matchingCategories.reduce((best, current) =>
+            current.score > best.score ? current : best
+          , matchingCategories[0] || { category: 'unknown', score: 5 });
+
+          return {
+            ...gem,
+            _matchedCategory: bestMatch.category,
+            _categoryConfidence: bestMatch.score
+          };
+        });
       } else {
         console.log('[Context Selector] AI returned no categories, using all gems');
       }
@@ -190,31 +212,8 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5) {
       console.log('[Context Selector] No categories found, processing all gems');
     }
 
-    // If still too many, use keyword matching to reduce before AI scoring
-    const MAX_AI_SCORING = 20; // Reduced to 20 for better AI performance
-
-    if (candidateGems.length > MAX_AI_SCORING) {
-      console.log(`[Context Selector] Still too many gems (${candidateGems.length}), using keyword pre-filter`);
-
-      // Get favorited gems first (always prioritize these)
-      const favorited = candidateGems.filter(gem => gem.state === 'favorited');
-
-      // Use keyword matching on non-favorited gems
-      const nonFavorited = candidateGems.filter(gem => gem.state !== 'favorited');
-      const keywordFiltered = selectRelevantGemsByKeywords(promptText, nonFavorited, MAX_AI_SCORING - favorited.length);
-
-      // Combine: all favorited + keyword-filtered
-      candidateGems = [...favorited, ...keywordFiltered];
-
-      console.log(`[Context Selector] Reduced to ${candidateGems.length} gems (${favorited.length} favorited + ${keywordFiltered.length} keyword-matched)`);
-
-      // QUALITY CHECK: If keyword filter reduced too much (e.g., 200 → 1), categories were probably wrong
-      if (candidateGems.length < 5 && dataGems.length > 50) {
-        console.log(`[Context Selector] Warning: Very few gems after keyword filter - category selection may be too broad`);
-        console.log(`[Context Selector] Falling back to keyword-only matching on all gems`);
-        return selectRelevantGemsByKeywords(promptText, dataGems, maxResults);
-      }
-    }
+    // NO KEYWORD PRE-FILTER - Score all category-filtered gems with AI (testing phase)
+    console.log(`[Context Selector] Will score all ${candidateGems.length} category-filtered gems with AI (no pre-filter)`);
 
     // If no candidates, fall back to keyword matching on all gems
     if (candidateGems.length === 0) {
@@ -229,26 +228,42 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5) {
     // Create AI session for relevance scoring
     const session = await LanguageModel.create({
       language: 'en',
-      systemPrompt: `Rate data gem relevance for user prompt. Scale 0-10:
-- 8-10: Directly relevant (workout data for workout prompt)
-- 5-7: Supporting context (nutrition for workout)
-- 2-4: Loosely related
-- 0-1: Not relevant
+      systemPrompt: `You are a contextual relevance scorer.
+Given a user prompt, its category, and one data gem, rate how relevant the gem is
+to the user's intent and context.
 
-CRITICAL: Output format MUST be a SINGLE digit 0-9 or number 10, NOTHING ELSE.
-NO explanations, NO markdown, NO extra text.
-Just the number.
+Rules:
+1. Rate semantic relevance on a 0–10 scale.
+   - 9–10: Directly fulfills or specifies the core intent.
+   - 6–8 : Indirectly supports it or adds meaningful context.
+   - 3–5 : Loosely related or situational.
+   - 0–2 : Not relevant.
+2. Use both explicit and implied meaning, not keyword overlap.
+3. Optionally use the provided category_confidence as a weak signal of overall contextual fit.
+4. Output only a single number from 0 to 10 — no text, no explanation, no markdown.
 
 Examples:
-Input: "Bench Press 3x10" for "plan workout" → Output: 9
-Input: "Favorite color blue" for "plan workout" → Output: 0`
+prompt = "plan my workout"
+category = "Training"
+gem = "Bench Press 3x10"          → 9
+gem = "Protein intake: 160g/day"  → 7
+gem = "Favorite cuisine: Italian" → 0`
     });
 
     // Score each candidate gem with timeout per gem
     const scoredGems = await Promise.all(
       candidateGems.map(async (gem, index) => {
         try {
-          const prompt = `Prompt: "${promptText}"\n\nData gem: "${gem.value}"\n\nRelevance score:`;
+          // Build prompt with category context
+          const category = gem._matchedCategory || 'unknown';
+          const categoryConfidence = gem._categoryConfidence || 5;
+
+          const prompt = `prompt = "${promptText}"
+category = "${category}"
+category_confidence = ${categoryConfidence}
+gem = "${gem.value}"
+
+Relevance score:`;
 
           // Add timeout per gem (5 seconds max - increased from 3s)
           const timeoutPromise = new Promise((resolve) => {
@@ -286,16 +301,36 @@ Input: "Favorite color blue" for "plan workout" → Output: 0`
 
     console.log('[Context Selector] AI scoring complete');
 
-    // Sort by score
+    // Sort by score (highest first)
     scoredGems.sort((a, b) => b.score - a.score);
 
-    // Get results - include items with score > 0
+    // Log score distribution
+    const scoreDistribution = scoredGems.reduce((acc, item) => {
+      const bucket = Math.floor(item.score / 2) * 2; // Group by 0-1, 2-3, 4-5, etc.
+      acc[bucket] = (acc[bucket] || 0) + 1;
+      return acc;
+    }, {});
+    console.log('[Context Selector] Score distribution:', scoreDistribution);
+
+    // STRICT CUTOFF: Try ≥7 first (high-quality matches)
     let results = scoredGems
-      .filter(item => item.score > 0)
+      .filter(item => item.score >= 7)
       .slice(0, maxResults)
       .map(item => item.gem);
 
-    // FALLBACK: If AI gave all 0 scores, be smarter about what we return
+    console.log(`[Context Selector] Found ${results.length} gems with score ≥7`);
+
+    // FALLBACK 1: If too few results, try ≥5 (medium-quality matches)
+    if (results.length < 3) {
+      console.log('[Context Selector] Too few high-quality results, trying score ≥5');
+      results = scoredGems
+        .filter(item => item.score >= 5)
+        .slice(0, maxResults)
+        .map(item => item.gem);
+      console.log(`[Context Selector] Found ${results.length} gems with score ≥5`);
+    }
+
+    // FALLBACK 2: If still too few, use keyword matching
     if (results.length === 0 && candidateGems.length > 0) {
       console.log('[Context Selector] AI scored all gems as 0, trying fallback strategies...');
 
