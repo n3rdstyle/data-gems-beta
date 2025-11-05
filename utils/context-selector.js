@@ -205,7 +205,15 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5) {
 
     if (allCategories.length > 0) {
       // Ask AI which categories are relevant
-      const relevantCategories = await selectRelevantCategoriesWithAI(promptText, allCategories);
+      let relevantCategories = await selectRelevantCategoriesWithAI(promptText, allCategories);
+
+      // OPTIMIZATION: Select only the TOP 1 most relevant category
+      // This dramatically reduces gems to score (e.g., 456 → ~20-80)
+      if (relevantCategories.length > 0) {
+        const topCategory = relevantCategories[0]; // Already sorted by score
+        relevantCategories = [topCategory];
+        console.log(`[Context Selector] Selected TOP 1 category: ${topCategory.category} (confidence: ${topCategory.score})`);
+      }
 
       if (relevantCategories.length > 0) {
         // Filter gems by relevant categories
@@ -400,48 +408,23 @@ Your rating (just the number):`;
     }, {});
     console.log('[Context Selector] Score distribution:', scoreDistribution);
 
-    // STRICT CUTOFF: Try ≥7 first (high-quality matches)
+    // NO MATCH DETECTION: If no gems scored ≥7, the query is likely irrelevant
+    // Return empty to avoid adding random context
+    const highQualityCount = scoredGems.filter(item => item.score >= 7).length;
+
+    if (highQualityCount === 0) {
+      console.log('[Context Selector] ⚠️ No gems scored ≥7, query appears irrelevant to profile');
+      console.log('[Context Selector] Returning empty to avoid irrelevant context');
+      return [];
+    }
+
+    // STRICT CUTOFF: Only use high-quality matches (≥7)
     let results = scoredGems
       .filter(item => item.score >= 7)
       .slice(0, maxResults)
       .map(item => item.gem);
 
     console.log(`[Context Selector] Found ${results.length} gems with score ≥7`);
-
-    // FALLBACK 1: If too few results, try ≥5 (medium-quality matches)
-    if (results.length < 3) {
-      console.log('[Context Selector] Too few high-quality results, trying score ≥5');
-      results = scoredGems
-        .filter(item => item.score >= 5)
-        .slice(0, maxResults)
-        .map(item => item.gem);
-      console.log(`[Context Selector] Found ${results.length} gems with score ≥5`);
-    }
-
-    // FALLBACK 2: If still too few, use keyword matching
-    if (results.length === 0 && candidateGems.length > 0) {
-      console.log('[Context Selector] AI scored all gems as 0, trying fallback strategies...');
-
-      // Try keyword matching on the category-filtered gems (but with stricter threshold)
-      const keywordResults = selectRelevantGemsByKeywords(promptText, candidateGems, maxResults);
-
-      // Only use keyword results if they have decent scores
-      if (keywordResults.length > 0) {
-        console.log(`[Context Selector] Keyword matching found ${keywordResults.length} potential gems`);
-        results = keywordResults;
-      } else {
-        // No good keyword matches - try favorited gems
-        const favorited = candidateGems.filter(gem => gem.state === 'favorited').slice(0, maxResults);
-        if (favorited.length > 0) {
-          console.log(`[Context Selector] Using ${favorited.length} favorited gems`);
-          results = favorited;
-        } else {
-          // Give up - return empty rather than random irrelevant gems
-          console.log('[Context Selector] No relevant gems found, returning empty');
-          results = [];
-        }
-      }
-    }
 
     console.log(`[Context Selector] Selected ${results.length} gems (scores: ${scoredGems.slice(0, 5).map(s => s.score).join(', ')}...)`);
 
