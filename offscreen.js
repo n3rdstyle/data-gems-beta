@@ -83,9 +83,30 @@ async function startDuplicateScan(gems) {
   scanState.total = gems.length;
   console.log(`[Offscreen] Checking ${gems.length} gems for duplicates`);
 
-  // Check if AI is available
-  if (typeof ai === 'undefined' || !ai?.languageModel) {
-    console.error('[Offscreen] AI not available');
+  // Check if AI is available with detailed logging
+  console.log('[Offscreen] Checking AI availability...');
+  console.log('[Offscreen] typeof ai:', typeof ai);
+  console.log('[Offscreen] typeof window.ai:', typeof window?.ai);
+  console.log('[Offscreen] typeof self.ai:', typeof self?.ai);
+  console.log('[Offscreen] ai object:', ai);
+  console.log('[Offscreen] ai?.languageModel:', ai?.languageModel);
+  console.log('[Offscreen] window?.ai?.languageModel:', window?.ai?.languageModel);
+
+  // Try different API locations
+  let aiAPI = null;
+  if (typeof ai !== 'undefined' && ai?.languageModel) {
+    aiAPI = ai;
+    console.log('[Offscreen] Found AI on global ai');
+  } else if (typeof window !== 'undefined' && window.ai?.languageModel) {
+    aiAPI = window.ai;
+    console.log('[Offscreen] Found AI on window.ai');
+  } else if (typeof self !== 'undefined' && self.ai?.languageModel) {
+    aiAPI = self.ai;
+    console.log('[Offscreen] Found AI on self.ai');
+  }
+
+  if (!aiAPI) {
+    console.error('[Offscreen] AI not available in any location');
     scanState.running = false;
     chrome.runtime.sendMessage({
       action: 'updateScanStatus',
@@ -95,6 +116,8 @@ async function startDuplicateScan(gems) {
     throw new Error('AI not available in offscreen document. Please ensure Chrome Prompt API is enabled.');
   }
 
+  console.log('[Offscreen] AI API found! Using:', aiAPI === ai ? 'global ai' : aiAPI === window.ai ? 'window.ai' : 'self.ai');
+
   console.log('[Offscreen] AI available! Creating session...');
 
   const duplicatePairs = [];
@@ -103,7 +126,7 @@ async function startDuplicateScan(gems) {
 
   try {
     // Create AI session for similarity checking
-    const session = await ai.languageModel.create({
+    const session = await aiAPI.languageModel.create({
       systemPrompt: `You are a similarity detector for user preferences.
 Compare two preference texts and rate similarity.
 
