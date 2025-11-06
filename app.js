@@ -1110,7 +1110,7 @@ async function renderCurrentScreen() {
         console.log('🎯 [Settings] About to call createSettings with isBetaUser:', isBetaUser);
         console.log('🎯 [Settings] typeof onJoinBeta:', typeof (() => {}));
 
-        screenComponent = createSettings({
+        const settingsOptions = {
           onClose: () => {
             AppState.metadata.currentScreen = 'home';
             renderCurrentScreen();
@@ -1458,7 +1458,13 @@ async function renderCurrentScreen() {
               alert('Failed to revoke beta status. Please try again.');
             }
           }
-        });
+        };
+
+        console.log('🎯 [Settings] Settings options object:', Object.keys(settingsOptions));
+        console.log('🎯 [Settings] onFindDuplicates in options?', 'onFindDuplicates' in settingsOptions);
+        console.log('🎯 [Settings] typeof onFindDuplicates:', typeof settingsOptions.onFindDuplicates);
+
+        screenComponent = createSettings(settingsOptions);
         break;
 
       case 'third-party-data':
