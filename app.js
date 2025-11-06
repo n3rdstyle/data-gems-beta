@@ -120,14 +120,69 @@ async function handleMergeSelectedCards() {
     return;
   }
 
-  // Show loading state
-  alert(`Merging ${selectedItems.length} cards using AI...`);
+  console.log(`[Merge] Merging ${selectedItems.length} cards...`);
 
-  // TODO: Implement AI consolidation logic
-  console.log('[Merge] Selected cards:', selectedItems);
+  try {
+    // Extract texts from selected items
+    const texts = selectedItems.map(item => item.value);
 
-  // For now, just clear selection
-  clearSelection();
+    // Generate consolidated text using AI
+    const consolidatedText = await generateConsolidatedText(texts);
+    console.log('[Merge] Consolidated text:', consolidatedText);
+
+    // Create mergedFrom metadata
+    const mergedFrom = selectedItems.map(item => ({
+      id: item.id,
+      text: item.value,
+      timestamp: item.created_at,
+      collections: item.collections || [],
+      state: item.state || 'default'
+    }));
+
+    // Combine all collections from selected cards (remove duplicates)
+    const allCollections = [...new Set(selectedItems.flatMap(item => item.collections || []))];
+
+    // Use the most common state (or default if tie)
+    const states = selectedItems.map(item => item.state || 'default');
+    const stateCount = {};
+    states.forEach(state => stateCount[state] = (stateCount[state] || 0) + 1);
+    const mostCommonState = Object.keys(stateCount).reduce((a, b) =>
+      stateCount[a] > stateCount[b] ? a : b
+    );
+
+    // Create new merged preference
+    AppState = addPreference(
+      AppState,
+      consolidatedText,
+      mostCommonState,
+      allCollections
+    );
+
+    // Add mergedFrom metadata to the newly created item
+    const newItem = AppState.content.preferences.items[AppState.content.preferences.items.length - 1];
+    newItem.mergedFrom = mergedFrom;
+
+    // Delete original selected items
+    selectedItems.forEach(item => {
+      AppState = deletePreference(AppState, item.id);
+    });
+
+    // Save changes
+    await saveData();
+
+    // Clear selection
+    clearSelection();
+
+    // Refresh UI
+    renderCurrentScreen();
+
+    console.log('[Merge] ✓ Successfully merged cards');
+
+  } catch (error) {
+    console.error('[Merge] Error merging cards:', error);
+    alert(`Failed to merge cards: ${error.message}`);
+    clearSelection();
+  }
 }
 
 // Load data from Chrome storage
