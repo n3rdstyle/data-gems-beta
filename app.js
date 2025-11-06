@@ -645,83 +645,8 @@ async function renderCurrentScreen() {
             }
           },
           onPreferenceAdd: async (value, state, collections) => {
-            // Check for duplicates before creating new gem
-            try {
-              const existingGems = AppState.content?.preferences?.items || [];
-
-              // Check for similar gems
-              const duplicate = await checkForDuplicates(value, existingGems, 80);
-
-              if (duplicate) {
-              // Show consolidation modal
-              return new Promise((resolve) => {
-                const modal = createDuplicateConsolidationModal({
-                  existingText: duplicate.gem.value,
-                  newText: value,
-                  similarity: duplicate.similarity,
-                  onReplace: async () => {
-                    // Delete the old gem, create the new one
-                    AppState = deletePreference(AppState, duplicate.gem.id);
-                    AppState = addPreference(AppState, value, state, collections);
-                    await saveData();
-                    renderCurrentScreen();
-                    await checkBetaCheckinModal();
-                    await checkBackupReminder();
-                    resolve();
-                  },
-                  onMerge: async () => {
-                    // Generate consolidated text
-                    const consolidatedText = await generateConsolidatedText([
-                      duplicate.gem.value,
-                      value
-                    ]);
-
-                    // Create merged gem with original sources
-                    const mergedFrom = [
-                      { text: duplicate.gem.value, timestamp: duplicate.gem.created_at },
-                      { text: value, timestamp: getTimestamp() }
-                    ];
-
-                    // Delete old gem
-                    AppState = deletePreference(AppState, duplicate.gem.id);
-
-                    // Add new merged gem
-                    AppState = addPreference(AppState, consolidatedText, state, collections);
-
-                    // Find the newly created gem and add mergedFrom
-                    const newGem = AppState.content.preferences.items[AppState.content.preferences.items.length - 1];
-                    if (newGem) {
-                      newGem.mergedFrom = mergedFrom;
-                    }
-
-                    await saveData();
-                    renderCurrentScreen();
-                    await checkBetaCheckinModal();
-                    await checkBackupReminder();
-                    resolve();
-                  },
-                  onKeepBoth: async () => {
-                    // Just save the new gem as is
-                    AppState = addPreference(AppState, value, state, collections);
-                    await saveData();
-                    renderCurrentScreen();
-                    await checkBetaCheckinModal();
-                    await checkBackupReminder();
-                    resolve();
-                  },
-                  onCancel: () => {
-                    // Don't save anything
-                    resolve();
-                  }
-                });
-
-                modal.show();
-              });
-              }
-            } catch (error) {
-              console.error('[Duplicate Detection] Error checking for duplicates on add:', error);
-              // Fall through to normal save if duplicate detection fails
-            }
+            // TEMPORARY: Duplicate detection disabled - was checking too many gems
+            // TODO: Re-enable with optimization (limit to recent 50 gems, add timeout)
 
             // No duplicate found, proceed normally
             AppState = addPreference(AppState, value, state, collections);
@@ -733,80 +658,8 @@ async function renderCurrentScreen() {
             await checkBackupReminder();
           },
           onPreferenceUpdate: async (prefId, updates) => {
-            // Check for duplicates before saving (only if updating value)
-            if (updates.value) {
-              try {
-                const existingGems = AppState.content?.preferences?.items || [];
-                // Filter out the current gem being edited
-                const otherGems = existingGems.filter(g => g.id !== prefId);
-
-                // Check for similar gems
-                const duplicate = await checkForDuplicates(updates.value, otherGems, 80);
-
-                if (duplicate) {
-                // Show consolidation modal
-                return new Promise((resolve) => {
-                  const modal = createDuplicateConsolidationModal({
-                    existingText: duplicate.gem.value,
-                    newText: updates.value,
-                    similarity: duplicate.similarity,
-                    onReplace: async () => {
-                      // Delete the old gem, save the new one
-                      AppState = deletePreference(AppState, duplicate.gem.id);
-                      AppState = updatePreference(AppState, prefId, updates);
-                      await saveData();
-                      renderCurrentScreen();
-                      resolve();
-                    },
-                    onMerge: async () => {
-                      // Generate consolidated text
-                      const consolidatedText = await generateConsolidatedText([
-                        duplicate.gem.value,
-                        updates.value
-                      ]);
-
-                      // Create merged gem with original sources
-                      const mergedFrom = [
-                        { text: duplicate.gem.value, timestamp: duplicate.gem.created_at },
-                        { text: updates.value, timestamp: getTimestamp() }
-                      ];
-
-                      // Update with consolidated text and mergedFrom array
-                      const mergedUpdates = {
-                        ...updates,
-                        value: consolidatedText,
-                        mergedFrom: mergedFrom
-                      };
-
-                      // Delete the old gem
-                      AppState = deletePreference(AppState, duplicate.gem.id);
-                      // Update current gem with merged data
-                      AppState = updatePreference(AppState, prefId, mergedUpdates);
-                      await saveData();
-                      renderCurrentScreen();
-                      resolve();
-                    },
-                    onKeepBoth: async () => {
-                      // Just save the new gem as is
-                      AppState = updatePreference(AppState, prefId, updates);
-                      await saveData();
-                      renderCurrentScreen();
-                      resolve();
-                    },
-                    onCancel: () => {
-                      // Don't save anything
-                      resolve();
-                    }
-                  });
-
-                  modal.show();
-                });
-                }
-              } catch (error) {
-                console.error('[Duplicate Detection] Error checking for duplicates on update:', error);
-                // Fall through to normal save if duplicate detection fails
-              }
-            }
+            // TEMPORARY: Duplicate detection disabled - was checking too many gems
+            // TODO: Re-enable with optimization (limit to recent 50 gems, add timeout)
 
             // No duplicate found, proceed normally
             AppState = updatePreference(AppState, prefId, updates);
