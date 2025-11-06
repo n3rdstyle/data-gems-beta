@@ -24,7 +24,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   switch (request.action) {
     case 'startDuplicateScan':
-      startDuplicateScan()
+      // Receive gems data from background script
+      const gems = request.gems || [];
+      console.log(`[Offscreen] Received ${gems.length} gems to scan`);
+      startDuplicateScan(gems)
         .then(() => sendResponse({ success: true }))
         .catch(error => sendResponse({ success: false, error: error.message }));
       return true; // Keep channel open for async response
@@ -45,8 +48,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 /**
  * Start duplicate scan
+ * Receives gems data as parameter (from background script)
  */
-async function startDuplicateScan() {
+async function startDuplicateScan(gems) {
   console.log('[Offscreen] Starting duplicate scan...');
 
   // Reset state
@@ -58,28 +62,21 @@ async function startDuplicateScan() {
     foundCount: 0
   };
 
-  // Save initial status to storage
-  console.log('[Offscreen] Saving initial status to chrome.storage.local...');
-  try {
-    await chrome.storage.local.set({
-      duplicateScanStatus: scanState,
-      duplicateScanResults: []
-    });
-    console.log('[Offscreen] Initial status saved successfully');
-  } catch (error) {
-    console.error('[Offscreen] Error saving initial status:', error);
-    throw new Error('Failed to save initial status: ' + error.message);
-  }
+  // Notify background script of initial status
+  chrome.runtime.sendMessage({
+    action: 'updateScanStatus',
+    status: scanState,
+    results: []
+  });
 
-  // Get all gems from storage
-  const result = await chrome.storage.local.get(['hspProfile']);
-  const profile = result.hspProfile || {};
-  const gems = profile?.content?.preferences?.items || [];
-
-  if (gems.length === 0) {
+  if (!gems || gems.length === 0) {
     console.log('[Offscreen] No gems found');
     scanState.running = false;
-    await chrome.storage.local.set({ duplicateScanStatus: scanState });
+    chrome.runtime.sendMessage({
+      action: 'updateScanStatus',
+      status: scanState,
+      results: []
+    });
     return;
   }
 
@@ -90,7 +87,11 @@ async function startDuplicateScan() {
   if (typeof ai === 'undefined' || !ai?.languageModel) {
     console.error('[Offscreen] AI not available');
     scanState.running = false;
-    await chrome.storage.local.set({ duplicateScanStatus: scanState });
+    chrome.runtime.sendMessage({
+      action: 'updateScanStatus',
+      status: scanState,
+      results: []
+    });
     throw new Error('AI not available in offscreen document. Please ensure Chrome Prompt API is enabled.');
   }
 
@@ -171,9 +172,13 @@ How similar are these? (0-100, just the number):`;
       // Update progress
       scanState.checked = i + 1;
 
-      // Save progress to storage every 10 gems
+      // Send progress update to background every 10 gems
       if ((i + 1) % 10 === 0 || i === gems.length - 1) {
-        await chrome.storage.local.set({ duplicateScanStatus: scanState });
+        chrome.runtime.sendMessage({
+          action: 'updateScanStatus',
+          status: scanState,
+          results: duplicatePairs
+        });
         console.log(`[Offscreen] Progress: ${i + 1} / ${gems.length} (${scanState.foundCount} pairs found)`);
       }
     }
@@ -181,10 +186,12 @@ How similar are these? (0-100, just the number):`;
     // Clean up session
     await session.destroy();
 
-    // Save final results
-    await chrome.storage.local.set({
-      duplicateScanResults: duplicatePairs,
-      duplicateScanStatus: scanState
+    // Send final results to background
+    scanState.running = false;
+    chrome.runtime.sendMessage({
+      action: 'updateScanStatus',
+      status: scanState,
+      results: duplicatePairs
     });
 
     console.log(`[Offscreen] Completed! Found ${duplicatePairs.length} similar pairs`);
@@ -192,11 +199,12 @@ How similar are these? (0-100, just the number):`;
   } catch (error) {
     console.error('[Offscreen] Error during scan:', error);
     scanState.running = false;
-    await chrome.storage.local.set({ duplicateScanStatus: scanState });
+    chrome.runtime.sendMessage({
+      action: 'updateScanStatus',
+      status: scanState,
+      results: []
+    });
     throw error;
-  } finally {
-    scanState.running = false;
-    await chrome.storage.local.set({ duplicateScanStatus: scanState });
   }
 }
 

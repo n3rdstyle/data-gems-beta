@@ -86,6 +86,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
       return true;
 
+    case 'updateScanStatus':
+      // Receive status updates from offscreen document and save to storage
+      chrome.storage.local.set({
+        duplicateScanStatus: request.status,
+        duplicateScanResults: request.results
+      }, () => {
+        console.log(`[Background] Saved scan status: ${request.status.checked}/${request.status.total}, ${request.results.length} pairs`);
+      });
+      sendResponse({ success: true });
+      return true;
+
     default:
       sendResponse({ error: 'Unknown action' });
   }
@@ -338,6 +349,18 @@ async function closeOffscreenDocument() {
 async function startDuplicateScan() {
   console.log('[Background] Starting duplicate scan via offscreen document...');
 
+  // Get all gems from storage
+  const result = await chrome.storage.local.get(['hspProfile']);
+  const profile = result.hspProfile || {};
+  const gems = profile?.content?.preferences?.items || [];
+
+  if (gems.length === 0) {
+    console.log('[Background] No gems found to scan');
+    return;
+  }
+
+  console.log(`[Background] Found ${gems.length} gems to scan`);
+
   // Create offscreen document if needed
   await createOffscreenDocument();
 
@@ -345,10 +368,13 @@ async function startDuplicateScan() {
   console.log('[Background] Waiting for offscreen document to initialize...');
   await new Promise(resolve => setTimeout(resolve, 500));
 
-  // Forward request to offscreen document
+  // Forward request to offscreen document with gems data
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(
-      { action: 'startDuplicateScan' },
+      {
+        action: 'startDuplicateScan',
+        gems: gems  // Send gems to offscreen
+      },
       (response) => {
         if (chrome.runtime.lastError) {
           console.error('[Background] Error sending to offscreen:', chrome.runtime.lastError);
