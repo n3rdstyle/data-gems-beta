@@ -844,6 +844,99 @@ async function renderCurrentScreen() {
               alert(`Migration failed: ${error.message}`);
             }
           },
+          onFindDuplicates: async () => {
+            // Show progress modal
+            const progressModal = createDuplicateScanProgressModal({
+              onCancel: async () => {
+                // Cancel the scan in background
+                await chrome.runtime.sendMessage({ action: 'cancelDuplicateScan' });
+              }
+            });
+
+            progressModal.show();
+
+            // Start background scan
+            try {
+              await chrome.runtime.sendMessage({ action: 'startDuplicateScan' });
+
+              // Poll for progress updates
+              const pollInterval = setInterval(async () => {
+                const statusResponse = await chrome.runtime.sendMessage({ action: 'getDuplicateScanStatus' });
+                const status = statusResponse.status;
+
+                if (status) {
+                  // Update progress modal
+                  progressModal.updateProgress(status.checked, status.total, status.foundCount);
+
+                  // Check if scan completed or cancelled
+                  if (!status.running) {
+                    clearInterval(pollInterval);
+
+                    // Get results
+                    const resultsResponse = await chrome.runtime.sendMessage({ action: 'getDuplicateScanResults' });
+                    const duplicatePairs = resultsResponse.results || [];
+
+                    // Hide progress modal
+                    progressModal.hide();
+
+                    // Show results modal
+                    const resultsModal = createDuplicateResultsModal({
+                      duplicatePairs: duplicatePairs,
+                      onMergePair: async (gem1Id, gem2Id) => {
+                        // Find gems
+                        const items = AppState.content.preferences.items;
+                        const gem1 = items.find(g => g.id === gem1Id);
+                        const gem2 = items.find(g => g.id === gem2Id);
+
+                        if (!gem1 || !gem2) return;
+
+                        // Generate consolidated text
+                        const consolidatedText = await generateConsolidatedText([gem1.value, gem2.value]);
+
+                        // Create merged gem with mergedFrom
+                        const mergedFrom = [
+                          { text: gem1.value, timestamp: gem1.created_at },
+                          { text: gem2.value, timestamp: gem2.created_at }
+                        ];
+
+                        // Delete gem1, update gem2
+                        AppState = deletePreference(AppState, gem1Id);
+                        const gem2Updated = items.find(g => g.id === gem2Id);
+                        if (gem2Updated) {
+                          gem2Updated.value = consolidatedText;
+                          gem2Updated.mergedFrom = mergedFrom;
+                          gem2Updated.updated_at = getTimestamp();
+                        }
+
+                        await saveData();
+                        renderCurrentScreen();
+                      },
+                      onReplacePair: async (oldId, newId) => {
+                        // Delete old gem, keep new one
+                        AppState = deletePreference(AppState, oldId);
+                        await saveData();
+                        renderCurrentScreen();
+                      },
+                      onKeepBoth: async (gem1Id, gem2Id) => {
+                        // Do nothing, just acknowledge
+                        console.log('[Duplicate Scan] User chose to keep both gems');
+                      },
+                      onClose: () => {
+                        renderCurrentScreen();
+                      }
+                    });
+
+                    resultsModal.show();
+                  }
+                }
+              }, 1000); // Poll every second
+
+            } catch (error) {
+              console.error('[Duplicate Scan] Error starting scan:', error);
+              progressModal.hide();
+              alert('Failed to start duplicate scan. Please try again.');
+            }
+          },
           isBetaUser: homeIsBetaUser,
           onJoinBeta: () => {
             console.log('🎯 [Home] Join Beta button clicked from Settings!');
@@ -1103,6 +1196,99 @@ async function renderCurrentScreen() {
 
             // Refresh UI
             renderCurrentScreen();
+          },
+          onFindDuplicates: async () => {
+            // Show progress modal
+            const progressModal = createDuplicateScanProgressModal({
+              onCancel: async () => {
+                // Cancel the scan in background
+                await chrome.runtime.sendMessage({ action: 'cancelDuplicateScan' });
+              }
+            });
+
+            progressModal.show();
+
+            // Start background scan
+            try {
+              await chrome.runtime.sendMessage({ action: 'startDuplicateScan' });
+
+              // Poll for progress updates
+              const pollInterval = setInterval(async () => {
+                const statusResponse = await chrome.runtime.sendMessage({ action: 'getDuplicateScanStatus' });
+                const status = statusResponse.status;
+
+                if (status) {
+                  // Update progress modal
+                  progressModal.updateProgress(status.checked, status.total, status.foundCount);
+
+                  // Check if scan completed or cancelled
+                  if (!status.running) {
+                    clearInterval(pollInterval);
+
+                    // Get results
+                    const resultsResponse = await chrome.runtime.sendMessage({ action: 'getDuplicateScanResults' });
+                    const duplicatePairs = resultsResponse.results || [];
+
+                    // Hide progress modal
+                    progressModal.hide();
+
+                    // Show results modal
+                    const resultsModal = createDuplicateResultsModal({
+                      duplicatePairs: duplicatePairs,
+                      onMergePair: async (gem1Id, gem2Id) => {
+                        // Find gems
+                        const items = AppState.content.preferences.items;
+                        const gem1 = items.find(g => g.id === gem1Id);
+                        const gem2 = items.find(g => g.id === gem2Id);
+
+                        if (!gem1 || !gem2) return;
+
+                        // Generate consolidated text
+                        const consolidatedText = await generateConsolidatedText([gem1.value, gem2.value]);
+
+                        // Create merged gem with mergedFrom
+                        const mergedFrom = [
+                          { text: gem1.value, timestamp: gem1.created_at },
+                          { text: gem2.value, timestamp: gem2.created_at }
+                        ];
+
+                        // Delete gem1, update gem2
+                        AppState = deletePreference(AppState, gem1Id);
+                        const gem2Updated = items.find(g => g.id === gem2Id);
+                        if (gem2Updated) {
+                          gem2Updated.value = consolidatedText;
+                          gem2Updated.mergedFrom = mergedFrom;
+                          gem2Updated.updated_at = getTimestamp();
+                        }
+
+                        await saveData();
+                        renderCurrentScreen();
+                      },
+                      onReplacePair: async (oldId, newId) => {
+                        // Delete old gem, keep new one
+                        AppState = deletePreference(AppState, oldId);
+                        await saveData();
+                        renderCurrentScreen();
+                      },
+                      onKeepBoth: async (gem1Id, gem2Id) => {
+                        // Do nothing, just acknowledge
+                        console.log('[Duplicate Scan] User chose to keep both gems');
+                      },
+                      onClose: () => {
+                        renderCurrentScreen();
+                      }
+                    });
+
+                    resultsModal.show();
+                  }
+                }
+              }, 1000); // Poll every second
+
+            } catch (error) {
+              console.error('[Duplicate Scan] Error starting scan:', error);
+              progressModal.hide();
+              alert('Failed to start duplicate scan. Please try again.');
+            }
           },
           isBetaUser: isBetaUser,
           onJoinBeta: () => {

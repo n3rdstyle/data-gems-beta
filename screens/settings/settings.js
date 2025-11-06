@@ -29,6 +29,7 @@ function createSettings(options = {}) {
     onAutoCategorizeToggle = null,
     onBulkAutoCategorize = null,
     onMigrateSubCategories = null,  // NEW: SubCategory migration
+    onFindDuplicates = null,  // NEW: Find & merge duplicates
     isBetaUser = false,
     onJoinBeta = null,
     onRevokeBeta = null
@@ -214,6 +215,20 @@ function createSettings(options = {}) {
     }
   });
   dataCenterSection.appendChild(migrateSubCategories.element);
+
+  // Find & Merge Duplicates Button
+  const findDuplicates = createActionButton({
+    label: 'Find & Merge Duplicates',
+    caption: 'Scan all gems to find and consolidate similar entries (runs in background)',
+    variant: 'cta',
+    ctaLabel: 'Scan',
+    onClick: () => {
+      if (onFindDuplicates) {
+        onFindDuplicates();
+      }
+    }
+  });
+  dataCenterSection.appendChild(findDuplicates.element);
 
   const dataCenterDivider = createDivider();
   dataCenterSection.appendChild(dataCenterDivider.element);
