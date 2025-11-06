@@ -11,6 +11,7 @@ class DataList {
     this.cards = [];
     this.data = options.data || [];
     this.onCardStateChange = options.onCardStateChange || null;
+    this.onCardSelectionChange = options.onCardSelectionChange || null; // NEW: Selection callback
     this.onListChange = options.onListChange || null;
     this.onCardClick = options.onCardClick || null;
     this.modalContainer = options.modalContainer || null;
@@ -45,6 +46,7 @@ class DataList {
     cardElements.forEach(cardElement => {
       const card = new DataCard(cardElement, {
         onStateChange: (state) => this.handleCardStateChange(card, state),
+        onSelectionChange: this.onCardSelectionChange, // NEW: Pass selection callback
         onClick: this.onCardClick ? (card) => this.onCardClick(card, this.modalContainer) : null
       });
       this.cards.push(card);
@@ -85,8 +87,9 @@ class DataList {
       onClick: this.onCardClick ? (card) => this.onCardClick(card, this.modalContainer) : null
     });
 
-    // Now set the callback after card is created
+    // Now set the callbacks after card is created
     card.onStateChange = (newState) => this.handleCardStateChange(card, newState);
+    card.onSelectionChange = this.onCardSelectionChange; // NEW: Set selection callback
 
     this.element.appendChild(card.element);
     this.cards.push(card);

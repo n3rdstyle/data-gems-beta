@@ -86,6 +86,7 @@ function createContentPreferences(options = {}) {
     onSearch = null,
     onTagClick = null,
     onCardStateChange = null,
+    onCardSelectionChange = null, // NEW: Selection callback
     onCardClick = null,
     onListChange = null, // Callback when list changes (add/remove/clear)
     modalContainer = null,
@@ -258,6 +259,7 @@ function createContentPreferences(options = {}) {
         onCardStateChange(card, state);
       }
     },
+    onCardSelectionChange: onCardSelectionChange, // NEW: Pass selection callback
     onCardClick: onCardClick,
     modalContainer: modalContainer
   });
