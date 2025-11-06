@@ -223,8 +223,13 @@ function createSettings(options = {}) {
     variant: 'cta',
     ctaLabel: 'Scan',
     onClick: () => {
+      console.log('[Settings] Find Duplicates button clicked!');
+      console.log('[Settings] onFindDuplicates exists?', typeof onFindDuplicates);
       if (onFindDuplicates) {
+        console.log('[Settings] Calling onFindDuplicates...');
         onFindDuplicates();
+      } else {
+        console.error('[Settings] onFindDuplicates is not defined!');
       }
     }
   });
