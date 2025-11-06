@@ -324,12 +324,38 @@ async function startDuplicateScan() {
   duplicateScanStatus.total = gems.length;
   console.log(`[Duplicate Scan] Checking ${gems.length} gems for duplicates`);
 
-  // Check if AI is available
-  if (typeof ai === 'undefined' || !ai?.languageModel) {
-    console.error('[Duplicate Scan] AI not available in service worker');
-    duplicateScanStatus.running = false;
-    throw new Error('AI not available. Please ensure Chrome has AI features enabled.');
+  // Debug: Check all possible AI API locations
+  console.log('[Duplicate Scan] Checking AI availability...');
+  console.log('[Duplicate Scan] typeof ai:', typeof ai);
+  console.log('[Duplicate Scan] typeof self.ai:', typeof self.ai);
+  console.log('[Duplicate Scan] typeof globalThis.ai:', typeof globalThis.ai);
+  console.log('[Duplicate Scan] typeof chrome.ai:', typeof chrome.ai);
+  console.log('[Duplicate Scan] chrome.aiOriginTrial:', chrome.aiOriginTrial);
+
+  // Try different API access methods
+  let aiAPI = null;
+  if (typeof ai !== 'undefined') {
+    aiAPI = ai;
+    console.log('[Duplicate Scan] Found ai on global scope');
+  } else if (typeof self.ai !== 'undefined') {
+    aiAPI = self.ai;
+    console.log('[Duplicate Scan] Found ai on self');
+  } else if (typeof globalThis.ai !== 'undefined') {
+    aiAPI = globalThis.ai;
+    console.log('[Duplicate Scan] Found ai on globalThis');
+  } else if (typeof chrome.ai !== 'undefined') {
+    aiAPI = chrome.ai;
+    console.log('[Duplicate Scan] Found ai on chrome');
   }
+
+  if (!aiAPI || !aiAPI.languageModel) {
+    console.error('[Duplicate Scan] AI not available in service worker');
+    console.error('[Duplicate Scan] This might be a Chrome limitation - Prompt API may not support service workers yet');
+    duplicateScanStatus.running = false;
+    throw new Error('AI not available in service worker. The Prompt API may not support background scripts yet.');
+  }
+
+  console.log('[Duplicate Scan] AI API found! Attempting to create session...');
 
   const duplicatePairs = [];
   const threshold = 80; // 80% similarity threshold
@@ -337,7 +363,7 @@ async function startDuplicateScan() {
 
   try {
     // Create AI session for similarity checking
-    const session = await ai.languageModel.create({
+    const session = await aiAPI.languageModel.create({
       systemPrompt: `You are a similarity detector for user preferences.
 Compare two preference texts and rate similarity.
 
