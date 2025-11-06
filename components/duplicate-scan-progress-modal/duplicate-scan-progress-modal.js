@@ -70,12 +70,12 @@ function createDuplicateScanProgressModal(options = {}) {
   foundLabel.className = 'duplicate-scan-progress-modal__found-label';
   foundLabel.textContent = 'Similar pairs found';
 
-  const foundCount = document.createElement('div');
-  foundCount.className = 'duplicate-scan-progress-modal__found-count';
-  foundCount.textContent = '0';
+  const foundCountElement = document.createElement('div');
+  foundCountElement.className = 'duplicate-scan-progress-modal__found-count';
+  foundCountElement.textContent = '0';
 
   foundContainer.appendChild(foundLabel);
-  foundContainer.appendChild(foundCount);
+  foundContainer.appendChild(foundCountElement);
 
   // Add sections to content
   contentContainer.appendChild(statusText);
@@ -141,7 +141,7 @@ function createDuplicateScanProgressModal(options = {}) {
       percentageText.textContent = `${percentage}%`;
 
       // Update found count
-      foundCount.textContent = foundCount.toString();
+      foundCountElement.textContent = foundCount.toString();
     },
 
     setStatus(message) {
