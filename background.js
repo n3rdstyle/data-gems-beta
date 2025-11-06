@@ -75,7 +75,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return true;
 
     case 'getDuplicateScanStatus':
-      sendResponse({ status: duplicateScanStatus });
+      chrome.storage.local.get(['duplicateScanStatus'], (result) => {
+        sendResponse({ status: result.duplicateScanStatus || { running: false, checked: 0, total: 0, foundCount: 0 } });
+      });
       return true;
 
     case 'getDuplicateScanResults':
@@ -282,178 +284,87 @@ function generateUUID() {
 }
 
 /**
- * Duplicate Scan Functions
+ * Duplicate Scan Functions - Using Offscreen Document
+ * Offscreen documents have access to AI APIs (service workers don't)
  */
 
-// Track scan status
-let duplicateScanStatus = {
-  running: false,
-  checked: 0,
-  total: 0,
-  foundCount: 0,
-  cancelled: false
-};
+// Track if offscreen document exists
+let offscreenDocumentCreated = false;
 
-// Start duplicate scan
-async function startDuplicateScan() {
-  console.log('[Duplicate Scan] Starting background scan...');
-
-  // Reset status
-  duplicateScanStatus = {
-    running: true,
-    checked: 0,
-    total: 0,
-    foundCount: 0,
-    cancelled: false
-  };
-
-  // Clear previous results
-  await chrome.storage.local.set({ duplicateScanResults: [] });
-
-  // Get all gems
-  const result = await chrome.storage.local.get(['hspProfile']);
-  const profile = result.hspProfile || {};
-  const gems = profile?.content?.preferences?.items || [];
-
-  if (gems.length === 0) {
-    console.log('[Duplicate Scan] No gems found');
-    duplicateScanStatus.running = false;
+// Create offscreen document for duplicate scanning
+async function createOffscreenDocument() {
+  // Check if already exists
+  if (offscreenDocumentCreated) {
+    console.log('[Background] Offscreen document already exists');
     return;
   }
 
-  duplicateScanStatus.total = gems.length;
-  console.log(`[Duplicate Scan] Checking ${gems.length} gems for duplicates`);
+  // Check if any offscreen documents exist
+  const existingContexts = await chrome.runtime.getContexts({
+    contextTypes: ['OFFSCREEN_DOCUMENT']
+  });
 
-  // Debug: Check all possible AI API locations
-  console.log('[Duplicate Scan] Checking AI availability...');
-  console.log('[Duplicate Scan] typeof ai:', typeof ai);
-  console.log('[Duplicate Scan] typeof self.ai:', typeof self.ai);
-  console.log('[Duplicate Scan] typeof globalThis.ai:', typeof globalThis.ai);
-  console.log('[Duplicate Scan] typeof chrome.ai:', typeof chrome.ai);
-  console.log('[Duplicate Scan] chrome.aiOriginTrial:', chrome.aiOriginTrial);
-
-  // Try different API access methods
-  let aiAPI = null;
-  if (typeof ai !== 'undefined') {
-    aiAPI = ai;
-    console.log('[Duplicate Scan] Found ai on global scope');
-  } else if (typeof self.ai !== 'undefined') {
-    aiAPI = self.ai;
-    console.log('[Duplicate Scan] Found ai on self');
-  } else if (typeof globalThis.ai !== 'undefined') {
-    aiAPI = globalThis.ai;
-    console.log('[Duplicate Scan] Found ai on globalThis');
-  } else if (typeof chrome.ai !== 'undefined') {
-    aiAPI = chrome.ai;
-    console.log('[Duplicate Scan] Found ai on chrome');
+  if (existingContexts.length > 0) {
+    console.log('[Background] Offscreen document already exists (from getContexts)');
+    offscreenDocumentCreated = true;
+    return;
   }
 
-  if (!aiAPI || !aiAPI.languageModel) {
-    console.error('[Duplicate Scan] AI not available in service worker');
-    console.error('[Duplicate Scan] This might be a Chrome limitation - Prompt API may not support service workers yet');
-    duplicateScanStatus.running = false;
-    throw new Error('AI not available in service worker. The Prompt API may not support background scripts yet.');
-  }
+  // Create new offscreen document
+  console.log('[Background] Creating offscreen document...');
+  await chrome.offscreen.createDocument({
+    url: 'offscreen.html',
+    reasons: ['DOM_SCRAPING'], // Closest reason - we need DOM context for AI API
+    justification: 'Need DOM context to access Chrome Prompt API for duplicate detection'
+  });
 
-  console.log('[Duplicate Scan] AI API found! Attempting to create session...');
-
-  const duplicatePairs = [];
-  const threshold = 80; // 80% similarity threshold
-  const checkedPairs = new Set(); // Track which pairs we've already checked
-
-  try {
-    // Create AI session for similarity checking
-    const session = await aiAPI.languageModel.create({
-      systemPrompt: `You are a similarity detector for user preferences.
-Compare two preference texts and rate similarity.
-
-Rules:
-1. Consider semantic meaning, not just exact words
-2. "I eat meat" and "Do you like meat? Yes" are 85% similar
-3. "Favorite color: blue" and "I like blue" are 90% similar
-4. "Running is my hobby" and "I hate running" are 20% similar (opposite meanings)
-5. Rate similarity from 0-100
-
-Output format (just the number):
-85`
-    });
-
-    // Compare each gem with others
-    for (let i = 0; i < gems.length; i++) {
-      // Check if scan was cancelled
-      if (duplicateScanStatus.cancelled) {
-        console.log('[Duplicate Scan] Scan cancelled by user');
-        break;
-      }
-
-      const gem1 = gems[i];
-
-      for (let j = i + 1; j < gems.length; j++) {
-        const gem2 = gems[j];
-
-        // Create unique pair identifier
-        const pairId = [gem1.id, gem2.id].sort().join('-');
-
-        // Skip if we've already checked this pair
-        if (checkedPairs.has(pairId)) {
-          continue;
-        }
-        checkedPairs.add(pairId);
-
-        try {
-          const prompt = `Preference 1: "${gem1.value}"
-
-Preference 2: "${gem2.value}"
-
-How similar are these? (0-100, just the number):`;
-
-          const response = await session.prompt(prompt);
-          const similarity = parseInt(response.trim());
-
-          if (!isNaN(similarity) && similarity >= threshold) {
-            console.log(`[Duplicate Scan] Found similar pair (${similarity}%): "${gem1.value.substring(0, 40)}..." ←→ "${gem2.value.substring(0, 40)}..."`);
-
-            duplicatePairs.push({
-              gem1: { id: gem1.id, value: gem1.value },
-              gem2: { id: gem2.id, value: gem2.value },
-              similarity: similarity
-            });
-
-            duplicateScanStatus.foundCount++;
-          }
-        } catch (error) {
-          console.warn('[Duplicate Scan] Error comparing gems:', error);
-          // Continue with next pair
-        }
-      }
-
-      // Update progress
-      duplicateScanStatus.checked = i + 1;
-
-      // Log progress every 10 gems
-      if ((i + 1) % 10 === 0 || i === gems.length - 1) {
-        console.log(`[Duplicate Scan] Progress: ${i + 1} / ${gems.length} (${duplicateScanStatus.foundCount} pairs found)`);
-      }
-    }
-
-    // Clean up session
-    await session.destroy();
-
-    // Save results
-    await chrome.storage.local.set({ duplicateScanResults: duplicatePairs });
-
-    console.log(`[Duplicate Scan] Completed! Found ${duplicatePairs.length} similar pairs`);
-
-  } catch (error) {
-    console.error('[Duplicate Scan] Error during scan:', error);
-    throw error;
-  } finally {
-    duplicateScanStatus.running = false;
-  }
+  offscreenDocumentCreated = true;
+  console.log('[Background] Offscreen document created');
 }
 
-// Cancel duplicate scan
+// Close offscreen document
+async function closeOffscreenDocument() {
+  if (!offscreenDocumentCreated) {
+    return;
+  }
+
+  console.log('[Background] Closing offscreen document...');
+  await chrome.offscreen.closeDocument();
+  offscreenDocumentCreated = false;
+  console.log('[Background] Offscreen document closed');
+}
+
+// Start duplicate scan (forwards to offscreen document)
+async function startDuplicateScan() {
+  console.log('[Background] Starting duplicate scan via offscreen document...');
+
+  // Create offscreen document if needed
+  await createOffscreenDocument();
+
+  // Forward request to offscreen document
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      { action: 'startDuplicateScan' },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('[Background] Error sending to offscreen:', chrome.runtime.lastError);
+          reject(new Error(chrome.runtime.lastError.message));
+        } else if (response && response.success) {
+          console.log('[Background] Scan started in offscreen document');
+          resolve();
+        } else {
+          console.error('[Background] Scan failed:', response?.error);
+          reject(new Error(response?.error || 'Failed to start scan'));
+        }
+      }
+    );
+  });
+}
+
+// Cancel duplicate scan (forwards to offscreen document)
 function cancelDuplicateScan() {
-  console.log('[Duplicate Scan] Cancelling scan...');
-  duplicateScanStatus.cancelled = true;
+  console.log('[Background] Cancelling scan...');
+  chrome.runtime.sendMessage({ action: 'cancelDuplicateScan' }).catch((error) => {
+    console.error('[Background] Error cancelling scan:', error);
+  });
 }

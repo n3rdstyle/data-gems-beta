@@ -21,7 +21,8 @@
   },
   "permissions": [
     "storage",
-    "tabs"
+    "tabs",
+    "offscreen"
   ],
   "host_permissions": [
     "https://n3rdstyle.app.n8n.cloud/*"
