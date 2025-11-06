@@ -131,9 +131,14 @@ function createPreferenceOptions(options = {}) {
 
   const randomQuestionButton = document.createElement('button');
   randomQuestionButton.className = 'preference-options__random-button text-style-body-medium';
-  randomQuestionButton.textContent = randomQuestionLabel;
   randomQuestionButton.type = 'button';
   randomQuestionButton.disabled = isRandomQuestionDisabled;
+
+  // Wrap text in span for proper ellipsis truncation with flexbox
+  const questionTextSpan = document.createElement('span');
+  questionTextSpan.className = 'preference-options__random-button-text';
+  questionTextSpan.textContent = randomQuestionLabel;
+  randomQuestionButton.appendChild(questionTextSpan);
 
   // Add disabled class if needed
   if (isRandomQuestionDisabled) {
@@ -221,7 +226,7 @@ function createPreferenceOptions(options = {}) {
       return triggerButton;
     },
     setRandomQuestionLabel(label) {
-      randomQuestionButton.textContent = label;
+      questionTextSpan.textContent = label;
     },
 
     setRandomQuestionDisabled(disabled) {

@@ -445,23 +445,38 @@ function createHome(options = {}) {
   // Initialize calibration with current card count
   updateCalibrationFromCards();
 
-  // Define questions for Random Question button with associated tags
-  const randomQuestions = [
-    { question: 'What is your favorite food?', tag: 'Nutrition' },
-    { question: 'Where is your next travel destination?', tag: 'Travel' },
-    { question: 'Coffee or tea?', tag: 'Nutrition' },
-    { question: 'Do you play soccer?', tag: 'Sports' },
-    { question: 'Which phone do you have?', tag: 'Technology' }
-  ];
+  // Questions will be loaded asynchronously
+  let randomQuestions = [];
+  let usedQuestions = [];
+  let availableQuestions = [];
 
-  // Track which questions have been used
-  let usedQuestions = randomQuestions.filter(q => usedRandomQuestions.includes(q.question));
-  let availableQuestions = randomQuestions.filter(q => !usedRandomQuestions.includes(q.question));
+  // Load questions from CSV file
+  loadRandomQuestions().then(questions => {
+    randomQuestions = questions;
+
+    // Track which questions have been used
+    usedQuestions = randomQuestions.filter(q => usedRandomQuestions.includes(q.question));
+    availableQuestions = randomQuestions.filter(q => !usedRandomQuestions.includes(q.question));
+
+    // Update preference options with first available question
+    if (preferenceOptions && availableQuestions.length > 0) {
+      preferenceOptions.setRandomQuestionLabel(availableQuestions[0].question);
+      preferenceOptions.setRandomQuestionDisabled(false);
+    } else if (preferenceOptions) {
+      preferenceOptions.setRandomQuestionLabel('New questions soon');
+      preferenceOptions.setRandomQuestionDisabled(true);
+    }
+  }).catch(error => {
+    console.error('Failed to load questions:', error);
+    // Use empty array as fallback (button will be disabled)
+    randomQuestions = [];
+    availableQuestions = [];
+  });
 
   // Create Preference Options component
   preferenceOptions = createPreferenceOptions({
-    randomQuestionLabel: availableQuestions.length > 0 ? availableQuestions[0].question : 'New questions soon',
-    randomQuestionDisabled: availableQuestions.length === 0,
+    randomQuestionLabel: 'Loading questions...',
+    randomQuestionDisabled: true,
     buttons: preferenceOptionsButtons.length > 0 ? preferenceOptionsButtons : [
       {
         label: 'Add new preference',
@@ -541,35 +556,29 @@ function createHome(options = {}) {
       }
 
       // Get the first available question
-      const questionObj = availableQuestions[0];
+      let currentQuestionObj = availableQuestions[0];
+
+      // Batch answered questions to save when modal closes
+      const batchedAnswers = [];
 
       // Create and show Random Question Modal
       const randomQuestionModal = createRandomQuestionModal({
-        question: questionObj.question,
+        question: currentQuestionObj.question,
         onAnswer: (answer, question) => {
-          // When user sends an answer, create a new preference card
+          // When user sends an answer, batch it for later saving
           if (answer && answer.trim()) {
             // Format: "Question: Answer"
             const cardText = `${question}\n${answer}`;
 
-            // Save to HSP protocol storage
-            if (onPreferenceAdd) {
-              onPreferenceAdd(cardText, 'default', [questionObj.tag]);
-              // Note: renderCurrentScreen() in app.js will rebuild the UI
-            } else {
-              // Fallback: Add to UI only (not persistent)
-              const dataList = contentPreferences.getDataList();
-              const newCard = dataList.addCard(cardText, 'default', [questionObj.tag]);
+            // Get the tag from the current question object
+            const questionTag = currentQuestionObj.tag || currentQuestionObj.category || 'General';
 
-              // Move card to the top
-              dataList.element.insertBefore(newCard.element, dataList.element.firstChild);
-
-              // Update tag counts
-              contentPreferences.updateTagCounts();
-
-              // Update calibration
-              updateCalibrationFromCards();
-            }
+            // Add to batch
+            batchedAnswers.push({
+              text: cardText,
+              state: 'default',
+              collections: [questionTag]
+            });
 
             // Mark this question as used
             const usedQuestion = availableQuestions.shift();
@@ -580,19 +589,33 @@ function createHome(options = {}) {
               onRandomQuestionUsed(usedQuestion.question);
             }
 
-            // Update button label and state
+            // Check if there are more questions
             if (availableQuestions.length > 0) {
-              // Show next available question
-              preferenceOptions.setRandomQuestionLabel(availableQuestions[0].question);
+              // Update current question reference
+              currentQuestionObj = availableQuestions[0];
+              // Show next available question in modal
+              randomQuestionModal.setQuestion(currentQuestionObj.question);
+              // Update button label
+              preferenceOptions.setRandomQuestionLabel(currentQuestionObj.question);
             } else {
-              // All questions used - disable button
+              // All questions used - close modal and disable button
+              randomQuestionModal.hide();
               preferenceOptions.setRandomQuestionLabel('New questions soon');
               preferenceOptions.setRandomQuestionDisabled(true);
             }
           }
         },
         onClose: () => {
-          // Modal closed without answering
+          // Modal closed - save all batched answers at once
+          if (batchedAnswers.length > 0) {
+            // Save all answers
+            batchedAnswers.forEach(answer => {
+              if (onPreferenceAdd) {
+                onPreferenceAdd(answer.text, answer.state, answer.collections);
+              }
+            });
+            // Note: renderCurrentScreen() will be called by the last onPreferenceAdd
+          }
         }
       });
 

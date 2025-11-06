@@ -56,5 +56,11 @@
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["complete-questions-catalog.csv"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }

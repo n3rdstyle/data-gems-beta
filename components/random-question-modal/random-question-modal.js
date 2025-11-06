@@ -44,7 +44,12 @@ function createRandomQuestionModal(options = {}) {
       const answer = inputField.getValue().trim();
       if (answer && onAnswer) {
         onAnswer(answer, question);
-        hide(false); // Don't clear the field on submit
+        // Clear the input field for next question
+        inputField.clear();
+        // Disable button after clearing
+        answerButton.element.disabled = true;
+        answerButton.element.classList.add('disabled');
+        // Don't close the modal - let the callback handle next question
       }
     }
   });
@@ -87,8 +92,7 @@ function createRandomQuestionModal(options = {}) {
 
   // Event handlers
   closeButton.element.addEventListener('click', () => {
-    hide();
-    if (onClose) onClose();
+    hide(); // hide() will call onClose
   });
 
   // Show/hide functions
@@ -117,6 +121,10 @@ function createRandomQuestionModal(options = {}) {
     setTimeout(() => {
       modalElement.remove();
     }, 300);
+    // Call onClose callback
+    if (onClose) {
+      onClose();
+    }
   };
 
   // Public API
@@ -135,6 +143,8 @@ function createRandomQuestionModal(options = {}) {
 
     setQuestion(newQuestion) {
       title.textContent = newQuestion;
+      // Auto-focus input field for next question
+      setTimeout(() => inputField.focus(), 100);
     }
   };
 }

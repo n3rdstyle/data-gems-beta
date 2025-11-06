@@ -136,6 +136,7 @@
 .preference-options__random-button {
   flex: 1;
   width: 100%;
+  min-width: 0; /* Allow flex item to shrink below content size */
   height: 40px;
   display: inline-flex;
   align-items: center;
@@ -148,9 +149,17 @@
   color: var(--color-neutral-10);
   cursor: pointer;
   transition: opacity 0.2s, transform 0.1s;
-  white-space: nowrap;
   user-select: none;
   pointer-events: auto;
+}
+
+.preference-options__random-button-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0; /* Allow text to shrink */
+  flex: 1;
+  text-align: center;
 }
 
 .preference-options__random-button:hover {
