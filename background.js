@@ -341,6 +341,10 @@ async function startDuplicateScan() {
   // Create offscreen document if needed
   await createOffscreenDocument();
 
+  // Wait a bit for offscreen document to fully initialize
+  console.log('[Background] Waiting for offscreen document to initialize...');
+  await new Promise(resolve => setTimeout(resolve, 500));
+
   // Forward request to offscreen document
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(

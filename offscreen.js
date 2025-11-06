@@ -5,6 +5,9 @@
  */
 
 console.log('[Offscreen] Duplicate scanner loaded');
+console.log('[Offscreen] chrome available?', typeof chrome);
+console.log('[Offscreen] chrome.storage available?', typeof chrome?.storage);
+console.log('[Offscreen] chrome.storage.local available?', typeof chrome?.storage?.local);
 
 // Track scan status
 let scanState = {
@@ -56,10 +59,17 @@ async function startDuplicateScan() {
   };
 
   // Save initial status to storage
-  await chrome.storage.local.set({
-    duplicateScanStatus: scanState,
-    duplicateScanResults: []
-  });
+  console.log('[Offscreen] Saving initial status to chrome.storage.local...');
+  try {
+    await chrome.storage.local.set({
+      duplicateScanStatus: scanState,
+      duplicateScanResults: []
+    });
+    console.log('[Offscreen] Initial status saved successfully');
+  } catch (error) {
+    console.error('[Offscreen] Error saving initial status:', error);
+    throw new Error('Failed to save initial status: ' + error.message);
+  }
 
   // Get all gems from storage
   const result = await chrome.storage.local.get(['hspProfile']);
