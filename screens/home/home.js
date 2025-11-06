@@ -44,7 +44,6 @@ function createHome(options = {}) {
     onAutoCategorizeToggle = null,
     onBulkAutoCategorize = null,
     onMigrateSubCategories = null,  // NEW: SubCategory migration callback
-    onFindDuplicates = null,  // NEW: Duplicate finder callback
     isBetaUser = false,
     onJoinBeta = null,
     onRevokeBeta = null
@@ -190,7 +189,6 @@ function createHome(options = {}) {
       onAutoCategorizeToggle: onAutoCategorizeToggle,
       onBulkAutoCategorize: onBulkAutoCategorize,
       onMigrateSubCategories: onMigrateSubCategories,
-      onFindDuplicates: onFindDuplicates,  // NEW: Pass through duplicate finder callback
       isBetaUser: isBetaUser,
       onJoinBeta: onJoinBeta,
       onRevokeBeta: onRevokeBeta

@@ -14,8 +14,10 @@ class DataCard {
     this.id = options.id || element.getAttribute('data-id') || null;
     this.onStateChange = options.onStateChange || null;
     this.onClick = options.onClick || null;
+    this.onSelectionChange = options.onSelectionChange || null; // NEW: Selection change callback
     this.collections = options.collections || [];
     this.source = options.source || null; // Track data source (e.g., { type: 'google', url: '...' })
+    this.selected = false; // NEW: Selection state
 
     this.init();
   }
@@ -121,8 +123,11 @@ class DataCard {
     // Clear existing icons
     actionsContainer.innerHTML = '';
 
-    // Default state: show both hidden and heart icons (outline)
+    // Default state: show hidden, heart, and select icons (outline)
     if (this.state === 'default') {
+      this.addIconButton(actionsContainer, 'select', this.selected, () => {
+        this.toggleSelection();
+      });
       this.addIconButton(actionsContainer, 'hidden', false, () => {
         this.setState('hidden');
         this.updateActionIcons();
@@ -132,14 +137,17 @@ class DataCard {
         this.updateActionIcons();
       });
     }
-    // Favorited state: show only heart icon (filled)
+    // Favorited state: show select and heart icons
     else if (this.state === 'favorited') {
+      this.addIconButton(actionsContainer, 'select', this.selected, () => {
+        this.toggleSelection();
+      });
       this.addIconButton(actionsContainer, 'heart', true, () => {
         this.setState('default');
         this.updateActionIcons();
       });
     }
-    // Hidden state: show only hidden icon (filled)
+    // Hidden state: show only hidden icon (filled) - no select in hidden state
     else if (this.state === 'hidden') {
       this.addIconButton(actionsContainer, 'hidden', true, () => {
         this.setState('default');
@@ -284,6 +292,47 @@ class DataCard {
       // Default behavior: toggle state
       this.toggleState();
     }
+  }
+
+  /**
+   * Toggle selection state
+   */
+  toggleSelection() {
+    this.selected = !this.selected;
+    this.element.setAttribute('data-selected', this.selected.toString());
+
+    // Update visual state
+    if (this.selected) {
+      this.element.classList.add('data-card--selected');
+    } else {
+      this.element.classList.remove('data-card--selected');
+    }
+
+    // Update action icons to reflect new selection state
+    this.updateActionIcons();
+
+    // Trigger callback if provided
+    if (this.onSelectionChange) {
+      this.onSelectionChange(this.selected, this);
+    }
+  }
+
+  /**
+   * Set selection state
+   * @param {boolean} selected - Whether card should be selected
+   */
+  setSelected(selected) {
+    if (this.selected !== selected) {
+      this.toggleSelection();
+    }
+  }
+
+  /**
+   * Get selection state
+   * @returns {boolean}
+   */
+  isSelected() {
+    return this.selected;
   }
 
   /**

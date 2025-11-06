@@ -153,3 +153,19 @@
   color: var(--color-neutral-80);
 }
 
+/* Selected State (applies to any state) */
+.data-card--selected {
+  background: var(--color-primary-10) !important;
+  border-color: var(--color-primary-70) !important;
+  box-shadow: 0 0 0 2px var(--color-primary-70);
+}
+
+.data-card--selected .data-card__text {
+  color: var(--color-neutral-100) !important;
+}
+
+/* Keep actions visible when selected */
+.data-card--selected .data-card__actions {
+  opacity: 1;
+}
+
