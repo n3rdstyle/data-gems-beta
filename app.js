@@ -347,6 +347,11 @@ function getPreferences() {
       };
     }
 
+    // Add mergedFrom info if it exists
+    if (item.mergedFrom) {
+      pref.mergedFrom = item.mergedFrom;
+    }
+
     return pref;
   });
   // Reverse to show newest first (newest at top)
