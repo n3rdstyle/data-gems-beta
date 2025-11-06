@@ -45,6 +45,7 @@ function createHome(options = {}) {
     onBulkAutoCategorize = null,
     onMigrateSubCategories = null,  // NEW: SubCategory migration callback
     onCardSelectionChange = null,  // NEW: Card selection callback for merge feature
+    onMergedInfoClick = null,  // NEW: Merged info click callback
     isBetaUser = false,
     onJoinBeta = null,
     onRevokeBeta = null
@@ -377,7 +378,8 @@ function createHome(options = {}) {
       });
       modal.show(container);
     },
-    onCardSelectionChange: onCardSelectionChange // NEW: Pass selection callback
+    onCardSelectionChange: onCardSelectionChange, // NEW: Pass selection callback
+    onMergedInfoClick: onMergedInfoClick // NEW: Pass merged info callback
   });
   contentWrapper.appendChild(contentPreferences.element);
 

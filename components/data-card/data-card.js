@@ -17,6 +17,8 @@ class DataCard {
     this.onSelectionChange = options.onSelectionChange || null; // NEW: Selection change callback
     this.collections = options.collections || [];
     this.source = options.source || null; // Track data source (e.g., { type: 'google', url: '...' })
+    this.mergedFrom = options.mergedFrom || null; // NEW: Track if card is merged from others
+    this.onMergedInfoClick = options.onMergedInfoClick || null; // NEW: Callback for merged info click
     this.selected = false; // NEW: Selection state
 
     this.init();
@@ -39,13 +41,18 @@ class DataCard {
     // Add source info icon if source is present
     this.addSourceInfo();
 
+    // Add merged info icon if card was merged
+    this.addMergedInfo();
+
     // Create action icons container
     this.createActionIcons();
 
     // Add click handler
     this.element.addEventListener('click', (e) => {
-      // Don't trigger card click if clicking on action icons or info icon
-      if (e.target.closest('.data-card__actions') || e.target.closest('.data-card__source-info')) {
+      // Don't trigger card click if clicking on action icons or info icons
+      if (e.target.closest('.data-card__actions') ||
+          e.target.closest('.data-card__source-info') ||
+          e.target.closest('.data-card__merged-info')) {
         return;
       }
       this.handleClick();
@@ -94,6 +101,67 @@ class DataCard {
     tooltipContainer.appendChild(tooltip);
     sourceInfo.appendChild(tooltipContainer);
     contentElement.appendChild(sourceInfo);
+  }
+
+  /**
+   * Add merged info icon with clickable link
+   */
+  addMergedInfo() {
+    if (!this.mergedFrom || !Array.isArray(this.mergedFrom) || this.mergedFrom.length === 0) {
+      return;
+    }
+
+    const contentElement = this.element.querySelector('.data-card__content');
+    if (!contentElement) return;
+
+    const count = this.mergedFrom.length;
+    const label = `Merged from ${count} original card${count > 1 ? 's' : ''}`;
+
+    // Create info icon container
+    const mergedInfo = document.createElement('div');
+    mergedInfo.className = 'data-card__merged-info';
+
+    // Create tooltip container
+    const tooltipContainer = document.createElement('div');
+    tooltipContainer.className = 'tooltip-container';
+
+    // Create info icon (clickable)
+    const infoIcon = document.createElement('div');
+    infoIcon.className = 'data-card__merged-icon';
+    infoIcon.innerHTML = ICONS.info;
+    infoIcon.setAttribute('aria-label', label);
+    infoIcon.style.cursor = 'pointer';
+
+    // Create tooltip with clickable text
+    const tooltip = document.createElement('div');
+    tooltip.className = 'tooltip tooltip--top-right';
+
+    const tooltipText = document.createElement('span');
+    tooltipText.textContent = label;
+
+    const viewLink = document.createElement('span');
+    viewLink.textContent = ' (click to view)';
+    viewLink.style.textDecoration = 'underline';
+    viewLink.style.cursor = 'pointer';
+
+    tooltip.appendChild(tooltipText);
+    tooltip.appendChild(viewLink);
+
+    // Add click handler
+    const handleClick = (e) => {
+      e.stopPropagation();
+      if (this.onMergedInfoClick) {
+        this.onMergedInfoClick(this.mergedFrom, this);
+      }
+    };
+
+    infoIcon.addEventListener('click', handleClick);
+    tooltip.addEventListener('click', handleClick);
+
+    tooltipContainer.appendChild(infoIcon);
+    tooltipContainer.appendChild(tooltip);
+    mergedInfo.appendChild(tooltipContainer);
+    contentElement.appendChild(mergedInfo);
   }
 
   /**

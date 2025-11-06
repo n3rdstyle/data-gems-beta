@@ -87,6 +87,7 @@ function createContentPreferences(options = {}) {
     onTagClick = null,
     onCardStateChange = null,
     onCardSelectionChange = null, // NEW: Selection callback
+    onMergedInfoClick = null, // NEW: Merged info callback
     onCardClick = null,
     onListChange = null, // Callback when list changes (add/remove/clear)
     modalContainer = null,
@@ -260,6 +261,7 @@ function createContentPreferences(options = {}) {
       }
     },
     onCardSelectionChange: onCardSelectionChange, // NEW: Pass selection callback
+    onMergedInfoClick: onMergedInfoClick, // NEW: Pass merged info callback
     onCardClick: onCardClick,
     modalContainer: modalContainer
   });

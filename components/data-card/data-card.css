@@ -63,6 +63,39 @@
   color: var(--color-neutral-70);
 }
 
+/* Merged info icon (bottom right, above source if both exist) */
+.data-card__merged-info {
+  position: absolute;
+  bottom: var(--spacing-xs); /* 8px */
+  right: var(--spacing-xs); /* 8px */
+}
+
+/* If both source and merged info exist, stack them */
+.data-card__content:has(.data-card__source-info) .data-card__merged-info {
+  bottom: calc(var(--spacing-xs) + 24px); /* 8px + 16px icon + 8px gap */
+}
+
+.data-card__merged-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--color-primary-60);
+  transition: color 0.2s ease-in-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.data-card__merged-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Show tooltip on hover */
+.data-card__merged-info:hover .data-card__merged-icon {
+  color: var(--color-primary-70);
+}
+
 /* Action icons container */
 .data-card__actions {
   display: flex;

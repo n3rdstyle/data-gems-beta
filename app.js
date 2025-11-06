@@ -105,6 +105,86 @@ function clearSelection() {
   updateMergeFAB();
 }
 
+function handleMergedInfoClick(mergedFrom, card) {
+  console.log('[Merged Info] Showing original cards:', mergedFrom);
+
+  // Create a simple modal to show the original cards
+  const modal = document.createElement('div');
+  modal.className = 'merged-cards-modal';
+  modal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+  `;
+
+  const content = document.createElement('div');
+  content.style.cssText = `
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  `;
+
+  const title = document.createElement('h2');
+  title.textContent = `Original Cards (${mergedFrom.length})`;
+  title.style.cssText = 'margin: 0 0 16px 0; font-size: 20px; font-weight: 600;';
+  content.appendChild(title);
+
+  mergedFrom.forEach((original, index) => {
+    const cardDiv = document.createElement('div');
+    cardDiv.style.cssText = `
+      background: var(--color-neutral-10);
+      border: 1px solid var(--color-neutral-30);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+    `;
+
+    const cardText = document.createElement('p');
+    cardText.textContent = original.text;
+    cardText.style.cssText = 'margin: 0 0 8px 0;';
+    cardDiv.appendChild(cardText);
+
+    const meta = document.createElement('div');
+    meta.style.cssText = 'font-size: 12px; color: var(--color-neutral-60);';
+    meta.textContent = `Collections: ${(original.collections || []).join(', ') || 'None'} | State: ${original.state || 'default'}`;
+    cardDiv.appendChild(meta);
+
+    content.appendChild(cardDiv);
+  });
+
+  const closeButton = document.createElement('button');
+  closeButton.textContent = 'Close';
+  closeButton.style.cssText = `
+    background: var(--color-primary-60);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    margin-top: 16px;
+    cursor: pointer;
+  `;
+  closeButton.onclick = () => modal.remove();
+  content.appendChild(closeButton);
+
+  modal.appendChild(content);
+  modal.onclick = (e) => {
+    if (e.target === modal) modal.remove();
+  };
+
+  document.body.appendChild(modal);
+}
+
 async function handleMergeSelectedCards() {
   if (SelectedCards.size < 2) {
     alert('Please select at least 2 cards to merge.');
@@ -1070,7 +1150,8 @@ async function renderCurrentScreen() {
               alert('Failed to revoke beta status. Please try again.');
             }
           },
-          onCardSelectionChange: handleCardSelection
+          onCardSelectionChange: handleCardSelection,
+          onMergedInfoClick: handleMergedInfoClick
         });
         break;
 

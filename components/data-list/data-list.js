@@ -12,6 +12,7 @@ class DataList {
     this.data = options.data || [];
     this.onCardStateChange = options.onCardStateChange || null;
     this.onCardSelectionChange = options.onCardSelectionChange || null; // NEW: Selection callback
+    this.onMergedInfoClick = options.onMergedInfoClick || null; // NEW: Merged info callback
     this.onListChange = options.onListChange || null;
     this.onCardClick = options.onCardClick || null;
     this.modalContainer = options.modalContainer || null;
@@ -47,6 +48,7 @@ class DataList {
       const card = new DataCard(cardElement, {
         onStateChange: (state) => this.handleCardStateChange(card, state),
         onSelectionChange: this.onCardSelectionChange, // NEW: Pass selection callback
+        onMergedInfoClick: this.onMergedInfoClick, // NEW: Pass merged info callback
         onClick: this.onCardClick ? (card) => this.onCardClick(card, this.modalContainer) : null
       });
       this.cards.push(card);
@@ -55,7 +57,7 @@ class DataList {
 
   /**
    * Populate the list with data
-   * @param {Array} data - Array of objects with { name, state, collections, id, source }
+   * @param {Array} data - Array of objects with { name, state, collections, id, source, mergedFrom }
    */
   populate(data) {
     // Clear existing cards
@@ -63,7 +65,7 @@ class DataList {
 
     // Create new cards
     data.forEach(item => {
-      this.addCard(item.name, item.state || 'default', item.collections || [], item.id, item.source);
+      this.addCard(item.name, item.state || 'default', item.collections || [], item.id, item.source, item.mergedFrom);
     });
   }
 
@@ -74,9 +76,10 @@ class DataList {
    * @param {Array} collections - Array of collection names
    * @param {string} id - Card ID (optional)
    * @param {object} source - Source metadata (e.g., { type: 'google', url: '...' })
+   * @param {Array} mergedFrom - Array of original merged cards (optional)
    * @returns {DataCard} - The created card instance
    */
-  addCard(name, state = 'default', collections = [], id = null, source = null) {
+  addCard(name, state = 'default', collections = [], id = null, source = null, mergedFrom = null) {
     // Create card without callback first
     const card = createDataCard({
       id: id,
@@ -84,12 +87,14 @@ class DataList {
       data: name,
       collections: collections,
       source: source,
+      mergedFrom: mergedFrom,
       onClick: this.onCardClick ? (card) => this.onCardClick(card, this.modalContainer) : null
     });
 
     // Now set the callbacks after card is created
     card.onStateChange = (newState) => this.handleCardStateChange(card, newState);
     card.onSelectionChange = this.onCardSelectionChange; // NEW: Set selection callback
+    card.onMergedInfoClick = this.onMergedInfoClick; // NEW: Set merged info callback
 
     this.element.appendChild(card.element);
     this.cards.push(card);
