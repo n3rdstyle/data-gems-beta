@@ -199,6 +199,15 @@
 .preference-options__trigger {
   pointer-events: auto;
   position: relative;
+  width: 40px;
+  height: 40px;
+}
+
+/* Both buttons should be positioned absolutely at the same place */
+.preference-options__trigger .button-tertiary {
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
 /* Trash button styling - red color */
@@ -214,10 +223,12 @@
 /* Full-width primary button in empty state */
 .preference-options__trigger--empty {
   width: 100%;
+  height: auto;
 }
 
 .preference-options__trigger--empty .button-primary {
   width: 100%;
+  position: static; /* Override absolute positioning for primary button */
 }
 
 /* Random Question Tooltip */
