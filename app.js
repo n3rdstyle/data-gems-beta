@@ -88,9 +88,12 @@ function updateMergeFAB() {
       currentPreferenceOptions.hideTrashButton();
     }
 
-    // Show/hide merge button based on selection (2+)
-    if (count >= 2) {
+    // Show/hide merge button based on selection (1+)
+    // Merge button appears at 1+ but is disabled until 2+
+    if (count >= 1) {
       currentPreferenceOptions.showMergeButton(count);
+      // Enable only if 2+ cards selected
+      currentPreferenceOptions.setMergeButtonDisabled(count < 2);
     } else {
       currentPreferenceOptions.hideMergeButton();
     }

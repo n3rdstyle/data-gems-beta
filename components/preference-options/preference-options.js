@@ -325,7 +325,11 @@ function createPreferenceOptions(options = {}) {
     },
 
     updateMergeCount(count) {
-      mergeButton.setLabel(`Merge ${count} Cards`);
+      mergeButton.setLabel(`Merge ${count} Card${count !== 1 ? 's' : ''}`);
+    },
+
+    setMergeButtonDisabled(disabled) {
+      mergeButton.setDisabled(disabled);
     },
 
     showTrashButton() {
