@@ -232,6 +232,91 @@ Respond with JSON array only:`;
 }
 
 /**
+ * Expand categories semantically by asking AI for related categories
+ * @param {string} promptText - The user's prompt
+ * @param {Array<{category: string, score: number}>} selectedCategories - Initially selected categories
+ * @param {Array<string>} allCategories - All available categories
+ * @returns {Promise<Array<{category: string, score: number}>>} Expanded categories with scores
+ */
+async function expandCategoriesSemanticly(promptText, selectedCategories, allCategories) {
+  try {
+    // Get category names
+    const selectedNames = selectedCategories.map(c => c.category);
+    const otherCategories = allCategories.filter(cat => !selectedNames.includes(cat));
+
+    if (otherCategories.length === 0) {
+      return selectedCategories; // No categories to expand into
+    }
+
+    // Create AI session for semantic expansion
+    const session = await LanguageModel.create({
+      language: 'en',
+      systemPrompt: `You are a semantic category expansion assistant.
+Your task is to identify categories that are CLOSELY RELATED to the primary categories for a given query.
+
+Only suggest categories that would provide valuable context for understanding the user's request.
+Be conservative - only add categories with clear semantic relationships.
+
+Output JSON only: [{"category":"CategoryName","score":6}]`
+    });
+
+    const prompt = `User query: "${promptText}"
+
+Primary categories already selected: ${selectedNames.join(', ')}
+
+Other available categories: ${otherCategories.join(', ')}
+
+Which of the OTHER categories are closely related and would provide useful context?
+
+Rules:
+- Only suggest categories with CLEAR semantic relationships
+- Give lower scores (5-6) to related categories vs primary (7-10)
+- Maximum 2-3 related categories
+- If no categories are clearly related, return empty array []
+
+Return JSON array with related categories and scores (5-6):`;
+
+    console.log('[Context Selector] Asking AI for semantically related categories...');
+
+    const response = await session.prompt(prompt);
+    await session.destroy();
+
+    // Parse response
+    const cleaned = response.trim().replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    const match = cleaned.match(/\[.*?\]/s);
+
+    if (match) {
+      const relatedCategories = JSON.parse(match[0]);
+
+      // Filter and validate
+      const validRelated = relatedCategories
+        .filter(item => {
+          const hasCategory = item && typeof item.category === 'string';
+          const hasScore = typeof item.score === 'number';
+          const isOtherCategory = otherCategories.includes(item.category);
+          return hasCategory && hasScore && isOtherCategory;
+        })
+        .map(item => ({
+          category: item.category,
+          score: Math.max(1, Math.min(10, item.score))
+        }));
+
+      console.log('[Context Selector] Semantically related categories:', validRelated);
+
+      // Combine original + related
+      return [...selectedCategories, ...validRelated];
+    }
+
+    console.log('[Context Selector] No related categories found');
+    return selectedCategories;
+
+  } catch (error) {
+    console.error('[Context Selector] Error expanding categories semantically:', error);
+    return selectedCategories; // Return original on error
+  }
+}
+
+/**
  * Filter gems by categories
  * @param {Array} dataGems - Array of preference objects
  * @param {Array<{category: string, score: number}>} categoriesWithScores - Categories with confidence scores
@@ -389,7 +474,20 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, pr
       }
 
       if (relevantCategories.length > 0) {
-        // Filter gems by relevant categories
+        // SEMANTIC EXPANSION: Ask AI for related categories
+        const expandedCategories = await expandCategoriesSemanticly(
+          promptText,
+          relevantCategories,
+          allCategories
+        );
+
+        if (expandedCategories.length > relevantCategories.length) {
+          console.log(`[Context Selector] Semantically expanded ${relevantCategories.length} → ${expandedCategories.length} categories:`,
+            expandedCategories.map(c => `${c.category}(${c.score})`).join(', '));
+          relevantCategories = expandedCategories;
+        }
+
+        // Filter gems by relevant (possibly expanded) categories
         candidateGems = filterGemsByCategories(dataGems, relevantCategories);
         console.log(`[Context Selector] Filtered to ${candidateGems.length} gems in ${relevantCategories.length} relevant categories`);
 
@@ -423,13 +521,13 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, pr
                 // Filter gems by selected SubCategories
                 const subCategoryFiltered = filterGemsBySubCategories(candidateGems, highConfidenceSubCategories);
 
-                // Only apply SubCategory filter if it returns at least 3 gems
-                if (subCategoryFiltered.length >= 3) {
+                // Apply SubCategory filter if it returns any gems
+                if (subCategoryFiltered.length > 0) {
                   candidateGems = subCategoryFiltered;
                   stage15Applied = true; // Mark that Stage 1.5 successfully filtered
                   console.log(`[Context Selector] Stage 1.5: Reduced to ${candidateGems.length} gems (${((1 - candidateGems.length / filterGemsByCategories(dataGems, relevantCategories).length) * 100).toFixed(1)}% reduction)`);
                 } else {
-                  console.log(`[Context Selector] Stage 1.5: Only ${subCategoryFiltered.length} gems after SubCategory filter, keeping all ${candidateGems.length} category-filtered gems`);
+                  console.log(`[Context Selector] Stage 1.5: No gems after SubCategory filter, keeping all ${candidateGems.length} category-filtered gems`);
                 }
               } else {
                 console.log(`[Context Selector] Stage 1.5: No high-confidence SubCategories (all < 6), skipping SubCategory filter`);
@@ -476,47 +574,8 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, pr
       console.log('[Context Selector] No categories found, processing all gems');
     }
 
-    // SMART PRE-FILTER: Reduce to top candidates before AI scoring
-    // If Stage 1.5 already filtered, increase limit since gems are semantically relevant
-    const MAX_AI_SCORING = stage15Applied ? 50 : 30; // Higher limit if Stage 1.5 filtered
-
-    if (candidateGems.length > MAX_AI_SCORING) {
-      console.log(`[Context Selector] Too many gems (${candidateGems.length}), pre-filtering to ${MAX_AI_SCORING}`);
-
-      // Priority 1: Favorited gems (always include)
-      const favorited = candidateGems.filter(gem => gem.state === 'favorited');
-
-      if (stage15Applied) {
-        // Stage 1.5 already did semantic filtering, so randomly sample remaining gems
-        // This preserves the semantic quality from SubCategory filtering
-        const nonFavorited = candidateGems.filter(gem => gem.state !== 'favorited');
-        const sampleSize = Math.min(MAX_AI_SCORING - favorited.length, nonFavorited.length);
-
-        // Shuffle and take first N items (Fisher-Yates shuffle)
-        const shuffled = [...nonFavorited];
-        for (let i = shuffled.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-        }
-        const randomSample = shuffled.slice(0, sampleSize);
-
-        candidateGems = [...favorited, ...randomSample];
-        console.log(`[Context Selector] Stage 1.5 applied: randomly sampled ${sampleSize} gems (${favorited.length} favorited, ${randomSample.length} random from SubCategory-filtered gems)`);
-      } else {
-        // No Stage 1.5, use keyword matching as before
-        const nonFavorited = candidateGems.filter(gem => gem.state !== 'favorited');
-        const keywordMatched = selectRelevantGemsByKeywords(
-          promptText,
-          nonFavorited,
-          MAX_AI_SCORING - favorited.length
-        );
-
-        candidateGems = [...favorited, ...keywordMatched].slice(0, MAX_AI_SCORING);
-        console.log(`[Context Selector] Pre-filtered to ${candidateGems.length} gems (${favorited.length} favorited, ${keywordMatched.length} keyword-matched)`);
-      }
-    } else {
-      console.log(`[Context Selector] Will score all ${candidateGems.length} ${stage15Applied ? 'SubCategory-' : 'category-'}filtered gems with AI`);
-    }
+    // Score ALL filtered gems with batch scoring (no artificial limit)
+    console.log(`[Context Selector] Will score all ${candidateGems.length} ${stage15Applied ? 'SubCategory-' : 'category-'}filtered gems with AI using batch scoring`);
 
     // If no candidates, fall back to keyword matching on all gems
     if (candidateGems.length === 0) {
@@ -545,25 +604,33 @@ Think about semantic meaning, not just keywords.
 Provide your rating and optionally a brief reason.`
     });
 
-    // Score each candidate gem SEQUENTIALLY (not parallel - AI sessions don't handle parallel well)
+    // Score gems in BATCHES for better performance
     const scoredGems = [];
+    const BATCH_SIZE = 10; // Score 10 gems per AI call
+    const totalBatches = Math.ceil(candidateGems.length / BATCH_SIZE);
 
-    console.log(`[Context Selector] Scoring ALL ${candidateGems.length} filtered gems`);
+    console.log(`[Context Selector] Scoring ${candidateGems.length} gems in ${totalBatches} batches of ${BATCH_SIZE}`);
 
-    for (let index = 0; index < candidateGems.length; index++) {
-      const gem = candidateGems[index];
+    for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+      const startIdx = batchIndex * BATCH_SIZE;
+      const endIdx = Math.min(startIdx + BATCH_SIZE, candidateGems.length);
+      const batch = candidateGems.slice(startIdx, endIdx);
+
       try {
-        // Build prompt with category context
-        const category = gem._matchedCategory || 'unknown';
-        const categoryConfidence = gem._categoryConfidence || 5;
+        // Build batch prompt
+        const gemsList = batch.map((gem, i) => {
+          const shortValue = gem.value.substring(0, 150).replace(/\n/g, ' ');
+          return `${i + 1}. "${shortValue}"`;
+        }).join('\n\n');
 
-        const prompt = `Task: Rate how useful this personal data would be as CONTEXT for an AI assistant answering the user's request.
+        const prompt = `Task: Rate how useful each personal data item would be as CONTEXT for an AI assistant answering the user's request.
 
-Context is useful if it helps the AI understand the user's preferences, background, or constraints - even if it doesn't directly answer the question.
+Context is useful if it helps the AI understand the user's preferences, background, or constraints.
 
 User request: "${promptText}"
 
-Personal data: "${gem.value.substring(0, 200)}"
+Personal data items:
+${gemsList}
 
 Relevance scale:
 - 10 = Extremely useful context (directly relevant to preferences/needs)
@@ -572,67 +639,49 @@ Relevance scale:
 - 1-3 = Minimally useful (weak connection)
 - 0 = Not useful (completely unrelated)
 
-Examples:
-- Request: "recommend shoes" + Data: "favorite shoe: white sneakers" → 9 (shows preferences!)
-- Request: "recommend shoes" + Data: "favorite color: blue" → 5 (background info)
-- Request: "recommend shoes" + Data: "favorite food: pizza" → 0 (unrelated)
+Return ONLY a JSON array of scores in order, e.g.: [8, 3, 9, 0, 7, ...]
+IMPORTANT: Return exactly ${batch.length} scores, one for each item above.`;
 
-Your rating (just the number):`;
+        console.log(`[Context Selector] Batch ${batchIndex + 1}/${totalBatches} (gems ${startIdx + 1}-${endIdx})`);
 
-        // Debug: log first 10 gems, then every 50th
-        if (index < 10 || index % 50 === 0) {
-          console.log(`[Context Selector] Gem ${index + 1}/${candidateGems.length}:`, {
-            category,
-            categoryConfidence,
-            gemValue: gem.value.substring(0, 80) + '...'
-          });
-        }
-
-        // NO TIMEOUT for testing - let AI take as long as it needs
         const response = await session.prompt(prompt);
 
-        // More robust parsing - extract number from natural language
-        const cleaned = response.trim();
+        // Parse JSON response
+        const cleaned = response.trim().replace(/```json\n?/g, '').replace(/```\n?/g, '');
+        const jsonMatch = cleaned.match(/\[[\d,\s]+\]/);
 
-        // Try to find a score in format "8/10", "score: 7", "rating: 9", or just "5"
-        let score = 0;
+        if (jsonMatch) {
+          const scores = JSON.parse(jsonMatch[0]);
 
-        // Check for "X/10" or "X out of 10" pattern first
-        const outOfTenMatch = cleaned.match(/(\d+)\s*(?:\/|out of)\s*10/i);
-        if (outOfTenMatch) {
-          score = parseInt(outOfTenMatch[1]);
-        } else {
-          // Look for any number 0-10
-          const numbers = cleaned.match(/\d+/g);
-          if (numbers) {
-            // Find first number that's 0-10
-            for (const num of numbers) {
-              const n = parseInt(num);
-              if (n >= 0 && n <= 10) {
-                score = n;
-                break;
+          // Validate we got the right number of scores
+          if (scores.length === batch.length) {
+            batch.forEach((gem, i) => {
+              const score = Math.max(0, Math.min(10, parseInt(scores[i]) || 0));
+
+              // Log high-scoring gems
+              if (score >= 7) {
+                console.log(`[Context Selector] ✓ HIGH SCORE ${score}: "${gem.value.substring(0, 80)}..."`);
               }
-            }
+
+              scoredGems.push({ gem, score });
+            });
+
+            console.log(`[Context Selector] Batch ${batchIndex + 1} scores:`, scores);
+          } else {
+            console.warn(`[Context Selector] Batch ${batchIndex + 1}: Expected ${batch.length} scores, got ${scores.length}. Using fallback.`);
+            // Fallback: assign middle scores
+            batch.forEach(gem => scoredGems.push({ gem, score: 5 }));
           }
+        } else {
+          console.warn(`[Context Selector] Batch ${batchIndex + 1}: Could not parse JSON response. Using fallback.`);
+          // Fallback: assign middle scores
+          batch.forEach(gem => scoredGems.push({ gem, score: 5 }));
         }
 
-        // Debug logging for first 10 gems, then every 50th
-        if (index < 10 || index % 50 === 0) {
-          console.log(`[Context Selector] Gem ${index + 1} Score: ${score}`, cleaned.length > 50 ? `(response: ${cleaned.substring(0, 50)}...)` : `(response: ${cleaned})`);
-        }
-
-        // Log high-scoring gems (≥7)
-        if (score >= 7) {
-          console.log(`[Context Selector] ✓ HIGH SCORE ${score}: "${gem.value.substring(0, 80)}..."`);
-        }
-
-        scoredGems.push({
-          gem,
-          score: isNaN(score) ? 0 : Math.min(score, 10) // Cap at 10
-        });
       } catch (error) {
-        console.warn('[Context Selector] Error scoring gem:', error);
-        scoredGems.push({ gem, score: 0 });
+        console.warn(`[Context Selector] Error scoring batch ${batchIndex + 1}:`, error);
+        // Fallback: assign middle scores to entire batch
+        batch.forEach(gem => scoredGems.push({ gem, score: 5 }));
       }
     }
 
@@ -876,6 +925,7 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     selectRelevantCategoriesWithAI,
     selectRelevantSubCategoriesWithAI,
+    expandCategoriesSemanticly,
     filterGemsByCategories,
     filterGemsBySubCategories,
     selectRelevantGemsWithAI,
