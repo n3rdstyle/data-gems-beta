@@ -270,14 +270,8 @@ function createHome(options = {}) {
     data: preferencesData, // Use real data from HSP protocol (empty array on first install)
     modalContainer: screenElement,
     onSearchStateChange: (isActive) => {
-      // Show/hide preference options based on search state
-      if (preferenceOptions) {
-        if (isActive) {
-          preferenceOptions.element.style.display = 'none';
-        } else {
-          preferenceOptions.element.style.display = '';
-        }
-      }
+      // No longer hide preference options - inline search doesn't need this
+      // Buttons remain visible when using inline search field
     },
     onListChange: (action, card) => {
       // Update preference options state when list changes

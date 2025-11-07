@@ -102,16 +102,46 @@ function createContentPreferences(options = {}) {
   const container = document.createElement('div');
   container.className = 'content-preferences';
 
-  // Create headline with search icon
+  // Create headline with integrated search
   const headlineWrapper = document.createElement('div');
   headlineWrapper.className = 'content-preferences__headline';
   const headline = createHeadline({
     text: title,
     showIcon: true,
     iconName: 'search',
-    onIconClick: () => {
-      // Open search modal
-      openSearchModal();
+    searchPlaceholder: searchPlaceholder,
+    onSearch: (value) => {
+      // Filter data list based on search (live filtering)
+      if (onSearch) {
+        onSearch(value);
+      }
+      if (value) {
+        dataList.filter(value);
+        activeSearchTerm = value;
+
+        // Notify parent that search was activated
+        if (onSearchStateChange && !activeSearchTerm) {
+          onSearchStateChange(true);
+        }
+      } else {
+        activeSearchTerm = null;
+
+        // Notify parent that search was deactivated
+        if (onSearchStateChange) {
+          onSearchStateChange(false);
+        }
+
+        // If no search term but there's an active tag filter, reapply it
+        if (activeFilter) {
+          if (activeFilter.type === 'state') {
+            dataList.filterByState(activeFilter.value);
+          } else if (activeFilter.type === 'collections') {
+            dataList.filterByCollections(activeFilter.value);
+          }
+        } else {
+          dataList.clearFilter();
+        }
+      }
     }
   });
   headlineWrapper.appendChild(headline.element);
@@ -128,8 +158,6 @@ function createContentPreferences(options = {}) {
   // Store reference to tag list wrapper for show/hide
   let tagListWrapper = null;
 
-  // Store reference to the search modal (to prevent duplicates)
-  let searchModal = null;
 
   // Function to update tag counts (will be defined later)
   const updateTagCountsInternal = () => {
@@ -266,104 +294,6 @@ function createContentPreferences(options = {}) {
     modalContainer: modalContainer
   });
 
-  // Function to clear search
-  const clearSearchTerm = () => {
-    activeSearchTerm = null;
-    headline.clearSearch();
-
-    // Show tag list again
-    if (tagListWrapper) {
-      tagListWrapper.style.display = '';
-    }
-
-    // Notify parent that search was deactivated
-    if (onSearchStateChange) {
-      onSearchStateChange(false);
-    }
-
-    // Clear filter and reapply tag filter if one exists
-    if (activeFilter) {
-      if (activeFilter.type === 'state') {
-        dataList.filterByState(activeFilter.value);
-      } else if (activeFilter.type === 'collections') {
-        dataList.filterByCollections(activeFilter.value);
-      }
-    } else {
-      dataList.clearFilter();
-    }
-  };
-
-  // Function to open search modal
-  const openSearchModal = () => {
-    // Prevent opening multiple modals
-    if (searchModal && searchModal.element.parentElement) {
-      // Modal already exists and is in the DOM
-      return;
-    }
-
-    searchModal = createSearchModal({
-      placeholder: searchPlaceholder,
-      onSearch: (value) => {
-        // Filter data list based on search (live filtering)
-        if (onSearch) {
-          onSearch(value);
-        }
-        if (value) {
-          dataList.filter(value);
-        } else {
-          // If no search term but there's an active tag filter, reapply it
-          if (activeFilter) {
-            if (activeFilter.type === 'state') {
-              dataList.filterByState(activeFilter.value);
-            } else if (activeFilter.type === 'collections') {
-              dataList.filterByCollections(activeFilter.value);
-            }
-          } else {
-            dataList.clearFilter();
-          }
-        }
-      },
-      onSearchSubmit: (value) => {
-        // Search submitted with Enter key
-        activeSearchTerm = value;
-
-        // Hide tag list
-        if (tagListWrapper) {
-          tagListWrapper.style.display = 'none';
-        }
-
-        // Scroll to top of the scrollable container
-        const scrollableParent = container.closest('.home__content');
-        if (scrollableParent) {
-          scrollableParent.scrollTop = 0;
-        }
-
-        // Notify parent that search was activated
-        if (onSearchStateChange) {
-          onSearchStateChange(true);
-        }
-
-        // Apply filter
-        dataList.filter(value);
-
-        // Update headline to show search button
-        headline.setSearchActive(value, clearSearchTerm);
-      },
-      onClose: () => {
-        // Reset modal reference when closed
-        searchModal = null;
-      }
-    });
-
-    // Append modal directly without overlay
-    if (modalContainer) {
-      modalContainer.appendChild(searchModal.element);
-    } else {
-      container.appendChild(searchModal.element);
-    }
-
-    searchModal.show();
-  };
 
   // Create tag list (without search field)
   tagListWrapper = document.createElement('div');
@@ -558,7 +488,7 @@ function createContentPreferences(options = {}) {
     },
 
     openSearch() {
-      openSearchModal();
+      headline.expandSearch();
     },
 
     filterByState(state) {

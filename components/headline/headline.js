@@ -8,7 +8,9 @@ function createHeadline(options = {}) {
     text = 'Headline',
     showIcon = false,
     iconName = 'search',
-    onIconClick = null
+    onIconClick = null,
+    searchPlaceholder = 'Search',
+    onSearch = null
   } = options;
 
   // Create headline element
@@ -21,26 +23,181 @@ function createHeadline(options = {}) {
   textElement.textContent = text;
   headlineElement.appendChild(textElement);
 
-  // Create action container (for icon or search button)
+  // Create action container (for icon or search field)
   const actionContainer = document.createElement('span');
   actionContainer.className = 'headline__action';
 
-  // Create icon element if needed
-  let iconElement = null;
-  if (showIcon) {
-    iconElement = document.createElement('span');
-    iconElement.className = 'headline__icon';
-    iconElement.innerHTML = getIcon(iconName);
-    iconElement.setAttribute('role', 'button');
-    iconElement.setAttribute('aria-label', 'Search');
+  // Track search state
+  let isSearchExpanded = false;
 
-    if (onIconClick) {
-      iconElement.addEventListener('click', onIconClick);
+  // Create search field container (hidden initially)
+  const searchContainer = document.createElement('div');
+  searchContainer.className = 'headline__search-container';
+
+  // Create search input
+  const searchInput = document.createElement('input');
+  searchInput.type = 'text';
+  searchInput.className = 'headline__search-input';
+  searchInput.placeholder = searchPlaceholder;
+  searchInput.setAttribute('aria-label', searchPlaceholder);
+
+  // Add input handler
+  searchInput.addEventListener('input', (e) => {
+    if (onSearch) {
+      onSearch(e.target.value);
     }
+  });
 
-    actionContainer.appendChild(iconElement);
+  // Handle Enter key to submit search, Escape to close
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && searchInput.value.trim()) {
+      submitSearch(searchInput.value.trim());
+    } else if (e.key === 'Escape') {
+      collapseSearch();
+      searchInput.value = '';
+      if (onSearch) {
+        onSearch('');
+      }
+    }
+  });
+
+  searchContainer.appendChild(searchInput);
+
+  // Create icon button using tertiary button
+  let iconButton = null;
+  if (showIcon) {
+    iconButton = createTertiaryButton({
+      icon: iconName,
+      ariaLabel: 'Search',
+      variant: 'transparent'
+    });
+
+    iconButton.element.addEventListener('click', () => {
+      if (!isSearchExpanded) {
+        // Expand search
+        expandSearch();
+      } else {
+        // Collapse search
+        collapseSearch();
+      }
+
+      if (onIconClick) {
+        onIconClick();
+      }
+    });
+
+    actionContainer.appendChild(searchContainer);
+    actionContainer.appendChild(iconButton.element);
     headlineElement.appendChild(actionContainer);
   }
+
+  // Function to submit search
+  const submitSearch = (searchTerm) => {
+    // Collapse search field
+    collapseSearch();
+
+    // Show search button with term
+    showSearchButton(searchTerm);
+
+    // Keep search applied
+    if (onSearch) {
+      onSearch(searchTerm);
+    }
+  };
+
+  // Function to show search button with active term
+  const showSearchButton = (searchTerm) => {
+    // Hide icon button and search container
+    if (iconButton) {
+      iconButton.element.style.display = 'none';
+    }
+    searchContainer.style.display = 'none';
+
+    // Create search button
+    const searchButton = document.createElement('button');
+    searchButton.className = 'headline__search-button';
+    searchButton.setAttribute('aria-label', `Active search: ${searchTerm}`);
+
+    const label = document.createElement('span');
+    label.className = 'headline__search-label';
+    label.textContent = searchTerm;
+
+    const cancelIcon = document.createElement('span');
+    cancelIcon.className = 'headline__search-cancel';
+    cancelIcon.innerHTML = getIcon('close');
+
+    searchButton.appendChild(label);
+    searchButton.appendChild(cancelIcon);
+
+    searchButton.addEventListener('click', () => {
+      clearSearchButton();
+    });
+
+    actionContainer.appendChild(searchButton);
+  };
+
+  // Function to clear search button and restore icon
+  const clearSearchButton = () => {
+    // Remove search button
+    const searchButton = actionContainer.querySelector('.headline__search-button');
+    if (searchButton) {
+      searchButton.remove();
+    }
+
+    // Show icon button and search container again
+    if (iconButton) {
+      iconButton.element.style.display = '';
+    }
+    searchContainer.style.display = '';
+
+    // Clear search
+    searchInput.value = '';
+    if (onSearch) {
+      onSearch('');
+    }
+  };
+
+  // Function to expand search field
+  const expandSearch = () => {
+    isSearchExpanded = true;
+    headlineElement.classList.add('headline--search-active');
+    searchContainer.classList.add('headline__search-container--expanded');
+
+    // Add filled variant to button
+    if (iconButton) {
+      iconButton.element.classList.add('button-tertiary--filled');
+    }
+
+    // Focus input after animation
+    setTimeout(() => {
+      searchInput.focus();
+    }, 300);
+  };
+
+  // Function to collapse search field
+  const collapseSearch = () => {
+    isSearchExpanded = false;
+    headlineElement.classList.remove('headline--search-active');
+    searchContainer.classList.remove('headline__search-container--expanded');
+
+    // Remove filled variant from button
+    if (iconButton) {
+      iconButton.element.classList.remove('button-tertiary--filled');
+    }
+
+    // Don't clear search value or trigger clear here
+    // This will be handled by submitSearch or escape key
+  };
+
+
+  // Close search when clicking outside
+  document.addEventListener('click', (e) => {
+    if (isSearchExpanded &&
+        !searchContainer.contains(e.target) &&
+        !iconButton.element.contains(e.target)) {
+      collapseSearch();
+    }
+  });
 
   // Public API
   return {
@@ -54,58 +211,37 @@ function createHeadline(options = {}) {
       textElement.textContent = newText;
     },
 
-    setIconClick(callback) {
-      if (iconElement && callback) {
-        iconElement.addEventListener('click', callback);
+    expandSearch() {
+      if (!isSearchExpanded) {
+        expandSearch();
       }
     },
 
+    collapseSearch() {
+      if (isSearchExpanded) {
+        collapseSearch();
+      }
+    },
+
+    isSearchExpanded() {
+      return isSearchExpanded;
+    },
+
+    getSearchValue() {
+      return searchInput.value;
+    },
+
+    setSearchValue(value) {
+      searchInput.value = value;
+    },
+
+    // Legacy methods for backward compatibility
     setSearchActive(searchTerm, onCancel) {
-      // Hide icon, show search button
-      actionContainer.innerHTML = '';
-
-      const searchButton = document.createElement('button');
-      searchButton.className = 'headline__search-button';
-      searchButton.setAttribute('aria-label', `Active search: ${searchTerm}`);
-
-      const label = document.createElement('span');
-      label.className = 'headline__search-label';
-      label.textContent = searchTerm;
-
-      const cancelIcon = document.createElement('span');
-      cancelIcon.className = 'headline__search-cancel';
-      cancelIcon.innerHTML = getIcon('close');
-
-      searchButton.appendChild(label);
-      searchButton.appendChild(cancelIcon);
-
-      searchButton.addEventListener('click', () => {
-        if (onCancel) {
-          onCancel();
-        }
-      });
-
-      actionContainer.appendChild(searchButton);
+      showSearchButton(searchTerm);
     },
 
     clearSearch() {
-      // Remove search button, restore icon
-      actionContainer.innerHTML = '';
-
-      if (showIcon && iconElement) {
-        const newIconElement = document.createElement('span');
-        newIconElement.className = 'headline__icon';
-        newIconElement.innerHTML = getIcon(iconName);
-        newIconElement.setAttribute('role', 'button');
-        newIconElement.setAttribute('aria-label', 'Search');
-
-        if (onIconClick) {
-          newIconElement.addEventListener('click', onIconClick);
-        }
-
-        actionContainer.appendChild(newIconElement);
-        iconElement = newIconElement;
-      }
+      clearSearchButton();
     }
   };
 }
