@@ -127,81 +127,97 @@ function clearSelection() {
 function handleMergedInfoClick(mergedFrom, card) {
   console.log('[Merged Info] Showing original cards:', mergedFrom);
 
-  // Create a simple modal to show the original cards
-  const modal = document.createElement('div');
-  modal.className = 'merged-cards-modal';
-  modal.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-  `;
+  if (!mergedFrom || mergedFrom.length === 0) return;
 
-  const content = document.createElement('div');
-  content.style.cssText = `
-    background: white;
-    border-radius: 12px;
-    padding: 24px;
-    max-width: 600px;
-    max-height: 80vh;
-    overflow-y: auto;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
-  `;
-
-  const title = document.createElement('h2');
-  title.textContent = `Original Cards (${mergedFrom.length})`;
-  title.style.cssText = 'margin: 0 0 16px 0; font-size: 20px; font-weight: 600;';
-  content.appendChild(title);
-
-  mergedFrom.forEach((original, index) => {
-    const cardDiv = document.createElement('div');
-    cardDiv.style.cssText = `
-      background: var(--color-neutral-10);
-      border: 1px solid var(--color-neutral-30);
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 12px;
-    `;
-
-    const cardText = document.createElement('p');
-    cardText.textContent = original.text;
-    cardText.style.cssText = 'margin: 0 0 8px 0;';
-    cardDiv.appendChild(cardText);
-
-    const meta = document.createElement('div');
-    meta.style.cssText = 'font-size: 12px; color: var(--color-neutral-60);';
-    meta.textContent = `Collections: ${(original.collections || []).join(', ') || 'None'} | State: ${original.state || 'default'}`;
-    cardDiv.appendChild(meta);
-
-    content.appendChild(cardDiv);
+  // Create originals overlay using design system
+  const originalsOverlay = createOverlay({
+    blur: false,
+    opacity: 'dark',
+    visible: false,
+    onClick: () => {
+      originalsOverlay.hide();
+      setTimeout(() => {
+        if (originalsOverlay.element.parentNode) {
+          originalsOverlay.element.parentNode.removeChild(originalsOverlay.element);
+        }
+      }, 200);
+    }
   });
 
-  const closeButton = document.createElement('button');
-  closeButton.textContent = 'Close';
-  closeButton.style.cssText = `
-    background: var(--color-primary-60);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    padding: 8px 16px;
-    margin-top: 16px;
-    cursor: pointer;
-  `;
-  closeButton.onclick = () => modal.remove();
-  content.appendChild(closeButton);
+  // Create originals modal
+  const originalsModal = document.createElement('div');
+  originalsModal.className = 'data-editor-modal data-editor-modal--originals';
 
-  modal.appendChild(content);
-  modal.onclick = (e) => {
-    if (e.target === modal) modal.remove();
-  };
+  // Create header
+  const originalsHeader = createHeader({
+    variant: 'simple',
+    title: `Original Cards (${mergedFrom.length})`,
+    onClose: () => {
+      originalsOverlay.hide();
+      setTimeout(() => {
+        if (originalsOverlay.element.parentNode) {
+          originalsOverlay.element.parentNode.removeChild(originalsOverlay.element);
+        }
+      }, 200);
+    }
+  });
 
-  document.body.appendChild(modal);
+  // Create content with cards
+  const originalsContent = document.createElement('div');
+  originalsContent.className = 'data-editor-modal__originals-content';
+
+  mergedFrom.forEach((original, index) => {
+    const cardElement = document.createElement('div');
+    cardElement.className = 'data-editor-modal__original-card';
+
+    // Card text
+    const cardText = document.createElement('div');
+    cardText.className = 'data-editor-modal__original-text text-style-body-medium';
+    cardText.textContent = original.text;
+
+    // Card metadata (collections and state)
+    const cardMeta = document.createElement('div');
+    cardMeta.className = 'data-editor-modal__original-meta';
+
+    // Show collections as tags
+    if (original.collections && original.collections.length > 0) {
+      const collectionsContainer = document.createElement('div');
+      collectionsContainer.className = 'data-editor-modal__original-collections';
+
+      original.collections.forEach(collection => {
+        const tag = document.createElement('span');
+        tag.className = 'data-editor-modal__original-tag text-style-body-small';
+        tag.textContent = collection;
+        collectionsContainer.appendChild(tag);
+      });
+
+      cardMeta.appendChild(collectionsContainer);
+    }
+
+    // Show state icons
+    if (original.state === 'favorited' || original.state === 'hidden') {
+      const stateIcon = document.createElement('span');
+      stateIcon.className = 'data-editor-modal__original-state';
+      stateIcon.innerHTML = getIcon(original.state === 'favorited' ? 'heart-filled' : 'visibility-off');
+      cardMeta.appendChild(stateIcon);
+    }
+
+    cardElement.appendChild(cardText);
+    if (cardMeta.children.length > 0) {
+      cardElement.appendChild(cardMeta);
+    }
+
+    originalsContent.appendChild(cardElement);
+  });
+
+  // Assemble originals modal
+  originalsModal.appendChild(originalsHeader.element);
+  originalsModal.appendChild(originalsContent);
+
+  // Assemble and show
+  originalsOverlay.element.appendChild(originalsModal);
+  document.body.appendChild(originalsOverlay.element);
+  setTimeout(() => originalsOverlay.show(), 10);
 }
 
 // Handle delete selected cards
