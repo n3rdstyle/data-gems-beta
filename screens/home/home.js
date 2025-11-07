@@ -292,38 +292,36 @@ function createHome(options = {}) {
       }
     },
     onCardSelectionChange: (selected, card) => {
-      // Update local state to track if any cards are selected
-      // This will be checked by scroll handler to keep buttons visible
+      // Check immediately if we should hide the bar BEFORE updating buttons
+      const dataList = contentPreferences.getDataList();
+      const cards = dataList.getCards();
+      const hadSelectedCards = hasSelectedCards;
+      hasSelectedCards = cards.some(c => c.isSelected && c.isSelected());
+
+      // If deselecting last card and scrolled, hide bar BEFORE updating buttons
+      if (!hasSelectedCards && hadSelectedCards && preferenceOptions) {
+        const scrollTop = contentWrapper.scrollTop;
+        if (scrollTop > 100) {
+          preferenceOptions.element.classList.add('hidden-by-scroll');
+        }
+      }
+
+      // Now update the buttons (bar is already hidden if needed)
       if (onCardSelectionChange) {
         onCardSelectionChange(selected, card);
       }
-      // Set flag based on whether buttons are visible
-      // We check this after a small delay to let the state update
-      setTimeout(() => {
-        const dataList = contentPreferences.getDataList();
-        const cards = dataList.getCards();
-        const hadSelectedCards = hasSelectedCards;
-        hasSelectedCards = cards.some(c => c.isSelected && c.isSelected());
 
-        // If cards are now selected, show preference-options and move back-to-top button up
-        if (hasSelectedCards && !hadSelectedCards && preferenceOptions) {
-          preferenceOptions.element.classList.remove('hidden-by-scroll');
-        }
-        // If no cards are selected anymore and user is scrolled, hide it
-        else if (!hasSelectedCards && hadSelectedCards && preferenceOptions) {
-          const scrollTop = contentWrapper.scrollTop;
-          if (scrollTop > 100) {
-            preferenceOptions.element.classList.add('hidden-by-scroll');
-          }
-        }
+      // If cards are now selected, show preference-options
+      if (hasSelectedCards && !hadSelectedCards && preferenceOptions) {
+        preferenceOptions.element.classList.remove('hidden-by-scroll');
+      }
 
-        // Always adjust back-to-top button position based on selection state
-        if (hasSelectedCards) {
-          scrollToTopButton.element.style.bottom = '88px'; // 72px (bottom bar) + 16px spacing
-        } else {
-          scrollToTopButton.element.style.bottom = '16px';
-        }
-      }, 10);
+      // Always adjust back-to-top button position based on selection state
+      if (hasSelectedCards) {
+        scrollToTopButton.element.style.bottom = '88px'; // 72px (bottom bar) + 16px spacing
+      } else {
+        scrollToTopButton.element.style.bottom = '16px';
+      }
     },
     onCardClick: (card, container) => {
       // Get all existing tags from all cards (predefined + user-created)
