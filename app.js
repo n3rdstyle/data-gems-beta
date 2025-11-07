@@ -419,6 +419,16 @@ async function loadData() {
         AppState = migratedProfile;
         await saveData();
       }
+
+      // AUTO-FIX: Verify SubCategory Registry on startup
+      const originalRegistrySize = Object.keys(AppState.subCategoryRegistry || {}).length;
+      AppState = ensureValidRegistry(AppState);
+      const newRegistrySize = Object.keys(AppState.subCategoryRegistry || {}).length;
+
+      // Save if registry was rebuilt or updated
+      if (newRegistrySize !== originalRegistrySize || originalRegistrySize === 0) {
+        await saveData();
+      }
     }
     // Legacy format - migrate it
     else if (result.userData || result.preferences) {
@@ -812,6 +822,9 @@ function importData() {
       if (mergeResult === 'merged') {
         // Data was merged - AppState already updated in mergeImportedData
         AppState.metadata.currentScreen = 'home';
+
+        // AUTO-FIX: Ensure SubCategory Registry is valid after import
+        AppState = ensureValidRegistry(AppState);
       } else if (mergeResult === 'no-changes') {
         alert('No new data to import.');
         return;

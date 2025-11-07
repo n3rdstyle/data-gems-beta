@@ -554,3 +554,101 @@ function addSubCollectionToGem(gem, subCategoryName) {
   gem.updated_at = getTimestamp();
   return gem;
 }
+
+/**
+ * Rebuild SubCategory Registry from existing gems
+ * Scans all gems and creates/updates the registry based on their subCollections
+ * @param {object} profile - HSP v0.1 profile
+ * @returns {object} Rebuilt registry
+ */
+function rebuildSubCategoryRegistry(profile) {
+  console.log('[HSP] Rebuilding SubCategory Registry from gems...');
+
+  const gems = profile?.content?.preferences?.items || [];
+  const registry = {};
+
+  gems.forEach(gem => {
+    const collections = gem.collections || [];
+    const subCollections = gem.subCollections || [];
+
+    // Only process gems with valid subCollections
+    if (Array.isArray(subCollections) && subCollections.length > 0) {
+      subCollections.forEach(subCatKey => {
+        // Initialize registry entry if it doesn't exist
+        if (!registry[subCatKey]) {
+          // Try to infer parent category from subCategory key
+          // Format: "fitness_training" → parent: "Fitness"
+          const parts = subCatKey.split('_');
+          const parentGuess = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
+
+          // Check if gem has matching collection
+          const matchingCollection = collections.find(col =>
+            col.toLowerCase() === parts[0].toLowerCase()
+          );
+
+          registry[subCatKey] = {
+            parent: matchingCollection || parentGuess,
+            displayName: parts.slice(1).map(p =>
+              p.charAt(0).toUpperCase() + p.slice(1)
+            ).join(' ') || 'Constraints',
+            gemCount: 0,
+            created_at: getTimestamp()
+          };
+        }
+
+        // Increment gem count
+        registry[subCatKey].gemCount++;
+      });
+    }
+  });
+
+  console.log(`[HSP] Built registry with ${Object.keys(registry).length} SubCategories`);
+  return registry;
+}
+
+/**
+ * Verify and auto-fix SubCategory Registry
+ * Checks if registry is valid and rebuilds if needed
+ * @param {object} profile - HSP v0.1 profile
+ * @returns {object} Profile with valid registry
+ */
+function ensureValidRegistry(profile) {
+  // Check if registry exists and is not empty
+  if (!profile.subCategoryRegistry || Object.keys(profile.subCategoryRegistry).length === 0) {
+    console.log('[HSP] SubCategory Registry missing or empty, rebuilding...');
+    profile.subCategoryRegistry = rebuildSubCategoryRegistry(profile);
+  } else {
+    // Registry exists, verify gem counts are accurate
+    const gems = profile?.content?.preferences?.items || [];
+    let needsRebuild = false;
+
+    // Reset all counts to 0
+    Object.keys(profile.subCategoryRegistry).forEach(key => {
+      profile.subCategoryRegistry[key].gemCount = 0;
+    });
+
+    // Recount from gems
+    gems.forEach(gem => {
+      const subCollections = gem.subCollections || [];
+      if (Array.isArray(subCollections)) {
+        subCollections.forEach(subCatKey => {
+          if (profile.subCategoryRegistry[subCatKey]) {
+            profile.subCategoryRegistry[subCatKey].gemCount++;
+          } else {
+            // Found a subCategory that's not in registry
+            needsRebuild = true;
+          }
+        });
+      }
+    });
+
+    if (needsRebuild) {
+      console.log('[HSP] Found SubCategories not in registry, rebuilding...');
+      profile.subCategoryRegistry = rebuildSubCategoryRegistry(profile);
+    } else {
+      console.log('[HSP] SubCategory Registry validated and counts updated');
+    }
+  }
+
+  return profile;
+}
