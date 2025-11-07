@@ -298,15 +298,38 @@ function createHome(options = {}) {
       const hadSelectedCards = hasSelectedCards;
       hasSelectedCards = cards.some(c => c.isSelected && c.isSelected());
 
-      // If deselecting last card and scrolled, hide bar BEFORE updating buttons
+      // If deselecting last card and scrolled, hide buttons instantly BEFORE swapping them
       if (!hasSelectedCards && hadSelectedCards && preferenceOptions) {
         const scrollTop = contentWrapper.scrollTop;
         if (scrollTop > 100) {
+          // Hide buttons instantly with opacity
+          const bottomBar = preferenceOptions.element.querySelector('.preference-options__bottom-bar');
+          if (bottomBar) {
+            bottomBar.style.opacity = '0';
+          }
+
+          // Update buttons while invisible
+          if (onCardSelectionChange) {
+            onCardSelectionChange(selected, card);
+          }
+
+          // Then hide bar with animation
           preferenceOptions.element.classList.add('hidden-by-scroll');
+
+          // Reset opacity after animation completes
+          setTimeout(() => {
+            if (bottomBar) {
+              bottomBar.style.opacity = '';
+            }
+          }, 300);
+
+          // Adjust back-to-top button
+          scrollToTopButton.element.style.bottom = '16px';
+          return; // Exit early - already handled
         }
       }
 
-      // Now update the buttons (bar is already hidden if needed)
+      // Normal flow - update buttons
       if (onCardSelectionChange) {
         onCardSelectionChange(selected, card);
       }
