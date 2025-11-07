@@ -54,6 +54,8 @@
 /* Originals Modal */
 .data-editor-modal--originals {
   max-height: 80vh;
+  max-width: 400px; /* Same as main modal */
+  width: 100%;
 }
 
 .data-editor-modal__originals-content {
