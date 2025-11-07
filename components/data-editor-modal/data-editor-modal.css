@@ -44,11 +44,82 @@
 .data-editor-modal__buttons {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: var(--spacing-element-internal); /* 8px */
   /* No padding - modal provides padding, gap provides vertical spacing */
   box-sizing: border-box;
   flex-shrink: 0;
+}
+
+/* Show Originals button on the left */
+.data-editor-modal__show-originals {
+  margin-right: auto;
+}
+
+/* Originals Modal */
+.data-editor-modal--originals {
+  max-height: 80vh;
+}
+
+.data-editor-modal__originals-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm); /* 16px between cards */
+  overflow-y: auto;
+  max-height: 60vh;
+  padding: var(--spacing-xxs) 0; /* 4px top/bottom for scroll margin */
+}
+
+/* Original Card */
+.data-editor-modal__original-card {
+  background-color: var(--color-neutral-10);
+  border: 1px solid var(--color-neutral-30);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm); /* 16px */
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs); /* 8px */
+}
+
+.data-editor-modal__original-text {
+  color: var(--color-neutral-90);
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+
+.data-editor-modal__original-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-xs); /* 8px */
+  flex-wrap: wrap;
+}
+
+.data-editor-modal__original-collections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xxs); /* 4px */
+}
+
+.data-editor-modal__original-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  background-color: var(--color-secondary-30);
+  color: var(--color-neutral-80);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.data-editor-modal__original-state {
+  display: flex;
+  align-items: center;
+  color: var(--color-neutral-60);
+}
+
+.data-editor-modal__original-state svg {
+  width: 20px;
+  height: 20px;
 }
 
 /* Responsive - removed for Chrome Extension (fixed 400px width) */

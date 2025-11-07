@@ -19,12 +19,16 @@ function createDataEditorModal(options = {}) {
     collections = [],
     existingTags = [], // All existing tags in the system
     autoCategorizeEnabled = true, // Whether AI auto-categorization is enabled
+    mergedFrom = null, // Array of original cards when in merge mode
     onSave = null,
     onDelete = null,
     onToggleHidden = null,
     onToggleFavorite = null,
     onAddCollection = null
   } = options;
+
+  // Check if we're in merge mode
+  const isMergeMode = mergedFrom && Array.isArray(mergedFrom) && mergedFrom.length > 0;
 
   // Track AI-suggested collections
   let aiSuggestedCollections = [];
@@ -196,6 +200,22 @@ function createDataEditorModal(options = {}) {
     }
   });
 
+  // Create Show Originals button for merge mode
+  let showOriginalsButton = null;
+  if (isMergeMode) {
+    showOriginalsButton = createTertiaryButton({
+      text: 'Show Originals',
+      onClick: () => {
+        showOriginalsModal();
+      }
+    });
+    showOriginalsButton.element.classList.add('data-editor-modal__show-originals');
+  }
+
+  // Add buttons in order
+  if (showOriginalsButton) {
+    buttonsSection.appendChild(showOriginalsButton.element);
+  }
   buttonsSection.appendChild(saveButton.element);
   buttonsSection.appendChild(cancelButton.element);
 
@@ -206,6 +226,103 @@ function createDataEditorModal(options = {}) {
 
   // Assemble overlay with modal
   overlay.element.appendChild(modalElement);
+
+  // Function to show originals modal
+  function showOriginalsModal() {
+    if (!mergedFrom || mergedFrom.length === 0) return;
+
+    // Create originals overlay
+    const originalsOverlay = createOverlay({
+      blur: false,
+      opacity: 'dark',
+      visible: false,
+      onClick: () => {
+        originalsOverlay.hide();
+        setTimeout(() => {
+          if (originalsOverlay.element.parentNode) {
+            originalsOverlay.element.parentNode.removeChild(originalsOverlay.element);
+          }
+        }, 200);
+      }
+    });
+
+    // Create originals modal
+    const originalsModal = document.createElement('div');
+    originalsModal.className = 'data-editor-modal data-editor-modal--originals';
+
+    // Create header
+    const originalsHeader = createHeader({
+      variant: 'simple',
+      title: `Original Cards (${mergedFrom.length})`,
+      onClose: () => {
+        originalsOverlay.hide();
+        setTimeout(() => {
+          if (originalsOverlay.element.parentNode) {
+            originalsOverlay.element.parentNode.removeChild(originalsOverlay.element);
+          }
+        }, 200);
+      }
+    });
+
+    // Create content with cards
+    const originalsContent = document.createElement('div');
+    originalsContent.className = 'data-editor-modal__originals-content';
+
+    mergedFrom.forEach((original, index) => {
+      const cardElement = document.createElement('div');
+      cardElement.className = 'data-editor-modal__original-card';
+
+      // Card text
+      const cardText = document.createElement('div');
+      cardText.className = 'data-editor-modal__original-text text-style-body-medium';
+      cardText.textContent = original.text;
+
+      // Card metadata (collections and state)
+      const cardMeta = document.createElement('div');
+      cardMeta.className = 'data-editor-modal__original-meta';
+
+      // Show collections as tags
+      if (original.collections && original.collections.length > 0) {
+        const collectionsContainer = document.createElement('div');
+        collectionsContainer.className = 'data-editor-modal__original-collections';
+
+        original.collections.forEach(collection => {
+          const tag = document.createElement('span');
+          tag.className = 'data-editor-modal__original-tag text-style-body-small';
+          tag.textContent = collection;
+          collectionsContainer.appendChild(tag);
+        });
+
+        cardMeta.appendChild(collectionsContainer);
+      }
+
+      // Show state icons
+      if (original.state === 'favorited' || original.state === 'hidden') {
+        const stateIcon = document.createElement('span');
+        stateIcon.className = 'data-editor-modal__original-state';
+        stateIcon.innerHTML = getIcon(original.state === 'favorited' ? 'heart-filled' : 'visibility-off');
+        cardMeta.appendChild(stateIcon);
+      }
+
+      cardElement.appendChild(cardText);
+      if (cardMeta.children.length > 0) {
+        cardElement.appendChild(cardMeta);
+      }
+
+      originalsContent.appendChild(cardElement);
+    });
+
+    // Assemble originals modal
+    originalsModal.appendChild(originalsHeader.element);
+    originalsModal.appendChild(originalsContent);
+
+    // Assemble and show
+    originalsOverlay.element.appendChild(originalsModal);
+
+    const container = overlay.element.parentNode || document.body;
+    container.appendChild(originalsOverlay.element);
+    setTimeout(() => originalsOverlay.show(), 10);
+  }
 
   // Public API
   const api = {

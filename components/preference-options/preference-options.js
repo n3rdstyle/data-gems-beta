@@ -11,7 +11,8 @@ function createPreferenceOptions(options = {}) {
     randomQuestionDisabled = false,
     onButtonClick = null,
     onRandomQuestionClick = null,
-    onToggle = null
+    onToggle = null,
+    onMergeClick = null
   } = options;
 
   let isActive = false;
@@ -166,8 +167,26 @@ function createPreferenceOptions(options = {}) {
   randomQuestionContainer.appendChild(randomQuestionButton);
   randomQuestionContainer.appendChild(randomQuestionTooltip);
 
+  // Create Merge Button (shown when 2+ cards are selected)
+  const mergeButtonContainer = document.createElement('div');
+  mergeButtonContainer.className = 'preference-options__merge-container';
+  mergeButtonContainer.style.display = 'none'; // Hidden by default
+
+  const mergeButton = createPrimaryButton({
+    label: 'Merge 0 Cards',
+    variant: 'v2',
+    onClick: () => {
+      if (onMergeClick) {
+        onMergeClick();
+      }
+    }
+  });
+
+  mergeButtonContainer.appendChild(mergeButton.element);
+
   triggerButtonWrapper.appendChild(triggerButton.element);
   bottomBar.appendChild(randomQuestionContainer);
+  bottomBar.appendChild(mergeButtonContainer);
   bottomBar.appendChild(triggerButtonWrapper);
 
   // Assemble component
@@ -269,6 +288,23 @@ function createPreferenceOptions(options = {}) {
         triggerButtonWrapper.appendChild(triggerButton.element);
         primaryButton = null;
       }
+    },
+
+    showMergeButton(count) {
+      // Show merge button, hide random question button
+      mergeButtonContainer.style.display = '';
+      randomQuestionContainer.style.display = 'none';
+      mergeButton.setLabel(`Merge ${count} Cards`);
+    },
+
+    hideMergeButton() {
+      // Hide merge button, show random question button
+      mergeButtonContainer.style.display = 'none';
+      randomQuestionContainer.style.display = '';
+    },
+
+    updateMergeCount(count) {
+      mergeButton.setLabel(`Merge ${count} Cards`);
     }
   };
 }

@@ -46,6 +46,7 @@ function createHome(options = {}) {
     onMigrateSubCategories = null,  // NEW: SubCategory migration callback
     onCardSelectionChange = null,  // NEW: Card selection callback for merge feature
     onMergedInfoClick = null,  // NEW: Merged info click callback
+    onMergeClick = null,  // NEW: Merge button click callback
     isBetaUser = false,
     onJoinBeta = null,
     onRevokeBeta = null
@@ -471,6 +472,7 @@ function createHome(options = {}) {
   preferenceOptions = createPreferenceOptions({
     randomQuestionLabel: 'Loading questions...',
     randomQuestionDisabled: true,
+    onMergeClick: onMergeClick,
     buttons: preferenceOptionsButtons.length > 0 ? preferenceOptionsButtons : [
       {
         label: 'Add new preference',

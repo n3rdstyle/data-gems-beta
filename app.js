@@ -30,6 +30,7 @@ let BackupState = {
 // Selection tracking state for merge feature
 let SelectedCards = new Set();
 let mergeFAB = null;
+let currentPreferenceOptions = null; // Reference to current preference options
 
 // Load backup state from Chrome storage
 async function loadBackupState() {
@@ -76,17 +77,27 @@ function handleCardSelection(selected, card) {
 }
 
 function updateMergeFAB() {
-  if (!mergeFAB) {
-    initializeMergeFAB();
-  }
-
   const count = SelectedCards.size;
 
-  if (count >= 2) {
-    mergeFAB.updateCount(count);
-    mergeFAB.show();
+  // Use preference options if available, otherwise fall back to FAB
+  if (currentPreferenceOptions) {
+    if (count >= 2) {
+      currentPreferenceOptions.showMergeButton(count);
+    } else {
+      currentPreferenceOptions.hideMergeButton();
+    }
   } else {
-    mergeFAB.hide();
+    // Fallback to old FAB (for backwards compatibility)
+    if (!mergeFAB) {
+      initializeMergeFAB();
+    }
+
+    if (count >= 2) {
+      mergeFAB.updateCount(count);
+      mergeFAB.show();
+    } else {
+      mergeFAB.hide();
+    }
   }
 }
 
@@ -200,7 +211,7 @@ async function handleMergeSelectedCards() {
     return;
   }
 
-  console.log(`[Merge] Merging ${selectedItems.length} cards...`);
+  console.log(`[Merge] Preparing to merge ${selectedItems.length} cards...`);
 
   try {
     // Extract texts from selected items
@@ -230,12 +241,63 @@ async function handleMergeSelectedCards() {
       stateCount[a] > stateCount[b] ? a : b
     );
 
+    // Get all existing tags for the modal
+    const allCards = items;
+    const userCollections = allCards.flatMap(c => c.collections || []);
+    const predefinedCategories = aiHelper.getPredefinedCategories();
+    const existingTags = [...new Set([...predefinedCategories, ...userCollections, ...allCollections])];
+
+    // Open Data Editor Modal in merge mode
+    const modal = createDataEditorModal({
+      title: 'Merge Cards',
+      preferenceTitle: 'Merged Preference',
+      preferenceText: consolidatedText,
+      preferenceHidden: mostCommonState === 'hidden',
+      preferenceFavorited: mostCommonState === 'favorited',
+      collections: allCollections,
+      existingTags: existingTags,
+      autoCategorizeEnabled: false, // Disable auto-categorize for merge
+      mergedFrom: mergedFrom, // NEW: Pass original cards
+      onSave: async (data) => {
+        // Save the merged card
+        await saveMergedCard(data, mergedFrom, selectedItems);
+        modal.hide();
+      },
+      onDelete: () => {
+        // Cancel merge - just close modal
+        modal.hide();
+      }
+    });
+
+    // Show modal
+    const screenElement = document.querySelector('.home');
+    modal.show(screenElement || document.body);
+
+  } catch (error) {
+    console.error('[Merge] Error preparing merge:', error);
+    alert(`Failed to prepare merge: ${error.message}`);
+  }
+}
+
+// New function to save the merged card
+async function saveMergedCard(data, mergedFrom, selectedItems) {
+  try {
+    console.log('[Merge] Saving merged card...');
+
+    // Determine new state
+    let newState = 'default';
+    if (data.favorited) {
+      newState = 'favorited';
+    } else if (data.hidden) {
+      newState = 'hidden';
+    }
+
     // Create new merged preference
     AppState = addPreference(
       AppState,
-      consolidatedText,
-      mostCommonState,
-      allCollections
+      data.text,
+      newState,
+      data.collections
     );
 
     // Add mergedFrom metadata to the newly created item
@@ -259,9 +321,9 @@ async function handleMergeSelectedCards() {
     console.log('[Merge] ✓ Successfully merged cards');
 
   } catch (error) {
-    console.error('[Merge] Error merging cards:', error);
-    alert(`Failed to merge cards: ${error.message}`);
-    clearSelection();
+    console.error('[Merge] Error saving merged card:', error);
+    alert(`Failed to save merged card: ${error.message}`);
+    throw error;
   }
 }
 
@@ -1156,8 +1218,12 @@ async function renderCurrentScreen() {
             }
           },
           onCardSelectionChange: handleCardSelection,
-          onMergedInfoClick: handleMergedInfoClick
+          onMergedInfoClick: handleMergedInfoClick,
+          onMergeClick: handleMergeSelectedCards
         });
+
+        // Store reference to preference options for merge button updates
+        currentPreferenceOptions = screenComponent.getPreferenceOptions();
         break;
 
       case 'profile':
