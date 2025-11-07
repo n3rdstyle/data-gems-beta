@@ -632,11 +632,15 @@ function createHome(options = {}) {
             // Get the tag from the current question object
             const questionTag = currentQuestionObj.tag || currentQuestionObj.category || 'General';
 
+            // Get the subCategory key (if available)
+            const questionSubCategoryKey = currentQuestionObj.subCategoryKey || '';
+
             // Add to batch
             batchedAnswers.push({
               text: cardText,
               state: 'default',
-              collections: [questionTag]
+              collections: [questionTag],
+              subCollections: questionSubCategoryKey ? [questionSubCategoryKey] : []
             });
 
             // Mark this question as used
