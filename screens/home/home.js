@@ -297,12 +297,25 @@ function createHome(options = {}) {
       if (onCardSelectionChange) {
         onCardSelectionChange(selected, card);
       }
-      // Set flag based on whether buttons are visible (hacky but works)
+      // Set flag based on whether buttons are visible
       // We check this after a small delay to let the state update
       setTimeout(() => {
         const dataList = contentPreferences.getDataList();
         const cards = dataList.getCards();
+        const hadSelectedCards = hasSelectedCards;
         hasSelectedCards = cards.some(c => c.isSelected && c.isSelected());
+
+        // If cards are now selected and preference-options is hidden, show it
+        if (hasSelectedCards && !hadSelectedCards && preferenceOptions) {
+          preferenceOptions.element.classList.remove('hidden-by-scroll');
+        }
+        // If no cards are selected anymore and user is scrolled, hide it
+        else if (!hasSelectedCards && hadSelectedCards && preferenceOptions) {
+          const scrollTop = screenElement.scrollTop || window.pageYOffset;
+          if (scrollTop > 100) {
+            preferenceOptions.element.classList.add('hidden-by-scroll');
+          }
+        }
       }, 10);
     },
     onCardClick: (card, container) => {
