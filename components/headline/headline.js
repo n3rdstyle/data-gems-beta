@@ -13,6 +13,7 @@ function createHeadline(options = {}) {
     onSearch = null,
     showTagButton = false,
     tagButtonLabel = 'All',
+    tagButtonCount = undefined,
     onTagButtonClick = null
   } = options;
 
@@ -98,9 +99,11 @@ function createHeadline(options = {}) {
 
   // Create tag button if needed (positioned left of search button)
   let tagButton = null;
+  let currentTagButtonCount = tagButtonCount;
   if (showTagButton) {
+    const displayText = tagButtonCount !== undefined ? `${tagButtonLabel} (${tagButtonCount})` : tagButtonLabel;
     tagButton = createTertiaryButton({
-      text: tagButtonLabel,
+      text: displayText,
       icon: 'chevronDown',
       ariaLabel: 'Select tag',
       variant: 'text',
@@ -116,6 +119,14 @@ function createHeadline(options = {}) {
 
     buttonsContainer.appendChild(tagButton.element);
   }
+
+  // Helper to update tag button text with count
+  const updateTagButtonText = (label, count) => {
+    if (tagButton) {
+      const displayText = count !== undefined ? `${label} (${count})` : label;
+      tagButton.setText(displayText);
+    }
+  };
 
   // Add search button after tag button
   if (showIcon) {
@@ -248,9 +259,34 @@ function createHeadline(options = {}) {
       textElement.textContent = newText;
     },
 
-    setTagButtonLabel(label) {
+    setTagButtonLabel(label, count) {
       if (tagButton) {
-        tagButton.setText(label);
+        currentTagButtonCount = count;
+        updateTagButtonText(label, count);
+        // Auto-activate button if not "All"
+        if (label !== 'All') {
+          tagButton.element.classList.add('headline__tag-button--active');
+        } else {
+          tagButton.element.classList.remove('headline__tag-button--active');
+        }
+      }
+    },
+
+    setTagButtonCount(count) {
+      if (tagButton) {
+        currentTagButtonCount = count;
+        const currentLabel = tagButton.getText().split(' (')[0]; // Extract label without count
+        updateTagButtonText(currentLabel, count);
+      }
+    },
+
+    setTagButtonActive(isActive) {
+      if (tagButton) {
+        if (isActive) {
+          tagButton.element.classList.add('headline__tag-button--active');
+        } else {
+          tagButton.element.classList.remove('headline__tag-button--active');
+        }
       }
     },
 

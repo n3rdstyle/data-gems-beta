@@ -155,25 +155,28 @@ function createContentPreferences(options = {}) {
           // Filter by collections (this now preserves search filter automatically)
           dataList.filterByCollections(selectedCollections);
 
+          // Count visible cards
+          const visibleCards = dataList.getCards().filter(card =>
+            card.element.style.display !== 'none'
+          );
+          const visibleCount = visibleCards.length;
+
           // Update headline tag button label
           if (selectedCollections.length === 1) {
-            headline.setTagButtonLabel(selectedCollections[0]);
+            headline.setTagButtonLabel(selectedCollections[0], visibleCount);
           } else {
-            headline.setTagButtonLabel('Multiple Tags');
+            headline.setTagButtonLabel('Multiple Tags', visibleCount);
           }
 
           // Update "All" tag in tag list
           const allTag = tagList.getTags().find(t => t.getLabel() === 'All' || t.showIcon);
           if (allTag) {
-            const visibleCards = dataList.getCards().filter(card =>
-              card.element.style.display !== 'none'
-            );
             if (selectedCollections.length === 1) {
               allTag.setLabel(selectedCollections[0]);
             } else {
               allTag.setLabel('Multiple Tags');
             }
-            allTag.setCount(visibleCards.length);
+            allTag.setCount(visibleCount);
           }
         } else {
           // No collections selected
@@ -186,17 +189,20 @@ function createContentPreferences(options = {}) {
             dataList.clearFilter();
           }
 
+          // Count visible cards
+          const visibleCards = dataList.getCards().filter(card =>
+            card.element.style.display !== 'none'
+          );
+          const visibleCount = visibleCards.length;
+
           // Reset headline tag button label
-          headline.setTagButtonLabel('All');
+          headline.setTagButtonLabel('All', visibleCount);
 
           // Reset "All" tag in tag list
           const allTag = tagList.getTags().find(t => t.showIcon);
           if (allTag) {
-            const visibleCards = dataList.getCards().filter(card =>
-              card.element.style.display !== 'none'
-            );
             allTag.setLabel('All');
-            allTag.setCount(visibleCards.length);
+            allTag.setCount(visibleCount);
           }
         }
       },
@@ -233,6 +239,11 @@ function createContentPreferences(options = {}) {
   // Create headline with integrated search
   const headlineWrapper = document.createElement('div');
   headlineWrapper.className = 'content-preferences__headline';
+
+  // Get initial count from "All" tag
+  const initialAllTag = tagData.mainTags.find(tag => tag.label === 'All');
+  const initialCount = initialAllTag ? initialAllTag.count : data.length;
+
   const headline = createHeadline({
     text: title,
     showIcon: true,
@@ -240,6 +251,7 @@ function createContentPreferences(options = {}) {
     searchPlaceholder: searchPlaceholder,
     showTagButton: true,
     tagButtonLabel: 'All',
+    tagButtonCount: initialCount,
     onTagButtonClick: () => {
       openCollectionFilterModal();
     },
@@ -256,6 +268,12 @@ function createContentPreferences(options = {}) {
         if (activeFilter && activeFilter.type === 'collections') {
           dataList.filterByCollections(activeFilter.value);
         }
+
+        // Update tag button count with visible cards
+        const visibleCards = dataList.getCards().filter(card =>
+          card.element.style.display !== 'none'
+        );
+        headline.setTagButtonCount(visibleCards.length);
 
         // Notify parent that search was activated
         if (onSearchStateChange && !activeSearchTerm) {
@@ -279,6 +297,12 @@ function createContentPreferences(options = {}) {
         } else {
           dataList.clearFilter();
         }
+
+        // Update tag button count
+        const visibleCards = dataList.getCards().filter(card =>
+          card.element.style.display !== 'none'
+        );
+        headline.setTagButtonCount(visibleCards.length);
       }
     }
   });
@@ -537,8 +561,13 @@ function createContentPreferences(options = {}) {
           activeFilter = { type: 'state', value: 'favorited' };
           dataList.filterByState('favorited');
 
+          // Count visible (favorited) cards
+          const visibleCards = dataList.getCards().filter(card =>
+            card.element.style.display !== 'none'
+          );
+
           // Update headline tag button
-          headline.setTagButtonLabel('Favorites');
+          headline.setTagButtonLabel('Favorites', visibleCards.length);
 
           // Reset "All" tag to default when switching to Favorites
           if (allTag) {
@@ -549,8 +578,13 @@ function createContentPreferences(options = {}) {
           activeFilter = { type: 'state', value: 'hidden' };
           dataList.filterByState('hidden');
 
+          // Count visible (hidden) cards
+          const visibleCards = dataList.getCards().filter(card =>
+            card.element.style.display !== 'none'
+          );
+
           // Update headline tag button
-          headline.setTagButtonLabel('Hidden');
+          headline.setTagButtonLabel('Hidden', visibleCards.length);
 
           // Reset "All" tag to default when switching to Hidden
           if (allTag) {
@@ -563,7 +597,7 @@ function createContentPreferences(options = {}) {
           dataList.clearFilter();
 
           // Update headline tag button
-          headline.setTagButtonLabel('All');
+          headline.setTagButtonLabel('All', dataList.getCards().length);
 
           // Reset "All" tag to default
           if (allTag) {
@@ -589,7 +623,7 @@ function createContentPreferences(options = {}) {
         dataList.clearFilter();
 
         // Update headline tag button
-        headline.setTagButtonLabel('All');
+        headline.setTagButtonLabel('All', dataList.getCards().length);
       }
 
       if (onTagClick) {

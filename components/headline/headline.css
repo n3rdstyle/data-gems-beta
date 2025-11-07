@@ -43,6 +43,15 @@
   color: var(--color-neutral-70);
 }
 
+/* Tag button active state - when specific filter is selected */
+.headline__tag-button--active {
+  color: var(--color-primary-60) !important;
+}
+
+.headline__tag-button--active:hover {
+  color: var(--color-primary-50) !important;
+}
+
 .headline__tag-button .button-tertiary__text {
   font-size: var(--font-size-16) !important;
   color: inherit;
