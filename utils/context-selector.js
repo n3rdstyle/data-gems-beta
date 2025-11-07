@@ -382,8 +382,9 @@ function filterGemsBySubCategories(dataGems, subCategoriesWithScores) {
   console.log('[Context Selector] SubCategories:', subCategoryKeys);
 
   const filtered = dataGems.filter(gem => {
-    if (!gem.subCollections || gem.subCollections.length === 0) {
-      return false; // Skip gems without SubCategories
+    // Safety check: ensure subCollections exists and is an array
+    if (!gem.subCollections || !Array.isArray(gem.subCollections) || gem.subCollections.length === 0) {
+      return false; // Skip gems without valid SubCategories
     }
 
     // Check if any of the gem's subCollections match the selected SubCategories
@@ -801,13 +802,13 @@ function selectRelevantGemsByKeywords(promptText, dataGems, maxResults = 5) {
     return { gem, score };
   });
 
-  // Sort by score and return top N
+  // Sort by score and return top N (respecting maxResults limit)
   const results = scoredGems
     .filter(item => item.score > 0) // Only include items with some relevance
     .sort((a, b) => b.score - a.score)
-    .slice(0, maxResults);
+    .slice(0, maxResults); // IMPORTANT: Respect maxResults limit
 
-  console.log(`[Context Selector] Keyword matching found ${results.length} gems with scores:`,
+  console.log(`[Context Selector] Keyword matching found ${results.length} gems (limit: ${maxResults}) with scores:`,
     results.slice(0, 5).map(r => ({
       score: r.score,
       collections: r.gem.collections,
