@@ -126,13 +126,14 @@ Rules:
 3. Use clear, natural language
 4. Keep the same tone and style
 5. Make it concise but complete
+6. Output PLAIN TEXT only - no markdown formatting (no **, __, etc.)
 
 Example:
 Input 1: "I eat meat"
 Input 2: "Do you like meat? Yes"
-Output: "I eat and enjoy meat"
+Output: I eat and enjoy meat
 
-Output only the consolidated text, nothing else.`
+Output only the consolidated text in plain text format, nothing else.`
     });
 
     const prompt = `Consolidate these preferences into ONE clear statement:
@@ -144,7 +145,15 @@ Consolidated preference:`;
     const response = await session.prompt(prompt);
     await session.destroy();
 
-    return response.trim();
+    // Remove any markdown formatting that might have been added
+    const cleanText = response.trim()
+      .replace(/\*\*/g, '')  // Remove bold **text**
+      .replace(/__/g, '')    // Remove bold __text__
+      .replace(/\*/g, '')    // Remove italic *text*
+      .replace(/_([^_]+)_/g, '$1')  // Remove italic _text_
+      .replace(/`/g, '');    // Remove code `text`
+
+    return cleanText;
 
   } catch (error) {
     console.error('[Duplicate Checker] Error generating consolidated text:', error);
