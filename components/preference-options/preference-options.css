@@ -198,6 +198,17 @@
 
 .preference-options__trigger {
   pointer-events: auto;
+  position: relative;
+}
+
+/* Trash button styling - red color */
+.preference-options__trash-button {
+  color: var(--color-error) !important;
+}
+
+.preference-options__trash-button:hover {
+  color: var(--color-error) !important;
+  opacity: 0.8;
 }
 
 /* Full-width primary button in empty state */

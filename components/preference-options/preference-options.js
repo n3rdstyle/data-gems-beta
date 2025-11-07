@@ -12,7 +12,8 @@ function createPreferenceOptions(options = {}) {
     onButtonClick = null,
     onRandomQuestionClick = null,
     onToggle = null,
-    onMergeClick = null
+    onMergeClick = null,
+    onDeleteClick = null
   } = options;
 
   let isActive = false;
@@ -61,6 +62,19 @@ function createPreferenceOptions(options = {}) {
       toggle();
     }
   });
+
+  // Create trash button (shown when cards are selected)
+  const trashButton = createTertiaryButton({
+    icon: 'trash',
+    ariaLabel: 'Delete Selected',
+    onClick: () => {
+      if (onDeleteClick) {
+        onDeleteClick();
+      }
+    }
+  });
+  trashButton.element.classList.add('preference-options__trash-button');
+  trashButton.element.style.display = 'none'; // Hidden by default
 
   // Create gradient background frame
   const gradientFrame = document.createElement('div');
@@ -184,7 +198,10 @@ function createPreferenceOptions(options = {}) {
 
   mergeButtonContainer.appendChild(mergeButton.element);
 
+  // Add both buttons to wrapper
   triggerButtonWrapper.appendChild(triggerButton.element);
+  triggerButtonWrapper.appendChild(trashButton.element);
+
   bottomBar.appendChild(randomQuestionContainer);
   bottomBar.appendChild(mergeButtonContainer);
   bottomBar.appendChild(triggerButtonWrapper);
@@ -305,6 +322,18 @@ function createPreferenceOptions(options = {}) {
 
     updateMergeCount(count) {
       mergeButton.setLabel(`Merge ${count} Cards`);
+    },
+
+    showTrashButton() {
+      // Hide plus button, show trash button
+      triggerButton.element.style.display = 'none';
+      trashButton.element.style.display = '';
+    },
+
+    hideTrashButton() {
+      // Show plus button, hide trash button
+      triggerButton.element.style.display = '';
+      trashButton.element.style.display = 'none';
     }
   };
 }

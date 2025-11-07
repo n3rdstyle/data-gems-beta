@@ -81,6 +81,14 @@ function updateMergeFAB() {
 
   // Use preference options if available, otherwise fall back to FAB
   if (currentPreferenceOptions) {
+    // Show/hide trash button based on selection (1+)
+    if (count >= 1) {
+      currentPreferenceOptions.showTrashButton();
+    } else {
+      currentPreferenceOptions.hideTrashButton();
+    }
+
+    // Show/hide merge button based on selection (2+)
     if (count >= 2) {
       currentPreferenceOptions.showMergeButton(count);
     } else {
@@ -194,6 +202,49 @@ function handleMergedInfoClick(mergedFrom, card) {
   };
 
   document.body.appendChild(modal);
+}
+
+// Handle delete selected cards
+async function handleDeleteSelected() {
+  if (SelectedCards.size === 0) {
+    return;
+  }
+
+  const count = SelectedCards.size;
+  const confirmMessage = count === 1
+    ? 'Are you sure you want to delete this card?'
+    : `Are you sure you want to delete ${count} cards?`;
+
+  if (!confirm(confirmMessage)) {
+    return;
+  }
+
+  console.log(`[Delete] Deleting ${count} selected cards...`);
+
+  try {
+    // Get selected card IDs
+    const items = AppState.content.preferences.items;
+    const selectedItems = items.filter(item => SelectedCards.has(item.id));
+
+    // Delete each card
+    selectedItems.forEach(item => {
+      AppState = deletePreference(AppState, item.id);
+    });
+
+    // Save data
+    await saveData();
+
+    // Clear selection
+    clearSelection();
+
+    // Re-render screen
+    renderCurrentScreen();
+
+    console.log(`[Delete] Successfully deleted ${count} cards`);
+  } catch (error) {
+    console.error('[Delete] Error deleting cards:', error);
+    alert('Failed to delete cards. Please try again.');
+  }
 }
 
 async function handleMergeSelectedCards() {
@@ -1219,7 +1270,8 @@ async function renderCurrentScreen() {
           },
           onCardSelectionChange: handleCardSelection,
           onMergedInfoClick: handleMergedInfoClick,
-          onMergeClick: handleMergeSelectedCards
+          onMergeClick: handleMergeSelectedCards,
+          onDeleteSelected: handleDeleteSelected
         });
 
         // Store reference to preference options for merge button updates
