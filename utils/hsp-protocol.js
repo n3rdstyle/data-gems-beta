@@ -327,10 +327,11 @@ function registerCollections(profile, collectionLabels) {
  * @param {string} value - Preference text
  * @param {string} state - State ('default', 'favorited', 'hidden')
  * @param {Array<string>} collections - Collection labels (e.g., ['Nutrition', 'Sports'])
+ * @param {Array<string>} subCollections - SubCategory keys (e.g., ['nutrition_preferences'])
  * @param {string} sourceUrl - Optional source URL (e.g., Google Sheets URL)
  * @returns {object} Updated profile
  */
-function addPreference(profile, value, state = 'default', collections = [], sourceUrl = null) {
+function addPreference(profile, value, state = 'default', collections = [], subCollections = [], sourceUrl = null) {
   // Deep clone to avoid mutating the original profile
   let updatedProfile = JSON.parse(JSON.stringify(profile));
 
@@ -339,7 +340,7 @@ function addPreference(profile, value, state = 'default', collections = [], sour
     updatedProfile = registerCollections(updatedProfile, collections);
   }
 
-  const newPref = createPreference(value, state, collections, sourceUrl);
+  const newPref = createPreference(value, state, collections, subCollections, sourceUrl);
 
   updatedProfile.content.preferences.items.push(newPref);
   updatedProfile.metadata.total_preferences = updatedProfile.content.preferences.items.length;
