@@ -130,7 +130,6 @@ class DataCard {
     infoIcon.className = 'data-card__merged-icon';
     infoIcon.innerHTML = ICONS.info;
     infoIcon.setAttribute('aria-label', label);
-    infoIcon.style.cursor = 'pointer';
 
     // Create tooltip with clickable text
     const tooltip = document.createElement('div');

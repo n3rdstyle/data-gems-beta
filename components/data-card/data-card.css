@@ -78,7 +78,7 @@
 .data-card__merged-icon {
   width: 16px;
   height: 16px;
-  color: var(--color-primary-60);
+  color: var(--color-neutral-50);
   transition: color 0.2s ease-in-out;
   display: flex;
   align-items: center;
@@ -93,7 +93,7 @@
 
 /* Show tooltip on hover */
 .data-card__merged-info:hover .data-card__merged-icon {
-  color: var(--color-primary-70);
+  color: var(--color-neutral-70);
 }
 
 /* Action icons container */
@@ -192,11 +192,11 @@
 }
 
 .data-card[data-state="favorited"]:hover .data-card__merged-icon {
-  color: var(--color-primary-20);
+  color: var(--color-neutral-30);
 }
 
 .data-card[data-state="favorited"]:hover .data-card__merged-info:hover .data-card__merged-icon {
-  color: var(--color-neutral-10);
+  color: var(--color-neutral-20);
 }
 
 /* Hidden State */
