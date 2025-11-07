@@ -16,7 +16,7 @@
 .text-edit-field__title-container {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm); /* 16px between title and info icon */
+  gap: var(--spacing-xs); /* 8px between title and info icon */
 }
 
 .text-edit-field__info-icon {
