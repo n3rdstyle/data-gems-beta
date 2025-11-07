@@ -118,29 +118,32 @@ async function generateConsolidatedText(texts) {
     const session = await LanguageModel.create({
       language: 'en',
       systemPrompt: `You are a preference consolidation assistant.
-Merge multiple similar preference texts into ONE clear, comprehensive statement.
+Merge multiple preference texts into ONE SHORT, DIRECT statement.
 
 Rules:
-1. Keep all unique information from both texts
-2. Remove redundancy
-3. Use clear, natural language
-4. Keep the same tone and style
-5. Make it concise but complete
-6. Output PLAIN TEXT only - no markdown formatting (no **, __, etc.)
+1. Be as concise as possible - use the minimum words needed
+2. Combine redundant information
+3. Do NOT add alternatives, clarifications, or meta-comments
+4. Do NOT use parentheses like "(or...)" or "(slightly more formal...)"
+5. Output PLAIN TEXT only - no markdown formatting (no **, __, etc.)
+6. Write one simple sentence, no explanations
 
 Example:
-Input 1: "I eat meat"
-Input 2: "Do you like meat? Yes"
-Output: I eat and enjoy meat
+Input 1: "I prioritize testing"
+Input 2: "Testing is important to me"
+Output: Testing is a priority
 
-Output only the consolidated text in plain text format, nothing else.`
+Bad output: "Prioritize testing. (Or, slightly more formal: Testing is a high priority.)"
+Good output: "Testing is a priority"
+
+Output only the shortest consolidated statement, nothing else.`
     });
 
-    const prompt = `Consolidate these preferences into ONE clear statement:
+    const prompt = `Merge into ONE SHORT sentence:
 
 ${texts.map((text, i) => `${i + 1}. ${text}`).join('\n\n')}
 
-Consolidated preference:`;
+Merged:`;
 
     const response = await session.prompt(prompt);
     await session.destroy();
