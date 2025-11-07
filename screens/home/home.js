@@ -305,7 +305,7 @@ function createHome(options = {}) {
         const hadSelectedCards = hasSelectedCards;
         hasSelectedCards = cards.some(c => c.isSelected && c.isSelected());
 
-        // If cards are now selected and preference-options is hidden, show it
+        // If cards are now selected, show preference-options and move back-to-top button up
         if (hasSelectedCards && !hadSelectedCards && preferenceOptions) {
           preferenceOptions.element.classList.remove('hidden-by-scroll');
         }
@@ -315,6 +315,13 @@ function createHome(options = {}) {
           if (scrollTop > 100) {
             preferenceOptions.element.classList.add('hidden-by-scroll');
           }
+        }
+
+        // Always adjust back-to-top button position based on selection state
+        if (hasSelectedCards) {
+          scrollToTopButton.element.style.bottom = '88px'; // 72px (bottom bar) + 16px spacing
+        } else {
+          scrollToTopButton.element.style.bottom = '16px';
         }
       }, 10);
     },
