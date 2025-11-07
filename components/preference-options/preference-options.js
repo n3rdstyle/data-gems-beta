@@ -51,6 +51,24 @@ function createPreferenceOptions(options = {}) {
   const bottomBar = document.createElement('div');
   bottomBar.className = 'preference-options__bottom-bar';
 
+  // Create trash button container (shown when cards are selected)
+  const trashButtonContainer = document.createElement('div');
+  trashButtonContainer.className = 'preference-options__trash-container';
+  trashButtonContainer.style.display = 'none'; // Hidden by default
+
+  const trashButton = createTertiaryButton({
+    icon: 'trash',
+    ariaLabel: 'Delete Selected',
+    onClick: () => {
+      if (onDeleteClick) {
+        onDeleteClick();
+      }
+    }
+  });
+  trashButton.element.classList.add('preference-options__trash-button');
+
+  trashButtonContainer.appendChild(trashButton.element);
+
   // Create trigger button (tertiary with add icon) - defined early for toggle function
   const triggerButtonWrapper = document.createElement('div');
   triggerButtonWrapper.className = 'preference-options__trigger';
@@ -62,19 +80,6 @@ function createPreferenceOptions(options = {}) {
       toggle();
     }
   });
-
-  // Create trash button (shown when cards are selected)
-  const trashButton = createTertiaryButton({
-    icon: 'trash',
-    ariaLabel: 'Delete Selected',
-    onClick: () => {
-      if (onDeleteClick) {
-        onDeleteClick();
-      }
-    }
-  });
-  trashButton.element.classList.add('preference-options__trash-button');
-  trashButton.element.style.display = 'none'; // Hidden by default
 
   // Create gradient background frame
   const gradientFrame = document.createElement('div');
@@ -198,12 +203,11 @@ function createPreferenceOptions(options = {}) {
 
   mergeButtonContainer.appendChild(mergeButton.element);
 
-  // Add both buttons to wrapper
   triggerButtonWrapper.appendChild(triggerButton.element);
-  triggerButtonWrapper.appendChild(trashButton.element);
 
   bottomBar.appendChild(randomQuestionContainer);
   bottomBar.appendChild(mergeButtonContainer);
+  bottomBar.appendChild(trashButtonContainer);
   bottomBar.appendChild(triggerButtonWrapper);
 
   // Assemble component
@@ -325,15 +329,15 @@ function createPreferenceOptions(options = {}) {
     },
 
     showTrashButton() {
-      // Hide plus button, show trash button
-      triggerButton.element.style.display = 'none';
-      trashButton.element.style.display = '';
+      // Hide plus button, show trash button container
+      triggerButtonWrapper.style.display = 'none';
+      trashButtonContainer.style.display = '';
     },
 
     hideTrashButton() {
-      // Show plus button, hide trash button
-      triggerButton.element.style.display = '';
-      trashButton.element.style.display = 'none';
+      // Show plus button, hide trash button container
+      triggerButtonWrapper.style.display = '';
+      trashButtonContainer.style.display = 'none';
     }
   };
 }
