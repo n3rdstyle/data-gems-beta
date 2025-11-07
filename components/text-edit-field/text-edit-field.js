@@ -34,19 +34,6 @@ function createTextEditField(options = {}) {
   function buildActionIcons() {
     const actionIcons = [];
 
-    // Add info icon first if this is a merged card
-    if (mergedFrom && Array.isArray(mergedFrom) && mergedFrom.length > 0) {
-      actionIcons.push({
-        icon: 'info',
-        ariaLabel: `Show ${mergedFrom.length} original cards`,
-        onClick: () => {
-          if (onShowOriginals) {
-            onShowOriginals(mergedFrom);
-          }
-        }
-      });
-    }
-
     // Default state: show both hidden and heart icons (outline)
     if (!currentHidden && !currentFavorited) {
       actionIcons.push(
@@ -98,12 +85,51 @@ function createTextEditField(options = {}) {
     return actionIcons;
   }
 
+  // Create title container with optional info icon
+  let titleWithIcon = title;
+
+  // If merged card, create custom title with info icon
+  if (mergedFrom && Array.isArray(mergedFrom) && mergedFrom.length > 0 && headerVariant === 'compact') {
+    const titleContainer = document.createElement('div');
+    titleContainer.className = 'text-edit-field__title-container';
+
+    const titleText = document.createElement('span');
+    titleText.textContent = title;
+
+    const infoButton = createTertiaryButton({
+      icon: 'info',
+      size: 'small',
+      ariaLabel: `Show ${mergedFrom.length} original cards`,
+      onClick: () => {
+        if (onShowOriginals) {
+          onShowOriginals(mergedFrom);
+        }
+      }
+    });
+    infoButton.element.classList.add('text-edit-field__info-icon');
+
+    titleContainer.appendChild(titleText);
+    titleContainer.appendChild(infoButton.element);
+
+    titleWithIcon = titleContainer;
+  }
+
   // Create compact header with initial icons
   const header = createHeader({
     variant: headerVariant,
-    title: title,
+    title: typeof titleWithIcon === 'string' ? titleWithIcon : '', // Pass empty string if custom element
     actionIcons: headerVariant === 'compact' ? buildActionIcons() : []
   });
+
+  // If we have a custom title container, replace the title element
+  if (typeof titleWithIcon !== 'string') {
+    const headerElement = header.element;
+    const existingTitle = headerElement.querySelector('.header__title-compact');
+    if (existingTitle) {
+      existingTitle.replaceWith(titleWithIcon);
+      titleWithIcon.classList.add('header__title-compact', 'text-style-h3');
+    }
+  }
 
   // Create text box
   const textBox = document.createElement('div');

@@ -12,6 +12,17 @@
   box-sizing: border-box;
 }
 
+/* Title container with info icon */
+.text-edit-field__title-container {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm); /* 16px between title and info icon */
+}
+
+.text-edit-field__info-icon {
+  flex-shrink: 0;
+}
+
 /* Text box for editable content */
 .text-edit-field__textbox {
   background-color: var(--color-neutral-10);
