@@ -99,6 +99,8 @@ function createDataEditorModal(options = {}) {
     placeholder: 'Enter preference details...',
     hidden: preferenceHidden,
     favorited: preferenceFavorited,
+    mergedFrom: mergedFrom, // Pass merged from data if available
+    onShowOriginals: isMergeMode ? showOriginalsModal : null, // Show originals callback
     onTextChange: async (newText) => {
       // Enable/disable save button based on text content
       const isEmpty = !newText || newText.trim() === '';
@@ -200,22 +202,7 @@ function createDataEditorModal(options = {}) {
     }
   });
 
-  // Create Show Originals button for merge mode
-  let showOriginalsButton = null;
-  if (isMergeMode) {
-    showOriginalsButton = createTertiaryButton({
-      text: 'Show Originals',
-      onClick: () => {
-        showOriginalsModal();
-      }
-    });
-    showOriginalsButton.element.classList.add('data-editor-modal__show-originals');
-  }
-
-  // Add buttons in order
-  if (showOriginalsButton) {
-    buttonsSection.appendChild(showOriginalsButton.element);
-  }
+  // Add buttons
   buttonsSection.appendChild(saveButton.element);
   buttonsSection.appendChild(cancelButton.element);
 

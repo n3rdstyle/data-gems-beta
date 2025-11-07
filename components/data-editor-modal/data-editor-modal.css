@@ -44,16 +44,11 @@
 .data-editor-modal__buttons {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: var(--spacing-element-internal); /* 8px */
   /* No padding - modal provides padding, gap provides vertical spacing */
   box-sizing: border-box;
   flex-shrink: 0;
-}
-
-/* Show Originals button on the left */
-.data-editor-modal__show-originals {
-  margin-right: auto;
 }
 
 /* Originals Modal */

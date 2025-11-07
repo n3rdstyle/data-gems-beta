@@ -307,6 +307,7 @@ function createHome(options = {}) {
         collections: card.getCollections(),
         existingTags: existingTags,
         autoCategorizeEnabled: getAutoCategorizeEnabled ? getAutoCategorizeEnabled() : true,
+        mergedFrom: card.getMergedFrom(), // Pass merged from data if available
         onSave: (data) => {
           // Determine new state
           let newState = 'default';

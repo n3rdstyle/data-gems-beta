@@ -12,10 +12,12 @@ function createTextEditField(options = {}) {
     placeholder = 'Enter text...',
     hidden = false,
     favorited = false,
+    mergedFrom = null, // Array of original cards if this is a merged card
     onToggleHidden = null,
     onToggleFavorite = null,
     onTextChange = null,
     onEnter = null,
+    onShowOriginals = null, // Callback to show original cards
     editable = true,
     headerVariant = 'compact' // 'compact' (with icons) or 'compact-plain' (without icons)
   } = options;
@@ -31,6 +33,19 @@ function createTextEditField(options = {}) {
   // Function to build action icons based on current state
   function buildActionIcons() {
     const actionIcons = [];
+
+    // Add info icon first if this is a merged card
+    if (mergedFrom && Array.isArray(mergedFrom) && mergedFrom.length > 0) {
+      actionIcons.push({
+        icon: 'info',
+        ariaLabel: `Show ${mergedFrom.length} original cards`,
+        onClick: () => {
+          if (onShowOriginals) {
+            onShowOriginals(mergedFrom);
+          }
+        }
+      });
+    }
 
     // Default state: show both hidden and heart icons (outline)
     if (!currentHidden && !currentFavorited) {

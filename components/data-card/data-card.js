@@ -350,6 +350,14 @@ class DataCard {
   }
 
   /**
+   * Get merged from data
+   * @returns {Array|null} Array of original cards if merged, null otherwise
+   */
+  getMergedFrom() {
+    return this.mergedFrom;
+  }
+
+  /**
    * Handle card click
    */
   handleClick() {
