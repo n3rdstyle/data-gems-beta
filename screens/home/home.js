@@ -311,7 +311,7 @@ function createHome(options = {}) {
         }
         // If no cards are selected anymore and user is scrolled, hide it
         else if (!hasSelectedCards && hadSelectedCards && preferenceOptions) {
-          const scrollTop = screenElement.scrollTop || window.pageYOffset;
+          const scrollTop = contentWrapper.scrollTop;
           if (scrollTop > 100) {
             preferenceOptions.element.classList.add('hidden-by-scroll');
           }
