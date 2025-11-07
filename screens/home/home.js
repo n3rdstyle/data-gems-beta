@@ -253,6 +253,9 @@ function createHome(options = {}) {
   // Store reference to preference options (created later)
   let preferenceOptions = null;
 
+  // Track if any cards are selected (for scroll behavior)
+  let hasSelectedCards = false;
+
   // Helper function to update preference options based on list state
   const updatePreferenceOptionsState = () => {
     if (!preferenceOptions) return;
@@ -287,6 +290,20 @@ function createHome(options = {}) {
           state: state
         });
       }
+    },
+    onCardSelectionChange: (selected, card) => {
+      // Update local state to track if any cards are selected
+      // This will be checked by scroll handler to keep buttons visible
+      if (onCardSelectionChange) {
+        onCardSelectionChange(selected, card);
+      }
+      // Set flag based on whether buttons are visible (hacky but works)
+      // We check this after a small delay to let the state update
+      setTimeout(() => {
+        const dataList = contentPreferences.getDataList();
+        const cards = dataList.getCards();
+        hasSelectedCards = cards.some(c => c.isSelected && c.isSelected());
+      }, 10);
     },
     onCardClick: (card, container) => {
       // Get all existing tags from all cards (predefined + user-created)
@@ -375,7 +392,6 @@ function createHome(options = {}) {
       });
       modal.show(container);
     },
-    onCardSelectionChange: onCardSelectionChange, // NEW: Pass selection callback
     onMergedInfoClick: onMergedInfoClick // NEW: Pass merged info callback
   });
   contentWrapper.appendChild(contentPreferences.element);
@@ -423,8 +439,11 @@ function createHome(options = {}) {
 
       // Detect scroll direction
       if (currentScrollTop > lastScrollTop) {
-        // Scrolling down - hide preference options, show scroll-to-top button
-        preferenceOptions.element.classList.add('hidden-by-scroll');
+        // Scrolling down - hide preference options (unless cards are selected), show scroll-to-top button
+        // Keep preference options visible if cards are selected (so trash/merge buttons stay visible)
+        if (!hasSelectedCards) {
+          preferenceOptions.element.classList.add('hidden-by-scroll');
+        }
         scrollToTopButton.element.style.opacity = '1';
         scrollToTopButton.element.style.transform = 'translateY(0)';
         scrollToTopButton.element.style.pointerEvents = 'auto';
