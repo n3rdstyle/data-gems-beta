@@ -10,7 +10,10 @@ function createHeadline(options = {}) {
     iconName = 'search',
     onIconClick = null,
     searchPlaceholder = 'Search',
-    onSearch = null
+    onSearch = null,
+    showTagButton = false,
+    tagButtonLabel = 'All',
+    onTagButtonClick = null
   } = options;
 
   // Create headline element
@@ -26,6 +29,10 @@ function createHeadline(options = {}) {
   // Create action container (for icon or search field)
   const actionContainer = document.createElement('span');
   actionContainer.className = 'headline__action';
+
+  // Create buttons container for search and tag buttons
+  const buttonsContainer = document.createElement('div');
+  buttonsContainer.className = 'headline__buttons';
 
   // Track search state
   let isSearchExpanded = false;
@@ -87,7 +94,37 @@ function createHeadline(options = {}) {
     });
 
     actionContainer.appendChild(searchContainer);
-    actionContainer.appendChild(iconButton.element);
+  }
+
+  // Create tag button if needed (positioned left of search button)
+  let tagButton = null;
+  if (showTagButton) {
+    tagButton = createTertiaryButton({
+      text: tagButtonLabel,
+      icon: 'chevronDown',
+      ariaLabel: 'Select tag',
+      variant: 'text',
+      size: 'small'
+    });
+
+    if (onTagButtonClick) {
+      tagButton.element.addEventListener('click', onTagButtonClick);
+    }
+
+    // Add tag button class for styling
+    tagButton.element.classList.add('headline__tag-button');
+
+    buttonsContainer.appendChild(tagButton.element);
+  }
+
+  // Add search button after tag button
+  if (showIcon) {
+    buttonsContainer.appendChild(iconButton.element);
+  }
+
+  // Add buttons container to action container
+  if (showIcon || showTagButton) {
+    actionContainer.appendChild(buttonsContainer);
     headlineElement.appendChild(actionContainer);
   }
 
@@ -209,6 +246,12 @@ function createHeadline(options = {}) {
 
     setText(newText) {
       textElement.textContent = newText;
+    },
+
+    setTagButtonLabel(label) {
+      if (tagButton) {
+        tagButton.setText(label);
+      }
     },
 
     expandSearch() {

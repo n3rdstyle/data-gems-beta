@@ -31,7 +31,7 @@ function createTertiaryButton(options = {}) {
     ariaLabel = ''
   } = options;
 
-  // Determine variant: text takes precedence over icon
+  // Determine variant: if both text and icon, it's text with icon
   const variant = text ? 'text' : 'icon';
 
   // Create button element
@@ -72,26 +72,37 @@ function createTertiaryButton(options = {}) {
     button.setAttribute('aria-label', ariaLabel);
   }
 
-  let contentContainer;
+  let textContainer;
+  let iconContainer;
 
   if (variant === 'text') {
     // Create text container
-    contentContainer = document.createElement('span');
-    contentContainer.className = 'button-tertiary__text text-style-body-medium';
-    contentContainer.textContent = text;
-    button.appendChild(contentContainer);
+    textContainer = document.createElement('span');
+    textContainer.className = 'button-tertiary__text text-style-body-medium';
+    textContainer.textContent = text;
+    button.appendChild(textContainer);
+
+    // Add icon if provided
+    if (icon) {
+      iconContainer = document.createElement('span');
+      iconContainer.className = 'button-tertiary__icon';
+      const iconName = filled ? `${icon}Filled` : icon;
+      const iconSvg = getIcon(iconName);
+      iconContainer.innerHTML = iconSvg;
+      button.appendChild(iconContainer);
+    }
   } else {
-    // Create icon container
-    contentContainer = document.createElement('span');
-    contentContainer.className = 'button-tertiary__icon';
+    // Create icon container only
+    iconContainer = document.createElement('span');
+    iconContainer.className = 'button-tertiary__icon';
 
     // Get icon SVG from global icon system
     // If filled, use the filled version of the icon
     const iconName = filled ? `${icon}Filled` : icon;
     const iconSvg = getIcon(iconName || 'add');
 
-    contentContainer.innerHTML = iconSvg;
-    button.appendChild(contentContainer);
+    iconContainer.innerHTML = iconSvg;
+    button.appendChild(iconContainer);
   }
 
   // Add click event
@@ -105,15 +116,15 @@ function createTertiaryButton(options = {}) {
     variant,
 
     setIcon(newIcon) {
-      if (variant === 'icon') {
+      if (iconContainer) {
         const svg = getIcon(newIcon);
-        contentContainer.innerHTML = svg;
+        iconContainer.innerHTML = svg;
       }
     },
 
     setText(newText) {
-      if (variant === 'text') {
-        contentContainer.textContent = newText;
+      if (textContainer) {
+        textContainer.textContent = newText;
       }
     },
 

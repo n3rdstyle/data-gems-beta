@@ -102,6 +102,134 @@ function createContentPreferences(options = {}) {
   const container = document.createElement('div');
   container.className = 'content-preferences';
 
+  // Function to open collection filter modal
+  const openCollectionFilterModal = () => {
+    // If search is active, calculate collections only from visible (searched) cards
+    let availableCollections = collectionTags;
+    if (activeSearchTerm) {
+      // Temporarily show all search results (remove collection filter)
+      // to calculate all available collections from search results
+      const allCards = dataList.getCards();
+
+      // First, apply only search filter to get all search results
+      const searchResults = allCards.filter(card => {
+        const text = card.getData().toLowerCase();
+        return text.includes(activeSearchTerm.toLowerCase());
+      });
+
+      // Calculate collection counts from search results only
+      const collectionCounts = {};
+      searchResults.forEach(card => {
+        const collections = card.getCollections();
+        if (collections && Array.isArray(collections)) {
+          collections.forEach(collection => {
+            collectionCounts[collection] = (collectionCounts[collection] || 0) + 1;
+          });
+        }
+      });
+
+      // Create filtered collection list
+      availableCollections = Object.keys(collectionCounts).sort().map(collectionName => ({
+        type: 'collection',
+        label: collectionName,
+        count: collectionCounts[collectionName],
+        state: 'inactive'
+      }));
+    }
+
+    // Create and show collection filter modal
+    const modal = createCollectionFilterModal({
+      collections: availableCollections,
+      selectedCollections: activeFilter && activeFilter.type === 'collections' ? activeFilter.value : [],
+      onApply: (selectedCollections) => {
+        if (selectedCollections.length > 0) {
+          // Filter by selected collections
+          activeFilter = { type: 'collections', value: selectedCollections };
+
+          // If search is active, first reapply search to show all search results
+          // then apply collection filter on top of that
+          if (activeSearchTerm) {
+            dataList.filter(activeSearchTerm);
+          }
+
+          // Filter by collections (this now preserves search filter automatically)
+          dataList.filterByCollections(selectedCollections);
+
+          // Update headline tag button label
+          if (selectedCollections.length === 1) {
+            headline.setTagButtonLabel(selectedCollections[0]);
+          } else {
+            headline.setTagButtonLabel('Multiple Tags');
+          }
+
+          // Update "All" tag in tag list
+          const allTag = tagList.getTags().find(t => t.getLabel() === 'All' || t.showIcon);
+          if (allTag) {
+            const visibleCards = dataList.getCards().filter(card =>
+              card.element.style.display !== 'none'
+            );
+            if (selectedCollections.length === 1) {
+              allTag.setLabel(selectedCollections[0]);
+            } else {
+              allTag.setLabel('Multiple Tags');
+            }
+            allTag.setCount(visibleCards.length);
+          }
+        } else {
+          // No collections selected
+          activeFilter = null;
+
+          // If search is active, reapply search only, otherwise clear all filters
+          if (activeSearchTerm) {
+            dataList.filter(activeSearchTerm);
+          } else {
+            dataList.clearFilter();
+          }
+
+          // Reset headline tag button label
+          headline.setTagButtonLabel('All');
+
+          // Reset "All" tag in tag list
+          const allTag = tagList.getTags().find(t => t.showIcon);
+          if (allTag) {
+            const visibleCards = dataList.getCards().filter(card =>
+              card.element.style.display !== 'none'
+            );
+            allTag.setLabel('All');
+            allTag.setCount(visibleCards.length);
+          }
+        }
+      },
+      onClose: () => {
+        // Modal closed without applying - do nothing
+      }
+    });
+
+    // Create overlay
+    const overlay = createOverlay({ opacity: 0.5 });
+    overlay.element.appendChild(modal.element);
+
+    // Set overlay reference in modal so it can clean up
+    modal.setOverlay(overlay.element);
+
+    // Close modal when clicking on overlay background
+    overlay.element.addEventListener('click', (e) => {
+      if (e.target === overlay.element) {
+        modal.hide();
+      }
+    });
+
+    if (modalContainer) {
+      modalContainer.appendChild(overlay.element);
+    } else {
+      container.appendChild(overlay.element);
+    }
+
+    // Show overlay and modal
+    overlay.show();
+    modal.show();
+  };
+
   // Create headline with integrated search
   const headlineWrapper = document.createElement('div');
   headlineWrapper.className = 'content-preferences__headline';
@@ -110,6 +238,11 @@ function createContentPreferences(options = {}) {
     showIcon: true,
     iconName: 'search',
     searchPlaceholder: searchPlaceholder,
+    showTagButton: true,
+    tagButtonLabel: 'All',
+    onTagButtonClick: () => {
+      openCollectionFilterModal();
+    },
     onSearch: (value) => {
       // Filter data list based on search (live filtering)
       if (onSearch) {
@@ -118,6 +251,11 @@ function createContentPreferences(options = {}) {
       if (value) {
         dataList.filter(value);
         activeSearchTerm = value;
+
+        // If there's an active collection filter, reapply it on top of search results
+        if (activeFilter && activeFilter.type === 'collections') {
+          dataList.filterByCollections(activeFilter.value);
+        }
 
         // Notify parent that search was activated
         if (onSearchStateChange && !activeSearchTerm) {
@@ -399,6 +537,9 @@ function createContentPreferences(options = {}) {
           activeFilter = { type: 'state', value: 'favorited' };
           dataList.filterByState('favorited');
 
+          // Update headline tag button
+          headline.setTagButtonLabel('Favorites');
+
           // Reset "All" tag to default when switching to Favorites
           if (allTag) {
             allTag.setLabel('All');
@@ -407,6 +548,9 @@ function createContentPreferences(options = {}) {
         } else if (tagLabel === 'hidden') {
           activeFilter = { type: 'state', value: 'hidden' };
           dataList.filterByState('hidden');
+
+          // Update headline tag button
+          headline.setTagButtonLabel('Hidden');
 
           // Reset "All" tag to default when switching to Hidden
           if (allTag) {
@@ -417,6 +561,9 @@ function createContentPreferences(options = {}) {
           // For "All" tag without collections, show all cards
           activeFilter = null;
           dataList.clearFilter();
+
+          // Update headline tag button
+          headline.setTagButtonLabel('All');
 
           // Reset "All" tag to default
           if (allTag) {
@@ -440,6 +587,9 @@ function createContentPreferences(options = {}) {
         // Clear filter and show all cards
         activeFilter = null;
         dataList.clearFilter();
+
+        // Update headline tag button
+        headline.setTagButtonLabel('All');
       }
 
       if (onTagClick) {
@@ -456,7 +606,7 @@ function createContentPreferences(options = {}) {
 
   // Assemble component
   container.appendChild(headlineWrapper);
-  container.appendChild(tagListWrapper);
+  // container.appendChild(tagListWrapper); // Tag list removed per user request
   container.appendChild(listWrapper);
 
   // Public API

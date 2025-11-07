@@ -253,6 +253,7 @@ class DataList {
 
   /**
    * Filter cards by multiple collections (OR logic)
+   * Only filters among currently visible cards (preserves other filters like search)
    * @param {Array<string>} collectionNames - Array of collection names to filter by
    */
   filterByCollections(collectionNames) {
@@ -264,11 +265,18 @@ class DataList {
     const lowerCaseNames = collectionNames.map(name => name.toLowerCase());
 
     this.cards.forEach(card => {
-      const collections = card.collections || [];
-      const hasAnyCollection = collections.some(c =>
-        lowerCaseNames.includes(c.toLowerCase())
-      );
-      card.element.style.display = hasAnyCollection ? '' : 'none';
+      // Only process cards that are currently visible (not already hidden by search)
+      if (card.element.style.display !== 'none') {
+        const collections = card.collections || [];
+        const hasAnyCollection = collections.some(c =>
+          lowerCaseNames.includes(c.toLowerCase())
+        );
+        // Hide card if it doesn't have any of the selected collections
+        if (!hasAnyCollection) {
+          card.element.style.display = 'none';
+        }
+      }
+      // Cards that are already hidden (by search) remain hidden
     });
 
     // Update empty state visibility

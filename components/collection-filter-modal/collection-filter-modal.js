@@ -52,16 +52,18 @@ function createCollectionFilterModal(options = {}) {
   const applyButton = createPrimaryButton({
     label: 'Apply Filter',
     variant: 'v2',
-    disabled: selected.length === 0 // Initially disabled if no selection
+    disabled: false // Always enabled - empty selection means "show all"
   });
 
   // Helper to update button state
   const updateButtonState = () => {
+    // Apply button is always enabled (empty selection = show all)
+    applyButton.setDisabled(false);
+
+    // Clear button only enabled when there's a selection
     if (selected.length === 0) {
-      applyButton.setDisabled(true);
       clearButton.setDisabled(true);
     } else {
-      applyButton.setDisabled(false);
       clearButton.setDisabled(false);
     }
   };
