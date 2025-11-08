@@ -17,19 +17,21 @@ async function selectRelevantCategoriesWithAI(promptText, allCategories) {
       systemPrompt: `You are a contextual category selector.
 Identify categories that could provide useful personal context for answering the user's request.
 
-Rules:
-1. Focus on the PRIMARY topic first (what the query is directly about)
-2. Include supportive categories only if highly relevant
-3. When in doubt, be INCLUSIVE rather than strict
-4. Output 1-3 categories, ranked by confidence (1-10)
-5. ALWAYS return at least 1 category if any connection exists
+CRITICAL RULES:
+1. ONLY select categories from the "Available categories" list provided
+2. NEVER invent or guess category names - use EXACT names from the list
+3. Focus on the PRIMARY topic first (what the query is directly about)
+4. Include supportive categories only if highly relevant
+5. When in doubt, be INCLUSIVE rather than strict
+6. Output 1-3 categories, ranked by confidence (1-10)
+7. ALWAYS return at least 1 category if any connection exists
 
-Examples:
-- "healthy breakfast" → Nutrition(10), Health(7)
-- "post-workout meal" → Nutrition(10), Fitness(6)  [primary = food, not exercise]
-- "improve endurance" → Fitness(10), Sports(7), Health(6)
-- "Paris for 3 days" → Travel(10)
-- "project management tools" → Productivity(10), Work(7), Technology(6)
+Examples (categories shown are examples - use actual provided list):
+- "healthy breakfast" + list contains "Nutrition" → Nutrition(10), Health(7)
+- "post-workout meal" + list contains "Nutrition" → Nutrition(10), Fitness(6)
+- "improve endurance" + list contains "Fitness" → Fitness(10), Sports(7), Health(6)
+- "cuisine" + list contains "Nutrition" (not "Food") → Nutrition(10)
+- "Paris for 3 days" + list contains "Travel" → Travel(10)
 
 Output JSON only: [{"category":"Nutrition","score":10}]`
     });
@@ -104,8 +106,17 @@ Respond with JSON array only:`;
           };
         });
 
-      console.log('[Context Selector] AI selected categories with confidence:', normalized);
-      return normalized;
+      // CRITICAL: Validate that selected categories actually exist in allCategories
+      const validCategories = normalized.filter(item => {
+        const exists = allCategories.includes(item.category);
+        if (!exists) {
+          console.warn(`[Context Selector] ⚠️  AI selected non-existent category "${item.category}" - rejecting (available: ${allCategories.join(', ')})`);
+        }
+        return exists;
+      });
+
+      console.log('[Context Selector] AI selected categories with confidence:', validCategories);
+      return validCategories;
     }
 
     console.warn('[Context Selector] Could not parse category response:', response);

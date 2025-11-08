@@ -306,7 +306,7 @@ async function handleOptimization() {
     // ========================================
 
     // Use the context selector to find relevant gems and format prompt
-    // Request up to 5 gems for focused context
+    // Request up to 5 gems for rich context (fan-out decomposition will explore broadly)
     const optimizedPrompt = await optimizePromptWithContext(promptText, hspProfile, true, 5);
 
     console.log('[Data Gems] Optimized prompt:', optimizedPrompt.substring(0, 200) + '...');
