@@ -114,47 +114,33 @@ async function analyzeQueryIntent(query) {
     // Use AI to analyze query intent
     const session = await LanguageModel.create({
       language: 'en',
-      systemPrompt: `You are a query intent classifier.
-
-Analyze the user query and return EXACTLY TWO fields:
-- "type": the query intent type
-- "domain": the topic domain
+      systemPrompt: `You are a query classifier. Select the best matching type and domain from the provided lists.
 
 CRITICAL RULES:
-1. Return ONLY these 2 fields: "type" and "domain"
-2. DO NOT add extra fields like "query_type", "cuisine", "dish", "intent", etc.
-3. DO NOT return explanations or conversational text
-4. Field names MUST be exactly "type" and "domain" (not "query_type", not "cuisine")
+1. ONLY use values from the lists provided - DO NOT invent new values
+2. Return EXACTLY this format: {"type": "VALUE_FROM_TYPE_LIST", "domain": "VALUE_FROM_DOMAIN_LIST"}
+3. DO NOT add extra fields, DO NOT modify field names
+4. Pick the CLOSEST match even if not perfect
 
-Valid type values:
-- "shopping" = buying a product (sneakers, laptop, clothing)
-- "recommendation" = finding a place/service (café, restaurant, hotel, gym)
-- "planning" = organizing activities/schedules
-- "information" = asking for knowledge/facts
-
-Valid domain values:
-- "fashion" = clothing, shoes, accessories
-- "nutrition" = food, restaurants, cafés, coffee, meals
-- "technology" = laptops, phones, software
-- "fitness" = workouts, exercise, gym
-- "travel" = trips, hotels, flights, destinations
-- null = none of the above
-
-Examples:
-- "Find me a café for flat white" → {"type": "recommendation", "domain": "nutrition"}
-- "I need new sneakers under 100€" → {"type": "shopping", "domain": "fashion"}
-- "Help me plan my workout" → {"type": "planning", "domain": "fitness"}
+Examples showing correct selection:
+- "Find me a café" → {"type": "recommendation", "domain": "nutrition"}
+- "I need sneakers" → {"type": "shopping", "domain": "fashion"}
+- "Plan workout" → {"type": "planning", "domain": "fitness"}
 - "What is React?" → {"type": "information", "domain": "technology"}
-- "Recommend a good laptop" → {"type": "recommendation", "domain": "technology"}
-- "I'm craving pizza" → {"type": "recommendation", "domain": "nutrition"}
 
-Output format: {"type": "recommendation", "domain": "nutrition"}`
+Output JSON only: {"type": "...", "domain": "..."}`
     });
 
-    const response = await session.prompt(`Query: "${query}"
+    const typeList = 'shopping, recommendation, planning, information';
+    const domainList = 'fashion, nutrition, technology, fitness, travel, null';
 
-Classify the query and return JSON with exactly 2 fields: "type" and "domain"
-Output:`);
+    const response = await session.prompt(`User query: "${query}"
+
+Available type values: ${typeList}
+Available domain values: ${domainList}
+
+Select the best matching type and domain from the lists above.
+Return JSON only:`);
 
     await session.destroy();
 
