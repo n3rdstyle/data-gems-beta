@@ -130,12 +130,13 @@ Respond with JSON array only:`;
 
 /**
  * Use AI to identify relevant SubCategories for a prompt with confidence scores
- * @param {string} promptText - The user's prompt
+ * @param {string} promptText - The user's prompt (sub-question)
  * @param {Array} availableSubCategories - Array of available SubCategory keys (e.g., ['fashion_style', 'fashion_brands'])
  * @param {Object} subCategoryRegistry - SubCategory registry with parent info
+ * @param {string} originalQuery - The original user query for context (optional)
  * @returns {Promise<Array<{subCategory: string, score: number}>>} Array of {subCategory, score} objects
  */
-async function selectRelevantSubCategoriesWithAI(promptText, availableSubCategories, subCategoryRegistry) {
+async function selectRelevantSubCategoriesWithAI(promptText, availableSubCategories, subCategoryRegistry, originalQuery = null) {
   try {
     // Create AI session for SubCategory selection
     const session = await LanguageModel.create({
@@ -143,17 +144,25 @@ async function selectRelevantSubCategoriesWithAI(promptText, availableSubCategor
       systemPrompt: `You are a contextual SubCategory selector.
 Select SubCategories that contain useful personal preferences for this query.
 
+CRITICAL: You receive TWO pieces of context:
+1. Original request - the user's actual goal/question
+2. Specific aspect - what particular information we're looking for
+
+Score SubCategories based on relevance to the ORIGINAL REQUEST, using the specific aspect as a filter.
+
 Rules:
-1. Select SubCategories that are DIRECTLY relevant to the query topic
+1. Select SubCategories that are DIRECTLY relevant to the ORIGINAL REQUEST topic
 2. Include SubCategories that provide useful background context
 3. Output 3-5 SubCategories, ranked by relevance (1-10)
 4. When unsure, be INCLUSIVE - it's better to include than exclude
+5. Consider domain-specific subcategories (e.g., "eatingout" for restaurants, not just "diet")
 
 Examples:
-- "healthy breakfast" + Nutrition subcats → nutrition_preferences(9), nutrition_diet(7)
-- "post-workout meal" + Nutrition subcats → nutrition_preferences(9), nutrition_cooking(6)
-- "improve endurance" + Fitness subcats → fitness_endurance(10), fitness_training(8)
-- "comfortable shoes" + Fashion subcats → fashion_style(9), fashion_brands(7)
+- Original: "healthy breakfast" + Aspect: "nutrition preferences" → nutrition_preferences(9), nutrition_diet(7)
+- Original: "post-workout meal" + Aspect: "nutrition preferences" → nutrition_preferences(9), nutrition_cooking(6)
+- Original: "restaurant recommendation" + Aspect: "dietary restrictions" → nutrition_eatingout(10), nutrition_preferences(7)
+- Original: "improve endurance" + Aspect: "fitness habits" → fitness_endurance(10), fitness_training(8)
+- Original: "comfortable shoes" + Aspect: "style preferences" → fashion_style(9), fashion_brands(7)
 
 Output JSON only: [{"subCategory":"nutrition_preferences","score":9}]`
     });
@@ -164,13 +173,26 @@ Output JSON only: [{"subCategory":"nutrition_preferences","score":9}]`
       return `${key} (${info.parent} > ${info.displayName})`;
     }).join(', ');
 
-    const prompt = `User prompt: "${promptText}"
+    // Build prompt with original query context if available
+    let prompt;
+    if (originalQuery) {
+      prompt = `Original request: "${originalQuery}"
+Specific aspect: "${promptText}"
+
+Available SubCategories: ${subCatDescriptions}
+
+Select the most relevant SubCategories with confidence scores (1-10).
+Score based on relevance to the ORIGINAL REQUEST, using the specific aspect as guidance.
+Respond with JSON array only:`;
+    } else {
+      prompt = `User prompt: "${promptText}"
 
 Available SubCategories: ${subCatDescriptions}
 
 Select the most relevant SubCategories with confidence scores (1-10).
 Only include SubCategories that are DIRECTLY related to the query topic.
 Respond with JSON array only:`;
+    }
 
     console.log('[Context Selector] Asking AI for relevant SubCategories...');
 
@@ -522,10 +544,12 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, pr
 
           if (availableSubCategories.length > 0) {
             // Ask AI which SubCategories are relevant
+            // Pass originalQuery for context-aware selection (if this is a sub-query)
             const relevantSubCategories = await selectRelevantSubCategoriesWithAI(
               promptText,
               availableSubCategories,
-              profile.subCategoryRegistry
+              profile.subCategoryRegistry,
+              originalQuery || promptText  // Use original query if available, else use promptText
             );
 
             if (relevantSubCategories.length > 0) {
