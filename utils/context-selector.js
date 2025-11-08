@@ -777,7 +777,7 @@ function filterGemsBySubCategories(dataGems, subCategoriesWithScores) {
  * @param {number} maxResults - Maximum number of gems to return (default: 5)
  * @returns {Promise<Array>} Array of selected data gems
  */
-async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, profile = null, originalQuery = null, isSubQuery = false) {
+async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, profile = null, originalQuery = null, isSubQuery = false, queryIntent = null) {
   try {
     // Check if AI Helper is available
     if (typeof aiHelper === 'undefined' || !aiHelper) {
@@ -795,13 +795,21 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, pr
     await aiHelper.initialize();
 
     // STAGE 0: Semantic Type Pre-Filter
-    const queryIntent = await analyzeQueryIntent(originalQuery || promptText);
-    console.log('[Context Selector] Stage 0: Query intent analysis:', {
-      type: queryIntent.type,
-      domain: queryIntent.domain,
-      requiredTypes: queryIntent.requiredSemanticTypes,
-      needsConstraints: queryIntent.needsConstraints
-    });
+    // Use provided intent if available (from fan-out), otherwise analyze
+    if (!queryIntent) {
+      queryIntent = await analyzeQueryIntent(originalQuery || promptText);
+      console.log('[Context Selector] Stage 0: Query intent analysis:', {
+        type: queryIntent.type,
+        domain: queryIntent.domain,
+        requiredTypes: queryIntent.requiredSemanticTypes,
+        needsConstraints: queryIntent.needsConstraints
+      });
+    } else {
+      console.log('[Context Selector] Stage 0: Using pre-analyzed query intent:', {
+        type: queryIntent.type,
+        domain: queryIntent.domain
+      });
+    }
 
     let semanticFilteredGems = dataGems;
     if (queryIntent.requiredSemanticTypes && queryIntent.requiredSemanticTypes.length > 0) {
@@ -1666,6 +1674,13 @@ async function optimizePromptWithContext(promptText, profile, useAI = true, maxG
     if (shouldUseFanOut) {
       console.log('[Context Selector] 🔀 Using Question Decomposition Fan-Out (always-on mode)');
 
+      // OPTIMIZATION: Analyze intent ONCE before decomposition (not per sub-query)
+      const queryIntent = await analyzeQueryIntent(promptText);
+      console.log('[Context Selector] Pre-analyzed query intent:', {
+        type: queryIntent.type,
+        domain: queryIntent.domain
+      });
+
       // Decompose into sub-questions
       const subQuestions = await decomposePromptIntoSubQuestions(promptText);
 
@@ -1675,9 +1690,10 @@ async function optimizePromptWithContext(promptText, profile, useAI = true, maxG
         // Run each sub-question through existing pipeline IN PARALLEL
         // IMPORTANT: Pass original query so scoring AI knows the full context
         // IMPORTANT: Pass isSubQuery=true to disable semantic expansion (use direct category matches only)
+        // IMPORTANT: Pass queryIntent to avoid re-analyzing intent 5 times
         const subQueryResults = await Promise.all(
           subQuestions.map(subQ =>
-            selectRelevantGemsWithAI(subQ, visibleGems, Math.ceil(maxGems / 1.5), profile, promptText, true)
+            selectRelevantGemsWithAI(subQ, visibleGems, Math.ceil(maxGems / 1.5), profile, promptText, true, queryIntent)
           )
         );
 
