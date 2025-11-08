@@ -4,6 +4,237 @@
  */
 
 /**
+ * Enrich data gems with basic profile information
+ * Converts .basic.identity fields to characteristic gems
+ * @param {Object} profile - HSP profile
+ * @returns {Array} Combined array of preference gems + basic info gems
+ */
+function enrichGemsWithBasicInfo(profile) {
+  const gems = profile?.content?.preferences?.items || [];
+  const basicInfo = profile?.content?.basic?.identity || {};
+
+  const basicGems = [];
+
+  // Location (critical for restaurants, travel, local services)
+  if (basicInfo.location?.value) {
+    basicGems.push({
+      id: 'basic_location',
+      value: `Lives in: ${basicInfo.location.value}`,
+      collections: ['Identity'],
+      subCollections: ['identity_location'],
+      semanticType: 'characteristic',
+      attribute: 'current_location',
+      attributeValue: basicInfo.location.value,
+      assurance: 'self_declared',
+      reliability: 'authoritative',
+      state: 'default',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+  }
+
+  // Age (affects recommendations)
+  if (basicInfo.age?.value) {
+    basicGems.push({
+      id: 'basic_age',
+      value: `Age: ${basicInfo.age.value}`,
+      collections: ['Identity'],
+      subCollections: ['identity_basic'],
+      semanticType: 'characteristic',
+      attribute: 'age',
+      attributeValue: basicInfo.age.value.toString(),
+      assurance: 'self_declared',
+      reliability: 'authoritative',
+      state: 'default',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+  }
+
+  // Languages (keyboard, content, regional preferences)
+  if (basicInfo.languages?.value) {
+    const langs = Array.isArray(basicInfo.languages.value)
+      ? basicInfo.languages.value.join(', ')
+      : basicInfo.languages.value;
+    basicGems.push({
+      id: 'basic_languages',
+      value: `Speaks: ${langs}`,
+      collections: ['Identity'],
+      subCollections: ['identity_skills'],
+      semanticType: 'characteristic',
+      attribute: 'languages',
+      attributeValue: langs,
+      assurance: 'self_declared',
+      reliability: 'authoritative',
+      state: 'default',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+  }
+
+  // Gender (affects recommendations)
+  if (basicInfo.gender?.value) {
+    basicGems.push({
+      id: 'basic_gender',
+      value: `Gender: ${basicInfo.gender.value}`,
+      collections: ['Identity'],
+      subCollections: ['identity_basic'],
+      semanticType: 'characteristic',
+      attribute: 'gender',
+      attributeValue: basicInfo.gender.value,
+      assurance: 'self_declared',
+      reliability: 'authoritative',
+      state: 'default',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+  }
+
+  if (basicGems.length > 0) {
+    console.log(`[Context Selector] Enriched with ${basicGems.length} basic info gems:`,
+      basicGems.map(g => g.attribute).join(', '));
+  }
+
+  return [...basicGems, ...gems];
+}
+
+/**
+ * Analyze query to detect intent and requirements
+ * @param {string} query - User's query
+ * @returns {Object} Query intent object
+ */
+function analyzeQueryIntent(query) {
+  const lowerQuery = query.toLowerCase();
+
+  // Detect query type
+  let type = 'information'; // default
+  if (lowerQuery.match(/find|buy|purchase|shop|need|get|looking for|want to buy/i)) {
+    type = 'shopping';
+  } else if (lowerQuery.match(/plan|schedule|organize|prepare|help me (plan|organize)/i)) {
+    type = 'planning';
+  } else if (lowerQuery.match(/recommend|suggest|best|top|good|which|what.*should/i)) {
+    type = 'recommendation';
+  }
+
+  // Detect domain
+  let domain = null;
+  if (lowerQuery.match(/shoe|sneaker|boot|clothing|shirt|pant|jacket|dress|fashion|wear/i)) {
+    domain = 'fashion';
+  } else if (lowerQuery.match(/food|restaurant|meal|diet|eat|dinner|lunch|breakfast|cuisine/i)) {
+    domain = 'nutrition';
+  } else if (lowerQuery.match(/laptop|computer|phone|device|tech|software|app/i)) {
+    domain = 'technology';
+  } else if (lowerQuery.match(/workout|exercise|fitness|gym|run|train|sport/i)) {
+    domain = 'fitness';
+  } else if (lowerQuery.match(/travel|trip|vacation|hotel|flight|destination/i)) {
+    domain = 'travel';
+  }
+
+  // Detect budget mention
+  const budgetMatch = lowerQuery.match(/(\d+)\s*€|under\s*(\d+)|max\s*(\d+)|budget.*?(\d+)/i);
+  const budget = budgetMatch ? parseInt(budgetMatch[1] || budgetMatch[2] || budgetMatch[3] || budgetMatch[4]) : null;
+
+  // Required semantic types by query type
+  const requiredTypes = {
+    shopping: ['constraint', 'preference', 'characteristic'],
+    planning: ['goal', 'activity', 'preference'],
+    recommendation: ['preference', 'constraint', 'characteristic'],
+    information: ['characteristic', 'preference']
+  };
+
+  // Critical constraints by domain (for shopping/recommendation)
+  const criticalConstraints = {};
+  if (domain === 'fashion') criticalConstraints = ['budget', 'size'];
+  else if (domain === 'technology') criticalConstraints = ['budget'];
+  else if (domain === 'nutrition') criticalConstraints = ['budget', 'dietary', 'location'];
+  else if (domain === 'travel') criticalConstraints = ['budget', 'location'];
+
+  const intent = {
+    type,
+    domain,
+    budget,
+    requiredSemanticTypes: requiredTypes[type] || ['preference'],
+    needsConstraints: type === 'shopping' || type === 'recommendation',
+    criticalConstraints: (type === 'shopping' || type === 'recommendation') ? criticalConstraints : []
+  };
+
+  console.log('[Context Selector] Query Intent:', JSON.stringify(intent));
+
+  return intent;
+}
+
+/**
+ * Calculate semantic type boost based on query intent
+ * @param {string} semanticType - Gem's semantic type
+ * @param {Object} queryIntent - Analyzed query intent
+ * @returns {number} Boost value to add to score
+ */
+function getSemanticBoost(semanticType, queryIntent) {
+  if (!semanticType) return 0;
+
+  // Base semantic boost (applies to all queries)
+  let boost = 0;
+  if (semanticType === 'constraint') boost = 5;
+  else if (semanticType === 'preference') boost = 3;
+  else if (semanticType === 'characteristic') boost = 1;
+  else if (semanticType === 'activity') boost = 1;
+  else if (semanticType === 'goal') boost = 1;
+
+  // Query-specific boost
+  let queryBoost = 0;
+  if (queryIntent.type === 'shopping') {
+    // Shopping: constraints are CRITICAL
+    if (semanticType === 'constraint') queryBoost = 2;
+    if (semanticType === 'preference') queryBoost = 1;
+  } else if (queryIntent.type === 'planning') {
+    // Planning: goals and activities are important
+    if (semanticType === 'goal') queryBoost = 2;
+    if (semanticType === 'activity') queryBoost = 1;
+  } else if (queryIntent.type === 'recommendation') {
+    // Recommendation: preferences and constraints
+    if (semanticType === 'preference') queryBoost = 2;
+    if (semanticType === 'constraint') queryBoost = 1;
+  }
+
+  return boost + queryBoost;
+}
+
+/**
+ * Check if an activity gem is relevant to the query context
+ * @param {Object} gem - Data gem
+ * @param {string} originalQuery - Original user query
+ * @param {Object} queryIntent - Query intent object
+ * @returns {boolean} True if relevant
+ */
+function isActivityRelevantToQuery(gem, originalQuery, queryIntent) {
+  // For shopping queries, only include activities that affect product choice
+  if (queryIntent.type === 'shopping') {
+    const query = originalQuery.toLowerCase();
+    const value = gem.value.toLowerCase();
+
+    // Workout time is NOT relevant to BUYING products (only to USING them)
+    if (value.includes('workout time') || value.includes('wake-up time')) {
+      return false;
+    }
+
+    // Frequency activities are relevant if they relate to the product
+    if (queryIntent.domain === 'fitness' && value.match(/runs?|workout|exercise|gym/i)) {
+      return true; // Running frequency IS relevant to buying running shoes
+    }
+
+    if (queryIntent.domain === 'fashion' && value.match(/shop|wear|dress/i)) {
+      return true; // Shopping frequency IS relevant
+    }
+
+    // Most other activities are not relevant to shopping
+    return false;
+  }
+
+  // For planning/recommendation queries, activities are relevant
+  return true;
+}
+
+/**
  * Use AI to identify relevant categories for a prompt with confidence scores
  * @param {string} promptText - The user's prompt
  * @param {Array} allCategories - Array of all available categories
@@ -473,19 +704,40 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, pr
 
     await aiHelper.initialize();
 
+    // STAGE 0: Semantic Type Pre-Filter
+    const queryIntent = analyzeQueryIntent(originalQuery || promptText);
+    console.log('[Context Selector] Stage 0: Query intent analysis:', {
+      type: queryIntent.type,
+      domain: queryIntent.domain,
+      requiredTypes: queryIntent.requiredSemanticTypes,
+      needsConstraints: queryIntent.needsConstraints
+    });
+
+    let semanticFilteredGems = dataGems;
+    if (queryIntent.requiredSemanticTypes && queryIntent.requiredSemanticTypes.length > 0) {
+      const beforeCount = dataGems.length;
+      semanticFilteredGems = dataGems.filter(gem =>
+        !gem.semanticType || // Include gems without semantic type (backward compatibility)
+        queryIntent.requiredSemanticTypes.includes(gem.semanticType)
+      );
+      console.log(`[Context Selector] Stage 0: Semantic filter ${beforeCount} → ${semanticFilteredGems.length} gems (kept: ${queryIntent.requiredSemanticTypes.join(', ')})`);
+    } else {
+      console.log('[Context Selector] Stage 0: No semantic filtering applied (all types allowed)');
+    }
+
     // STAGE 1: Identify relevant categories using AI
-    console.log(`[Context Selector] Stage 1: Analyzing ${dataGems.length} gems`);
+    console.log(`[Context Selector] Stage 1: Analyzing ${semanticFilteredGems.length} gems`);
 
     // Extract all unique categories from gems
     const allCategories = [...new Set(
-      dataGems
+      semanticFilteredGems
         .flatMap(gem => gem.collections || [])
         .filter(Boolean)
     )];
 
     console.log(`[Context Selector] Found ${allCategories.length} unique categories`);
 
-    let candidateGems = dataGems;
+    let candidateGems = semanticFilteredGems;
     let stage15Applied = false; // Track if Stage 1.5 filtering was successfully applied
 
     if (allCategories.length > 0) {
@@ -528,7 +780,7 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, pr
         }
 
         // Filter gems by relevant (possibly expanded) categories
-        candidateGems = filterGemsByCategories(dataGems, relevantCategories);
+        candidateGems = filterGemsByCategories(semanticFilteredGems, relevantCategories);
         console.log(`[Context Selector] Filtered to ${candidateGems.length} gems in ${relevantCategories.length} relevant categories`);
 
         // STAGE 1.5: SubCategory Filtering (ALL categories)
@@ -567,7 +819,7 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, pr
                 if (subCategoryFiltered.length > 0) {
                   candidateGems = subCategoryFiltered;
                   stage15Applied = true; // Mark that Stage 1.5 successfully filtered
-                  console.log(`[Context Selector] Stage 1.5: Reduced to ${candidateGems.length} gems (${((1 - candidateGems.length / filterGemsByCategories(dataGems, relevantCategories).length) * 100).toFixed(1)}% reduction)`);
+                  console.log(`[Context Selector] Stage 1.5: Reduced to ${candidateGems.length} gems (${((1 - candidateGems.length / filterGemsByCategories(semanticFilteredGems, relevantCategories).length) * 100).toFixed(1)}% reduction)`);
                 } else {
                   console.log(`[Context Selector] Stage 1.5: No gems after SubCategory filter, keeping all ${candidateGems.length} category-filtered gems`);
                 }
@@ -766,11 +1018,40 @@ IMPORTANT: Return exactly ${batch.length} scores, one for each item above.`;
 
     console.log('[Context Selector] AI scoring complete');
 
+    // Apply semantic boosting
+    console.log('[Context Selector] Applying semantic type boosting...');
+    scoredGems.forEach(item => {
+      const baseScore = item.score;
+      const semanticBoost = getSemanticBoost(item.gem.semanticType, queryIntent);
+
+      // Filter out irrelevant activities
+      if (item.gem.semanticType === 'activity') {
+        const isRelevant = isActivityRelevantToQuery(item.gem, originalQuery || promptText, queryIntent);
+        if (!isRelevant) {
+          console.log(`[Context Selector] 🚫 Filtering irrelevant activity: "${item.gem.value.substring(0, 60)}..."`);
+          item.score = 0; // Set to 0 to remove it
+          return;
+        }
+      }
+
+      if (semanticBoost > 0) {
+        item.score = baseScore + semanticBoost;
+        console.log(`[Context Selector] 📈 Boost ${item.gem.semanticType || 'none'}: ${baseScore} → ${item.score} (+${semanticBoost}) | "${item.gem.value.substring(0, 60)}..."`);
+      }
+    });
+
+    // Remove filtered activities (score = 0)
+    const beforeFilterCount = scoredGems.length;
+    const filteredScoredGems = scoredGems.filter(item => item.score > 0);
+    if (filteredScoredGems.length < beforeFilterCount) {
+      console.log(`[Context Selector] Removed ${beforeFilterCount - filteredScoredGems.length} irrelevant activities`);
+    }
+
     // Sort by score (highest first)
-    scoredGems.sort((a, b) => b.score - a.score);
+    filteredScoredGems.sort((a, b) => b.score - a.score);
 
     // Log score distribution
-    const scoreDistribution = scoredGems.reduce((acc, item) => {
+    const scoreDistribution = filteredScoredGems.reduce((acc, item) => {
       const bucket = Math.floor(item.score / 2) * 2; // Group by 0-1, 2-3, 4-5, etc.
       acc[bucket] = (acc[bucket] || 0) + 1;
       return acc;
@@ -779,7 +1060,7 @@ IMPORTANT: Return exactly ${batch.length} scores, one for each item above.`;
 
     // NO MATCH DETECTION: If no gems scored ≥7, the query is likely irrelevant
     // Return empty to avoid adding random context
-    const highQualityCount = scoredGems.filter(item => item.score >= 7).length;
+    const highQualityCount = filteredScoredGems.filter(item => item.score >= 7).length;
 
     if (highQualityCount === 0) {
       console.log('[Context Selector] ⚠️ No gems scored ≥7, query appears irrelevant to profile');
@@ -788,7 +1069,7 @@ IMPORTANT: Return exactly ${batch.length} scores, one for each item above.`;
     }
 
     // STRICT CUTOFF: Only use high-quality matches (≥7)
-    let results = scoredGems
+    let results = filteredScoredGems
       .filter(item => item.score >= 7)
       .slice(0, maxResults)
       .map(item => {
@@ -817,7 +1098,7 @@ IMPORTANT: Return exactly ${batch.length} scores, one for each item above.`;
       console.log(`[Context Selector] Removed ${beforeDedup - results.length} duplicate gems`);
     }
 
-    console.log(`[Context Selector] Selected ${results.length} unique gems (scores: ${scoredGems.slice(0, 5).map(s => s.score).join(', ')}...)`);
+    console.log(`[Context Selector] Selected ${results.length} unique gems (scores: ${filteredScoredGems.slice(0, 5).map(s => s.score).join(', ')}...)`);
 
     return results;
 
@@ -1123,7 +1404,7 @@ Return ONLY a JSON array: ["question 1", "question 2", ...]`;
  * @param {number} maxGems - Maximum number of gems to return
  * @returns {Array} Merged and deduplicated gems
  */
-function mergeGemResults(subQueryResults, maxGems) {
+function mergeGemResults(subQueryResults, maxGems, originalQuery = null, profile = null) {
   console.log('[Context Selector] Merging results from', subQueryResults.length, 'sub-queries');
 
   // Track gem frequency and source sub-questions
@@ -1181,6 +1462,64 @@ function mergeGemResults(subQueryResults, maxGems) {
     value: e.gem.value.substring(0, 40) + '...'
   })));
 
+  // CONSTRAINT VALIDATION: Ensure critical constraints are included for shopping queries
+  if (originalQuery) {
+    const queryIntent = analyzeQueryIntent(originalQuery);
+
+    if (queryIntent.needsConstraints && queryIntent.criticalConstraints.length > 0) {
+      console.log('[Context Selector] 🔍 Checking for critical constraints:', queryIntent.criticalConstraints);
+
+      // Get all available constraint gems from all sub-query results
+      const allConstraintGems = [];
+      subQueryResults.forEach(gems => {
+        gems.forEach(gem => {
+          if (gem.semanticType === 'constraint') {
+            // Check if this constraint matches a critical constraint
+            const attribute = gem.attribute?.toLowerCase() || '';
+            const value = gem.value.toLowerCase();
+            const isCritical = queryIntent.criticalConstraints.some(cc => {
+              const ccLower = cc.toLowerCase();
+              return attribute.includes(ccLower) || value.includes(ccLower);
+            });
+
+            if (isCritical) {
+              // Check if already in allGems
+              const existingEntry = allGems.find(e => e.gem.id === gem.id);
+              if (existingEntry) {
+                // Boost existing constraint
+                console.log(`[Context Selector] ⚡ Boosting critical constraint "${gem.value.substring(0, 50)}..." (${existingEntry.score} → ${existingEntry.score + 10})`);
+                existingEntry.score += 10;
+              } else {
+                // Add missing constraint
+                allConstraintGems.push(gem);
+              }
+            }
+          }
+        });
+      });
+
+      // Add missing critical constraints to allGems
+      allConstraintGems.forEach(gem => {
+        console.log(`[Context Selector] ➕ Force-adding critical constraint: "${gem.value.substring(0, 60)}..."`);
+        allGems.unshift({
+          gem,
+          score: 20, // Very high score to prioritize
+          sources: [0],
+          appearances: 1
+        });
+      });
+
+      // Re-sort after constraint boosting
+      if (allConstraintGems.length > 0) {
+        allGems.sort((a, b) => {
+          if (b.score !== a.score) return b.score - a.score;
+          return b.appearances - a.appearances;
+        });
+        console.log('[Context Selector] ✓ Re-sorted with constraint boost');
+      }
+    }
+  }
+
   // Diversity selection: Ensure we get context from different sub-questions
   const selected = [];
   const sourceCount = new Map(); // Track how many gems from each source
@@ -1218,8 +1557,8 @@ function mergeGemResults(subQueryResults, maxGems) {
  */
 async function optimizePromptWithContext(promptText, profile, useAI = true, maxGems = 5) {
   try {
-    // Extract data gems from profile
-    const dataGems = profile?.content?.preferences?.items || [];
+    // Extract data gems from profile + enrich with basic info
+    const dataGems = enrichGemsWithBasicInfo(profile);
 
     // Filter out hidden items
     const visibleGems = dataGems.filter(gem => gem.state !== 'hidden');
@@ -1257,7 +1596,7 @@ async function optimizePromptWithContext(promptText, profile, useAI = true, maxG
         ).join(', '));
 
         // Merge results with smart deduplication and diversity
-        const selectedGems = mergeGemResults(subQueryResults, maxGems);
+        const selectedGems = mergeGemResults(subQueryResults, maxGems, promptText, profile);
 
         console.log('[Context Selector] ✓ Fan-out complete: Selected', selectedGems.length, 'unique gems');
 
