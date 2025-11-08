@@ -176,10 +176,20 @@ JSON output:`);
       console.log('[Context Selector] Extracted JSON:', jsonMatch[0]);
       const result = JSON.parse(jsonMatch[0]);
 
+      // Check if required fields exist
+      if (!result.hasOwnProperty('type') || !result.hasOwnProperty('domain')) {
+        console.warn('[Context Selector] AI returned JSON with wrong field names:', Object.keys(result).join(', '));
+        console.warn('[Context Selector] Expected fields: "type", "domain"');
+        throw new Error('Invalid JSON field names');
+      }
+
       // Validate type
       const validTypes = ['shopping', 'recommendation', 'planning', 'information'];
       if (validTypes.includes(result.type)) {
         type = result.type;
+      } else {
+        console.warn('[Context Selector] AI returned invalid type:', result.type);
+        throw new Error('Invalid type value');
       }
 
       // Validate domain
@@ -188,6 +198,9 @@ JSON output:`);
         domain = result.domain;
       } else if (result.domain === null) {
         domain = null;
+      } else {
+        console.warn('[Context Selector] AI returned invalid domain:', result.domain);
+        throw new Error('Invalid domain value');
       }
 
       console.log('[Context Selector] ✓ AI detected intent:', { type, domain });
