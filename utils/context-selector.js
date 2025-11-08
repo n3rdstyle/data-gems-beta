@@ -106,21 +106,27 @@ function enrichGemsWithBasicInfo(profile) {
 function analyzeQueryIntent(query) {
   const lowerQuery = query.toLowerCase();
 
-  // Detect query type
+  // Detect query type (check specific patterns first, then general)
   let type = 'information'; // default
-  if (lowerQuery.match(/find|buy|purchase|shop|need|get|looking for|want to buy/i)) {
-    type = 'shopping';
-  } else if (lowerQuery.match(/plan|schedule|organize|prepare|help me (plan|organize)/i)) {
-    type = 'planning';
-  } else if (lowerQuery.match(/recommend|suggest|best|top|good|which|what.*should/i)) {
+
+  // 1. Check for RECOMMENDATION first (more specific)
+  if (lowerQuery.match(/recommend|suggest|best|top|good|which|what.*should|find (me |us )?(a |an |the )?(café|restaurant|place|bar|hotel|gym)/i)) {
     type = 'recommendation';
+  }
+  // 2. Then check for PLANNING
+  else if (lowerQuery.match(/plan|schedule|organize|prepare|help me (plan|organize)/i)) {
+    type = 'planning';
+  }
+  // 3. Then check for SHOPPING (products, not places)
+  else if (lowerQuery.match(/buy|purchase|shop|need (a |an |the )?(new )?(shoe|sneaker|laptop|phone|shirt|product)|get (a |an |the )?(new )?(shoe|laptop|phone)|looking for (a |an )?(new )?(shoe|laptop|phone)|want to buy/i)) {
+    type = 'shopping';
   }
 
   // Detect domain
   let domain = null;
   if (lowerQuery.match(/shoe|sneaker|boot|clothing|shirt|pant|jacket|dress|fashion|wear/i)) {
     domain = 'fashion';
-  } else if (lowerQuery.match(/food|restaurant|meal|diet|eat|dinner|lunch|breakfast|cuisine/i)) {
+  } else if (lowerQuery.match(/food|restaurant|meal|diet|eat|dinner|lunch|breakfast|cuisine|café|cafe|coffee|bar|bistro|bakery/i)) {
     domain = 'nutrition';
   } else if (lowerQuery.match(/laptop|computer|phone|device|tech|software|app/i)) {
     domain = 'technology';
