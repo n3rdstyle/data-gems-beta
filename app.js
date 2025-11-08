@@ -547,6 +547,9 @@ async function exportData() {
     // Collections
     collections: AppState.collections,
 
+    // SubCategory Registry
+    subCategoryRegistry: AppState.subCategoryRegistry,
+
     // Settings
     settings: AppState.settings,
 
