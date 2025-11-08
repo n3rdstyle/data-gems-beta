@@ -161,7 +161,11 @@ Output: {"type": "recommendation", "domain": "nutrition"}
 Remember: Return ONLY the JSON object. No explanation. No conversation.`
     });
 
-    const response = await session.prompt(`Query: "${query}"`);
+    const response = await session.prompt(`Classify this query and return ONLY the JSON object:
+
+"${query}"
+
+JSON output:`);
     await session.destroy();
 
     console.log('[Context Selector] AI raw response:', response);
