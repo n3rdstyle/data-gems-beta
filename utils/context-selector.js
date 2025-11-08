@@ -145,11 +145,14 @@ Examples:
     const response = await session.prompt(`Query: "${query}"`);
     await session.destroy();
 
+    console.log('[Context Selector] AI raw response:', response);
+
     // Parse JSON response
     const cleaned = response.trim().replace(/```json\n?/g, '').replace(/```\n?/g, '');
     const jsonMatch = cleaned.match(/\{[^}]+\}/);
 
     if (jsonMatch) {
+      console.log('[Context Selector] Extracted JSON:', jsonMatch[0]);
       const result = JSON.parse(jsonMatch[0]);
 
       // Validate type
@@ -168,7 +171,7 @@ Examples:
 
       console.log('[Context Selector] ✓ AI detected intent:', { type, domain });
     } else {
-      console.warn('[Context Selector] AI response not JSON, using fallback');
+      console.warn('[Context Selector] AI response not JSON, using fallback. Response:', response.substring(0, 200));
       throw new Error('Invalid JSON response');
     }
   } catch (error) {
@@ -209,7 +212,7 @@ Examples:
   };
 
   // Critical constraints by domain (for shopping/recommendation)
-  const criticalConstraints = {};
+  let criticalConstraints = [];
   if (domain === 'fashion') criticalConstraints = ['budget', 'size'];
   else if (domain === 'technology') criticalConstraints = ['budget'];
   else if (domain === 'nutrition') criticalConstraints = ['budget', 'dietary', 'location'];
