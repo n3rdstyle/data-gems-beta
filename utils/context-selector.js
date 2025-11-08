@@ -99,44 +99,104 @@ function enrichGemsWithBasicInfo(profile) {
 }
 
 /**
- * Analyze query to detect intent and requirements
+ * Analyze query using AI to detect intent and requirements
  * @param {string} query - User's query
- * @returns {Object} Query intent object
+ * @returns {Promise<Object>} Query intent object
  */
-function analyzeQueryIntent(query) {
+async function analyzeQueryIntent(query) {
   const lowerQuery = query.toLowerCase();
 
-  // Detect query type (check specific patterns first, then general)
-  let type = 'information'; // default
-
-  // 1. Check for RECOMMENDATION first (more specific)
-  if (lowerQuery.match(/recommend|suggest|best|top|good|which|what.*should|find (me |us )?(a |an |the )?(café|restaurant|place|bar|hotel|gym)/i)) {
-    type = 'recommendation';
-  }
-  // 2. Then check for PLANNING
-  else if (lowerQuery.match(/plan|schedule|organize|prepare|help me (plan|organize)/i)) {
-    type = 'planning';
-  }
-  // 3. Then check for SHOPPING (products, not places)
-  else if (lowerQuery.match(/buy|purchase|shop|need (a |an |the )?(new )?(shoe|sneaker|laptop|phone|shirt|product)|get (a |an |the )?(new )?(shoe|laptop|phone)|looking for (a |an )?(new )?(shoe|laptop|phone)|want to buy/i)) {
-    type = 'shopping';
-  }
-
-  // Detect domain
+  // Default intent (fallback)
+  let type = 'information';
   let domain = null;
-  if (lowerQuery.match(/shoe|sneaker|boot|clothing|shirt|pant|jacket|dress|fashion|wear/i)) {
-    domain = 'fashion';
-  } else if (lowerQuery.match(/food|restaurant|meal|diet|eat|dinner|lunch|breakfast|cuisine|café|cafe|coffee|bar|bistro|bakery/i)) {
-    domain = 'nutrition';
-  } else if (lowerQuery.match(/laptop|computer|phone|device|tech|software|app/i)) {
-    domain = 'technology';
-  } else if (lowerQuery.match(/workout|exercise|fitness|gym|run|train|sport/i)) {
-    domain = 'fitness';
-  } else if (lowerQuery.match(/travel|trip|vacation|hotel|flight|destination/i)) {
-    domain = 'travel';
+
+  try {
+    // Use AI to analyze query intent
+    const session = await LanguageModel.create({
+      language: 'en',
+      systemPrompt: `You are a query intent analyzer. Analyze user queries and determine:
+
+1. Type: Choose ONE of these:
+   - "shopping" = buying a product (sneakers, laptop, phone, clothing, etc.)
+   - "recommendation" = finding a place or service (café, restaurant, hotel, gym, etc.)
+   - "planning" = organizing activities or schedules
+   - "information" = asking for knowledge or facts
+
+2. Domain: Choose ONE or null:
+   - "fashion" = clothing, shoes, accessories
+   - "nutrition" = food, restaurants, cafés, meals, diet
+   - "technology" = laptops, phones, software, apps
+   - "fitness" = workouts, exercise, gym, sports
+   - "travel" = trips, hotels, flights, destinations
+   - null = if none of the above
+
+Return ONLY a JSON object with this exact format:
+{"type": "recommendation", "domain": "nutrition"}
+
+Examples:
+- "Find me a café for flat white" → {"type": "recommendation", "domain": "nutrition"}
+- "I need new sneakers under 100€" → {"type": "shopping", "domain": "fashion"}
+- "Help me plan my workout" → {"type": "planning", "domain": "fitness"}
+- "What is React?" → {"type": "information", "domain": "technology"}
+- "Recommend a good laptop" → {"type": "recommendation", "domain": "technology"}
+- "I'm craving pizza" → {"type": "recommendation", "domain": "nutrition"}`
+    });
+
+    const response = await session.prompt(`Query: "${query}"`);
+    await session.destroy();
+
+    // Parse JSON response
+    const cleaned = response.trim().replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    const jsonMatch = cleaned.match(/\{[^}]+\}/);
+
+    if (jsonMatch) {
+      const result = JSON.parse(jsonMatch[0]);
+
+      // Validate type
+      const validTypes = ['shopping', 'recommendation', 'planning', 'information'];
+      if (validTypes.includes(result.type)) {
+        type = result.type;
+      }
+
+      // Validate domain
+      const validDomains = ['fashion', 'nutrition', 'technology', 'fitness', 'travel'];
+      if (validDomains.includes(result.domain)) {
+        domain = result.domain;
+      } else if (result.domain === null) {
+        domain = null;
+      }
+
+      console.log('[Context Selector] ✓ AI detected intent:', { type, domain });
+    } else {
+      console.warn('[Context Selector] AI response not JSON, using fallback');
+      throw new Error('Invalid JSON response');
+    }
+  } catch (error) {
+    console.warn('[Context Selector] AI intent detection failed, using regex fallback:', error);
+
+    // FALLBACK: Regex patterns (in case AI fails)
+    if (lowerQuery.match(/recommend|suggest|best|top|good|which|what.*should|find (me |us )?(a |an |the )?(café|restaurant|place|bar|hotel|gym)/i)) {
+      type = 'recommendation';
+    } else if (lowerQuery.match(/plan|schedule|organize|prepare|help me (plan|organize)/i)) {
+      type = 'planning';
+    } else if (lowerQuery.match(/buy|purchase|shop|need (a |an |the )?(new )?(shoe|sneaker|laptop|phone|shirt|product)|get (a |an |the )?(new )?(shoe|laptop|phone)|want to buy/i)) {
+      type = 'shopping';
+    }
+
+    if (lowerQuery.match(/shoe|sneaker|boot|clothing|shirt|pant|jacket|dress|fashion|wear/i)) {
+      domain = 'fashion';
+    } else if (lowerQuery.match(/food|restaurant|meal|diet|eat|dinner|lunch|breakfast|cuisine|café|cafe|coffee|bar|bistro|bakery/i)) {
+      domain = 'nutrition';
+    } else if (lowerQuery.match(/laptop|computer|phone|device|tech|software|app/i)) {
+      domain = 'technology';
+    } else if (lowerQuery.match(/workout|exercise|fitness|gym|run|train|sport/i)) {
+      domain = 'fitness';
+    } else if (lowerQuery.match(/travel|trip|vacation|hotel|flight|destination/i)) {
+      domain = 'travel';
+    }
   }
 
-  // Detect budget mention
+  // Detect budget mention (regex is fine for numbers)
   const budgetMatch = lowerQuery.match(/(\d+)\s*€|under\s*(\d+)|max\s*(\d+)|budget.*?(\d+)/i);
   const budget = budgetMatch ? parseInt(budgetMatch[1] || budgetMatch[2] || budgetMatch[3] || budgetMatch[4]) : null;
 
@@ -164,7 +224,7 @@ function analyzeQueryIntent(query) {
     criticalConstraints: (type === 'shopping' || type === 'recommendation') ? criticalConstraints : []
   };
 
-  console.log('[Context Selector] Query Intent:', JSON.stringify(intent));
+  console.log('[Context Selector] Final intent:', JSON.stringify(intent));
 
   return intent;
 }
@@ -711,7 +771,7 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, pr
     await aiHelper.initialize();
 
     // STAGE 0: Semantic Type Pre-Filter
-    const queryIntent = analyzeQueryIntent(originalQuery || promptText);
+    const queryIntent = await analyzeQueryIntent(originalQuery || promptText);
     console.log('[Context Selector] Stage 0: Query intent analysis:', {
       type: queryIntent.type,
       domain: queryIntent.domain,
@@ -1410,7 +1470,7 @@ Return ONLY a JSON array: ["question 1", "question 2", ...]`;
  * @param {number} maxGems - Maximum number of gems to return
  * @returns {Array} Merged and deduplicated gems
  */
-function mergeGemResults(subQueryResults, maxGems, originalQuery = null, profile = null) {
+async function mergeGemResults(subQueryResults, maxGems, originalQuery = null, profile = null) {
   console.log('[Context Selector] Merging results from', subQueryResults.length, 'sub-queries');
 
   // Track gem frequency and source sub-questions
@@ -1470,7 +1530,7 @@ function mergeGemResults(subQueryResults, maxGems, originalQuery = null, profile
 
   // CONSTRAINT VALIDATION: Ensure critical constraints are included for shopping queries
   if (originalQuery) {
-    const queryIntent = analyzeQueryIntent(originalQuery);
+    const queryIntent = await analyzeQueryIntent(originalQuery);
 
     if (queryIntent.needsConstraints && queryIntent.criticalConstraints.length > 0) {
       console.log('[Context Selector] 🔍 Checking for critical constraints:', queryIntent.criticalConstraints);
@@ -1602,7 +1662,7 @@ async function optimizePromptWithContext(promptText, profile, useAI = true, maxG
         ).join(', '));
 
         // Merge results with smart deduplication and diversity
-        const selectedGems = mergeGemResults(subQueryResults, maxGems, promptText, profile);
+        const selectedGems = await mergeGemResults(subQueryResults, maxGems, promptText, profile);
 
         console.log('[Context Selector] ✓ Fan-out complete: Selected', selectedGems.length, 'unique gems');
 
