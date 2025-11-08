@@ -72,11 +72,12 @@ Respond with JSON array only:`;
             return true;
           }
 
-          // Check if item has required properties (accept both 'score' and 'confidence')
+          // Check if item has required properties (accept 'score', 'confidence', or 'confidence_score')
           const hasCategory = item && typeof item.category === 'string';
           const hasScore = typeof item.score === 'number';
           const hasConfidence = typeof item.confidence === 'number';
-          const isValid = hasCategory && (hasScore || hasConfidence);
+          const hasConfidenceScore = typeof item.confidence_score === 'number';
+          const isValid = hasCategory && (hasScore || hasConfidence || hasConfidenceScore);
 
           if (!isValid && item) {
             console.warn('[Context Selector] Invalid category object:', item, {
@@ -94,8 +95,8 @@ Respond with JSON array only:`;
             return { category: item, score: 8 }; // Default score for old format
           }
 
-          // Accept both 'score' and 'confidence' properties
-          const scoreValue = item.score !== undefined ? item.score : item.confidence;
+          // Accept 'score', 'confidence', or 'confidence_score' properties
+          const scoreValue = item.score !== undefined ? item.score : (item.confidence !== undefined ? item.confidence : item.confidence_score);
 
           return {
             category: item.category,
