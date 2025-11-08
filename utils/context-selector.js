@@ -185,7 +185,7 @@ Respond with JSON array only:`;
 
           // Handle both "subCategory" and "subcategory" (case insensitive)
           const subCatKey = item.subCategory || item.subcategory || item.SubCategory || item.sub_category;
-          const scoreValue = item.score || item.confidence;
+          const scoreValue = item.score || item.confidence || item.confidence_score || item.confidenceScore;
 
           const hasSubCategory = subCatKey && typeof subCatKey === 'string';
           const hasScore = typeof scoreValue === 'number';
@@ -210,7 +210,7 @@ Respond with JSON array only:`;
 
           // Handle both "subCategory" and "subcategory"
           const subCatKey = item.subCategory || item.subcategory || item.SubCategory || item.sub_category;
-          const scoreValue = item.score || item.confidence;
+          const scoreValue = item.score || item.confidence || item.confidence_score || item.confidenceScore;
 
           return {
             subCategory: subCatKey,
@@ -422,7 +422,7 @@ function filterGemsBySubCategories(dataGems, subCategoriesWithScores) {
  * @param {number} maxResults - Maximum number of gems to return (default: 5)
  * @returns {Promise<Array>} Array of selected data gems
  */
-async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, profile = null) {
+async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, profile = null, originalQuery = null, isSubQuery = false) {
   try {
     // Check if AI Helper is available
     if (typeof aiHelper === 'undefined' || !aiHelper) {
@@ -476,16 +476,21 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, pr
 
       if (relevantCategories.length > 0) {
         // SEMANTIC EXPANSION: Ask AI for related categories
-        const expandedCategories = await expandCategoriesSemanticly(
-          promptText,
-          relevantCategories,
-          allCategories
-        );
+        // Skip for sub-queries to prevent overly broad category selection
+        if (!isSubQuery) {
+          const expandedCategories = await expandCategoriesSemanticly(
+            promptText,
+            relevantCategories,
+            allCategories
+          );
 
-        if (expandedCategories.length > relevantCategories.length) {
-          console.log(`[Context Selector] Semantically expanded ${relevantCategories.length} → ${expandedCategories.length} categories:`,
-            expandedCategories.map(c => `${c.category}(${c.score})`).join(', '));
-          relevantCategories = expandedCategories;
+          if (expandedCategories.length > relevantCategories.length) {
+            console.log(`[Context Selector] Semantically expanded ${relevantCategories.length} → ${expandedCategories.length} categories:`,
+              expandedCategories.map(c => `${c.category}(${c.score})`).join(', '));
+            relevantCategories = expandedCategories;
+          }
+        } else {
+          console.log(`[Context Selector] Skipping semantic expansion for sub-query (using direct matches only)`);
         }
 
         // Filter gems by relevant (possibly expanded) categories
@@ -624,21 +629,27 @@ Provide your rating and optionally a brief reason.`
           return `${i + 1}. "${shortValue}"`;
         }).join('\n\n');
 
+        // Use original query if available (for sub-question scoring)
+        const contextDescription = originalQuery
+          ? `Original request: "${originalQuery}"\nSpecific aspect: "${promptText}"`
+          : `User request: "${promptText}"`;
+
         const prompt = `Task: Rate how useful each personal data item would be as CONTEXT for an AI assistant answering the user's request.
 
-Context is useful if it helps the AI understand the user's preferences, background, or constraints.
-
-User request: "${promptText}"
+${contextDescription}
 
 Personal data items:
 ${gemsList}
 
 Relevance scale:
-- 10 = Extremely useful context (directly relevant to preferences/needs)
-- 7-9 = Very useful context (helps understand user's style/preferences)
+- 10 = Extremely useful context (directly relevant to the ORIGINAL request)
+- 7-9 = Very useful context (helps understand user's style/preferences for the ORIGINAL request)
 - 4-6 = Somewhat useful (provides background but not critical)
-- 1-3 = Minimally useful (weak connection)
-- 0 = Not useful (completely unrelated)
+- 1-3 = Minimally useful (weak connection to ORIGINAL request)
+- 0 = Not useful (completely unrelated to ORIGINAL request)
+
+IMPORTANT: Score based on relevance to the ORIGINAL REQUEST, not just the specific aspect!
+For example, if the original request is about "sneakers", chip brands should score 0 even if the specific aspect is "brands".
 
 Return ONLY a JSON array of scores in order, e.g.: [8, 3, 9, 0, 7, ...]
 IMPORTANT: Return exactly ${batch.length} scores, one for each item above.`;
@@ -647,34 +658,62 @@ IMPORTANT: Return exactly ${batch.length} scores, one for each item above.`;
 
         const response = await session.prompt(prompt);
 
-        // Parse JSON response
+        // Parse response - try multiple formats
         const cleaned = response.trim().replace(/```json\n?/g, '').replace(/```\n?/g, '');
+
+        let scores = null;
+
+        // Try 1: JSON array format [7, 8, 3, 9, ...]
         const jsonMatch = cleaned.match(/\[[\d,\s]+\]/);
-
         if (jsonMatch) {
-          const scores = JSON.parse(jsonMatch[0]);
-
-          // Validate we got the right number of scores
-          if (scores.length === batch.length) {
-            batch.forEach((gem, i) => {
-              const score = Math.max(0, Math.min(10, parseInt(scores[i]) || 0));
-
-              // Log high-scoring gems
-              if (score >= 7) {
-                console.log(`[Context Selector] ✓ HIGH SCORE ${score}: "${gem.value.substring(0, 80)}..."`);
-              }
-
-              scoredGems.push({ gem, score });
-            });
-
-            console.log(`[Context Selector] Batch ${batchIndex + 1} scores:`, scores);
-          } else {
-            console.warn(`[Context Selector] Batch ${batchIndex + 1}: Expected ${batch.length} scores, got ${scores.length}. Using fallback.`);
-            // Fallback: assign middle scores
-            batch.forEach(gem => scoredGems.push({ gem, score: 5 }));
+          try {
+            scores = JSON.parse(jsonMatch[0]);
+          } catch (e) {
+            console.warn(`[Context Selector] JSON parse failed:`, e);
           }
+        }
+
+        // Try 2: Comma-separated numbers "7, 8, 3, 9" or "7,8,3,9"
+        if (!scores) {
+          const commaMatch = cleaned.match(/^[\d,\s]+$/);
+          if (commaMatch) {
+            scores = cleaned.split(/,\s*/).map(s => parseInt(s)).filter(n => !isNaN(n));
+          }
+        }
+
+        // Try 3: Line-separated numbers
+        if (!scores) {
+          const lines = cleaned.split(/\n+/).map(line => line.trim()).filter(Boolean);
+          if (lines.every(line => /^\d+$/.test(line))) {
+            scores = lines.map(line => parseInt(line));
+          }
+        }
+
+        // Try 4: Extract all numbers from response
+        if (!scores) {
+          const numbers = cleaned.match(/\d+/g);
+          if (numbers && numbers.length === batch.length) {
+            scores = numbers.map(n => parseInt(n));
+            console.log(`[Context Selector] Batch ${batchIndex + 1}: Extracted ${scores.length} numbers from text`);
+          }
+        }
+
+        // Validate and apply scores
+        if (scores && Array.isArray(scores) && scores.length === batch.length) {
+          batch.forEach((gem, i) => {
+            const score = Math.max(0, Math.min(10, parseInt(scores[i]) || 0));
+
+            // Log high-scoring gems
+            if (score >= 7) {
+              console.log(`[Context Selector] ✓ HIGH SCORE ${score}: "${gem.value.substring(0, 80)}..."`);
+            }
+
+            scoredGems.push({ gem, score });
+          });
+
+          console.log(`[Context Selector] Batch ${batchIndex + 1} scores:`, scores);
         } else {
-          console.warn(`[Context Selector] Batch ${batchIndex + 1}: Could not parse JSON response. Using fallback.`);
+          console.warn(`[Context Selector] Batch ${batchIndex + 1}: Expected ${batch.length} scores, got ${scores?.length || 0}. Response: "${cleaned.substring(0, 200)}". Using fallback.`);
           // Fallback: assign middle scores
           batch.forEach(gem => scoredGems.push({ gem, score: 5 }));
         }
@@ -716,7 +755,13 @@ IMPORTANT: Return exactly ${batch.length} scores, one for each item above.`;
     let results = scoredGems
       .filter(item => item.score >= 7)
       .slice(0, maxResults)
-      .map(item => item.gem);
+      .map(item => {
+        // Attach the AI relevance score to the gem for merge scoring
+        return {
+          ...item.gem,
+          _aiRelevanceScore: item.score
+        };
+      });
 
     console.log(`[Context Selector] Found ${results.length} gems with score ≥7`);
 
@@ -880,7 +925,255 @@ function formatPromptWithContext(originalPrompt, selectedGems) {
 }
 
 /**
- * Main function: Optimize prompt with relevant context
+ * Check if prompt is complex enough to benefit from decomposition
+ * @param {string} promptText - The user's prompt
+ * @returns {boolean} True if prompt should be decomposed
+ */
+function shouldDecomposePrompt(promptText) {
+  // Simple heuristics for complexity detection
+  const wordCount = promptText.split(/\s+/).length;
+  const hasMultipleConcepts = /\band\b|\bwith\b|,/.test(promptText);
+
+  // Expanded modifiers: descriptive adjectives that suggest multiple constraints
+  const hasModifiers = /\b(healthy|best|good|great|perfect|ideal|new|casual|comfortable|affordable|budget|premium|quality|specific|detailed|comprehensive|professional|modern|classic|stylish|elegant|practical|durable|reliable|efficient|effective|quick|easy|simple|advanced|beginner|intermediate|expert)\b/i.test(promptText);
+
+  // Action verbs that suggest complex requests
+  const hasComplexVerbs = /\b(plan|create|design|build|develop|recommend|suggest|find|choose|select|compare|optimize|improve|enhance)\b/i.test(promptText);
+
+  // Decompose if:
+  // - Long query (>10 words)
+  // - Medium query (>6 words) with multiple concepts OR modifiers
+  // - Medium query (>6 words) with complex action verbs
+
+  const shouldDecompose = wordCount > 10 ||
+                          (wordCount > 6 && (hasMultipleConcepts || hasModifiers)) ||
+                          (wordCount > 5 && hasComplexVerbs);
+
+  console.log('[Context Selector] Complexity check:', {
+    wordCount,
+    hasMultipleConcepts,
+    hasModifiers,
+    hasComplexVerbs,
+    shouldDecompose
+  });
+
+  return shouldDecompose;
+}
+
+/**
+ * Decompose complex prompt into focused sub-questions
+ * @param {string} promptText - The user's prompt
+ * @returns {Promise<Array<string>>} Array of sub-questions (2-5 questions)
+ */
+async function decomposePromptIntoSubQuestions(promptText) {
+  try {
+    const session = await LanguageModel.create({
+      language: 'en',
+      systemPrompt: `You are a prompt decomposition expert.
+Decompose user requests into 2-5 focused sub-questions that target specific aspects of personal context.
+
+CRITICAL RULES:
+1. Only ask questions DIRECTLY RELEVANT to the original query
+   - If the query mentions "pizza", DO NOT ask "What cuisine do you like?"
+   - If the query mentions "sneakers", DO NOT ask generic "shoe preferences"
+   - Focus on the SPECIFIC topic, not general categories
+
+2. Only ask about GAPS in the information needed
+   - Don't ask about things already specified in the query
+   - Don't ask generic questions that don't help answer the specific request
+
+3. Each sub-question should target ONE specific aspect:
+   - Specific preferences within the topic
+   - Budget/constraints
+   - Style/aesthetics preferences
+   - Brand preferences
+   - Practical requirements
+
+4. Output 2-5 questions (adjust based on query complexity):
+   - Simple queries: 2-3 FOCUSED questions
+   - Complex queries: 4-5 SPECIFIC questions
+
+5. Questions should be complementary, not overlapping
+
+Examples:
+
+Input: "Help me plan a healthy post-workout breakfast"
+Output:
+1. What are my nutrition preferences?
+2. What are my workout habits?
+3. What are my breakfast preferences?
+4. What are my health goals?
+5. What are my dietary restrictions?
+
+Input: "Recommend a good restaurant for date night"
+Output:
+1. What type of cuisine do I prefer for special occasions?
+2. What is my budget for date night dining?
+3. What type of ambiance or atmosphere do I enjoy?
+
+Input: "Best laptop for my work"
+Output:
+1. What is my profession and work requirements?
+2. What is my budget for technology?
+3. What are my computing preferences?
+4. What software do I use regularly?
+
+Input: "Best pizza"
+Output:
+1. What are my pizza topping preferences?
+2. What is my budget for dining out?
+
+Input: "Help me find a new casual sneaker"
+Output:
+1. What is my casual fashion style?
+2. What sneaker brands do I prefer or avoid?
+3. What is my budget for casual footwear?
+4. What colors or aesthetics do I prefer for shoes?
+
+Input: "Recommend a good Italian restaurant"
+Output:
+1. What are my Italian food preferences (pasta, pizza, seafood, etc.)?
+2. What is my budget for dining out?
+3. What location or neighborhood do I prefer?
+
+IMPORTANT: Focus on the SPECIFIC topic mentioned in the query. Don't ask generic questions!
+
+Output ONLY a JSON array of strings.`
+    });
+
+    const prompt = `Decompose this into 2-5 focused sub-questions:
+
+"${promptText}"
+
+Return ONLY a JSON array: ["question 1", "question 2", ...]`;
+
+    console.log('[Context Selector] Asking AI to decompose prompt...');
+
+    const response = await session.prompt(prompt);
+    await session.destroy();
+
+    // Parse JSON array
+    const cleaned = response.trim().replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    const match = cleaned.match(/\[.*?\]/s);
+
+    if (match) {
+      const questions = JSON.parse(match[0]);
+
+      // Validate: must be array of strings, 2-5 items
+      if (Array.isArray(questions) &&
+          questions.length >= 2 &&
+          questions.length <= 5 &&
+          questions.every(q => typeof q === 'string')) {
+        console.log('[Context Selector] Decomposed into', questions.length, 'sub-questions:', questions);
+        return questions;
+      } else {
+        console.warn('[Context Selector] Invalid decomposition format:', questions);
+        return [];
+      }
+    }
+
+    console.warn('[Context Selector] Could not parse decomposition response:', response);
+    return [];
+
+  } catch (error) {
+    console.error('[Context Selector] Error decomposing prompt:', error);
+    return [];
+  }
+}
+
+/**
+ * Merge gem results from multiple sub-queries with smart deduplication and diversity
+ * @param {Array<Array>} subQueryResults - Array of gem arrays from each sub-question
+ * @param {number} maxGems - Maximum number of gems to return
+ * @returns {Array} Merged and deduplicated gems
+ */
+function mergeGemResults(subQueryResults, maxGems) {
+  console.log('[Context Selector] Merging results from', subQueryResults.length, 'sub-queries');
+
+  // Track gem frequency and source sub-questions
+  const gemMap = new Map(); // gem.id → {gem, score, sources: [subQ indices], appearances}
+
+  subQueryResults.forEach((gems, subQIndex) => {
+    gems.forEach((gem, position) => {
+      if (gemMap.has(gem.id)) {
+        // Gem appears in multiple sub-queries → boost score significantly
+        const entry = gemMap.get(gem.id);
+        entry.score += 3; // Strong bonus for multi-match (cross-domain relevance!)
+        entry.appearances += 1;
+        entry.sources.push(subQIndex);
+
+        // Bonus for appearing early in multiple results
+        if (position < 2) {
+          entry.score += 1;
+        }
+      } else {
+        // New gem
+        // Use AI relevance score (from batch scoring), fallback to category confidence
+        const baseScore = gem._aiRelevanceScore || gem._categoryConfidence || 8;
+
+        // Bonus for appearing early in a result
+        const positionBonus = Math.max(0, 3 - position);
+
+        // BOOST: Extra bonus for very high-scoring gems (9-10)
+        // These are highly relevant and should be prioritized
+        const highScoreBonus = baseScore >= 9 ? 2 : 0;
+
+        gemMap.set(gem.id, {
+          gem,
+          score: baseScore + positionBonus + highScoreBonus,
+          sources: [subQIndex],
+          appearances: 1
+        });
+      }
+    });
+  });
+
+  // Convert to array and sort by score
+  const allGems = Array.from(gemMap.values())
+    .sort((a, b) => {
+      // Primary: Sort by score
+      if (b.score !== a.score) return b.score - a.score;
+      // Secondary: Prefer gems that appeared in multiple sub-queries
+      return b.appearances - a.appearances;
+    });
+
+  console.log('[Context Selector] Total unique gems after merge:', allGems.length);
+  console.log('[Context Selector] Top scored gems:', allGems.slice(0, 5).map(e => ({
+    appearances: e.appearances,
+    mergeScore: e.score,
+    aiScore: e.gem._aiRelevanceScore || 'N/A',
+    value: e.gem.value.substring(0, 40) + '...'
+  })));
+
+  // Diversity selection: Ensure we get context from different sub-questions
+  const selected = [];
+  const sourceCount = new Map(); // Track how many gems from each source
+
+  for (const entry of allGems) {
+    if (selected.length >= maxGems) break;
+
+    // Diversity: limit gems per source (60% of maxGems)
+    // maxGems=3 → max 2 per source, maxGems=5 → max 3 per source
+    const primarySource = entry.sources[0];
+    const currentCount = sourceCount.get(primarySource) || 0;
+    const maxPerSource = Math.ceil(maxGems * 0.6);
+
+    // Exception: If gem appears in multiple sub-queries (cross-domain), always include
+    if (entry.appearances > 1 || currentCount < maxPerSource) {
+      selected.push(entry.gem);
+      sourceCount.set(primarySource, currentCount + 1);
+
+      console.log(`[Context Selector] Selected gem (appearances: ${entry.appearances}, mergeScore: ${entry.score}, aiScore: ${entry.gem._aiRelevanceScore || 'N/A'}): ${entry.gem.value.substring(0, 60)}...`);
+    }
+  }
+
+  console.log('[Context Selector] Final selection:', selected.length, 'gems with diversity from', sourceCount.size, 'sub-queries');
+
+  return selected;
+}
+
+/**
+ * Main function: Optimize prompt with relevant context using question decomposition fan-out
  * @param {string} promptText - The user's prompt
  * @param {object} profile - User profile with preferences
  * @param {boolean} useAI - Whether to use AI for selection (default: true)
@@ -902,7 +1195,45 @@ async function optimizePromptWithContext(promptText, profile, useAI = true, maxG
 
     console.log('[Context Selector] Analyzing', visibleGems.length, 'data gems');
 
-    // Select relevant gems
+    // ALWAYS use fan-out decomposition (no complexity check)
+    const shouldUseFanOut = useAI && typeof LanguageModel !== 'undefined';
+
+    if (shouldUseFanOut) {
+      console.log('[Context Selector] 🔀 Using Question Decomposition Fan-Out (always-on mode)');
+
+      // Decompose into sub-questions
+      const subQuestions = await decomposePromptIntoSubQuestions(promptText);
+
+      if (subQuestions.length >= 2) {
+        console.log('[Context Selector] Decomposed into', subQuestions.length, 'sub-questions');
+
+        // Run each sub-question through existing pipeline IN PARALLEL
+        // IMPORTANT: Pass original query so scoring AI knows the full context
+        // IMPORTANT: Pass isSubQuery=true to disable semantic expansion (use direct category matches only)
+        const subQueryResults = await Promise.all(
+          subQuestions.map(subQ =>
+            selectRelevantGemsWithAI(subQ, visibleGems, Math.ceil(maxGems / 1.5), profile, promptText, true)
+          )
+        );
+
+        console.log('[Context Selector] Sub-query results:', subQueryResults.map((r, i) =>
+          `Q${i + 1}: ${r.length} gems`
+        ).join(', '));
+
+        // Merge results with smart deduplication and diversity
+        const selectedGems = mergeGemResults(subQueryResults, maxGems);
+
+        console.log('[Context Selector] ✓ Fan-out complete: Selected', selectedGems.length, 'unique gems');
+
+        // Format and return
+        return formatPromptWithContext(promptText, selectedGems);
+      } else {
+        console.log('[Context Selector] Decomposition failed or returned <2 questions, falling back to single-query');
+      }
+    }
+
+    // Fallback: Use single-query approach (original behavior)
+    console.log('[Context Selector] Using single-query approach');
     let selectedGems;
     if (useAI && typeof LanguageModel !== 'undefined') {
       selectedGems = await selectRelevantGemsWithAI(promptText, visibleGems, maxGems, profile);
@@ -932,6 +1263,9 @@ if (typeof module !== 'undefined' && module.exports) {
     selectRelevantGemsWithAI,
     selectRelevantGemsByKeywords,
     formatPromptWithContext,
-    optimizePromptWithContext
+    optimizePromptWithContext,
+    shouldDecomposePrompt,
+    decomposePromptIntoSubQuestions,
+    mergeGemResults
   };
 }
