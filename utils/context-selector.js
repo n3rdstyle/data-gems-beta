@@ -103,7 +103,7 @@ function enrichGemsWithBasicInfo(profile) {
  * @param {string} query - User's query
  * @returns {Promise<Object>} Query intent object
  */
-async function analyzeQueryIntent(query) {
+async function analyzeQueryIntent(query, availableCategories = []) {
   const lowerQuery = query.toLowerCase();
 
   // Default intent (fallback)
@@ -121,18 +121,21 @@ CRITICAL RULES:
 2. Return EXACTLY this format: {"type": "VALUE_FROM_TYPE_LIST", "domain": "VALUE_FROM_DOMAIN_LIST"}
 3. DO NOT add extra fields, DO NOT modify field names
 4. Pick the CLOSEST match even if not perfect
+5. For domain: select from user's actual categories, or use null if none match
 
 Examples showing correct selection:
-- "Find me a café" → {"type": "recommendation", "domain": "nutrition"}
-- "I need sneakers" → {"type": "shopping", "domain": "fashion"}
-- "Plan workout" → {"type": "planning", "domain": "fitness"}
-- "What is React?" → {"type": "information", "domain": "technology"}
+- "Find me a café" → {"type": "recommendation", "domain": "Nutrition"}
+- "I need sneakers" → {"type": "shopping", "domain": "Fashion"}
+- "Plan workout" → {"type": "planning", "domain": "Fitness"}
+- "What is React?" → {"type": "information", "domain": "Technology"}
 
 Output JSON only: {"type": "...", "domain": "..."}`
     });
 
     const typeList = 'shopping, recommendation, planning, information';
-    const domainList = 'fashion, nutrition, technology, fitness, travel, null';
+    const domainList = availableCategories.length > 0
+      ? availableCategories.join(', ') + ', null'
+      : 'null';
 
     const response = await session.prompt(`User query: "${query}"
 
@@ -170,14 +173,14 @@ Return JSON only:`);
         throw new Error('Invalid type value');
       }
 
-      // Validate domain
-      const validDomains = ['fashion', 'nutrition', 'technology', 'fitness', 'travel'];
-      if (validDomains.includes(result.domain)) {
+      // Validate domain (must be from available categories or null)
+      if (availableCategories.includes(result.domain)) {
         domain = result.domain;
-      } else if (result.domain === null) {
+      } else if (result.domain === null || result.domain === 'null') {
         domain = null;
       } else {
         console.warn('[Context Selector] AI returned invalid domain:', result.domain);
+        console.warn('[Context Selector] Available categories:', availableCategories.join(', '));
         throw new Error('Invalid domain value');
       }
 
@@ -198,16 +201,24 @@ Return JSON only:`);
       type = 'shopping';
     }
 
-    if (lowerQuery.match(/shoe|sneaker|boot|clothing|shirt|pant|jacket|dress|fashion|wear/i)) {
-      domain = 'fashion';
-    } else if (lowerQuery.match(/food|restaurant|meal|diet|eat|dinner|lunch|breakfast|cuisine|café|cafe|coffee|bar|bistro|bakery/i)) {
-      domain = 'nutrition';
-    } else if (lowerQuery.match(/laptop|computer|phone|device|tech|software|app/i)) {
-      domain = 'technology';
-    } else if (lowerQuery.match(/workout|exercise|fitness|gym|run|train|sport/i)) {
-      domain = 'fitness';
-    } else if (lowerQuery.match(/travel|trip|vacation|hotel|flight|destination/i)) {
-      domain = 'travel';
+    // Try to match domain to actual available categories
+    const categoryKeywords = {
+      'Fashion': /shoe|sneaker|boot|clothing|shirt|pant|jacket|dress|fashion|wear/i,
+      'Nutrition': /food|restaurant|meal|diet|eat|dinner|lunch|breakfast|cuisine|café|cafe|coffee|bar|bistro|bakery/i,
+      'Technology': /laptop|computer|phone|device|tech|software|app/i,
+      'Fitness': /workout|exercise|fitness|gym|run|train|sport/i,
+      'Travel': /travel|trip|vacation|hotel|flight|destination/i,
+      'Work': /work|job|office|career|professional/i,
+      'Pets': /pet|dog|cat|animal/i,
+      'Health': /health|medical|doctor|medicine/i
+    };
+
+    // Match against available categories
+    for (const [category, pattern] of Object.entries(categoryKeywords)) {
+      if (availableCategories.includes(category) && lowerQuery.match(pattern)) {
+        domain = category;
+        break;
+      }
     }
   }
 
@@ -225,10 +236,12 @@ Return JSON only:`);
 
   // Critical constraints by domain (for shopping/recommendation)
   let criticalConstraints = [];
-  if (domain === 'fashion') criticalConstraints = ['budget', 'size'];
-  else if (domain === 'technology') criticalConstraints = ['budget'];
-  else if (domain === 'nutrition') criticalConstraints = ['budget', 'dietary', 'location'];
-  else if (domain === 'travel') criticalConstraints = ['budget', 'location'];
+  if (domain === 'Fashion') criticalConstraints = ['budget', 'size'];
+  else if (domain === 'Technology') criticalConstraints = ['budget'];
+  else if (domain === 'Nutrition') criticalConstraints = ['budget', 'dietary', 'location'];
+  else if (domain === 'Travel') criticalConstraints = ['budget', 'location'];
+  else if (domain === 'Pets') criticalConstraints = ['budget'];
+  else if (domain === 'Work') criticalConstraints = ['budget'];
 
   const intent = {
     type,
@@ -1665,11 +1678,19 @@ async function optimizePromptWithContext(promptText, profile, useAI = true, maxG
     if (shouldUseFanOut) {
       console.log('[Context Selector] 🔀 Using Question Decomposition Fan-Out (always-on mode)');
 
+      // Extract available categories from gems for intent detection
+      const availableCategories = [...new Set(
+        visibleGems
+          .flatMap(gem => gem.collections || [])
+          .filter(Boolean)
+      )];
+
       // OPTIMIZATION: Analyze intent ONCE before decomposition (not per sub-query)
-      const queryIntent = await analyzeQueryIntent(promptText);
+      const queryIntent = await analyzeQueryIntent(promptText, availableCategories);
       console.log('[Context Selector] Pre-analyzed query intent:', {
         type: queryIntent.type,
-        domain: queryIntent.domain
+        domain: queryIntent.domain,
+        availableCategories: availableCategories.join(', ')
       });
 
       // Decompose into sub-questions
