@@ -114,51 +114,49 @@ async function analyzeQueryIntent(query) {
     // Use AI to analyze query intent
     const session = await LanguageModel.create({
       language: 'en',
-      systemPrompt: `CLASSIFICATION TASK - You must return ONLY valid JSON, nothing else.
+      systemPrompt: `CLASSIFICATION TASK
 
-DO NOT be conversational. DO NOT ask questions. DO NOT provide explanations.
-OUTPUT ONLY THE JSON OBJECT - no text before or after.
+REQUIRED OUTPUT FORMAT (USE EXACTLY THESE FIELD NAMES):
+{"type": "VALUE", "domain": "VALUE"}
 
-Your task: Classify the query into a type and domain.
+DO NOT add any other fields. DO NOT use different field names.
+DO NOT return explanations. ONLY return this exact JSON structure.
 
-Output format (EXACTLY THIS):
-{"type": "TYPE_HERE", "domain": "DOMAIN_HERE"}
+Field "type" - Choose ONE:
+- "shopping" = buying a product (sneakers, laptop, clothing)
+- "recommendation" = finding a place/service (café, restaurant, hotel, gym)
+- "planning" = organizing activities/schedules
+- "information" = asking for knowledge/facts
 
-Valid types (choose ONE):
-- "shopping" = buying a product (sneakers, laptop, phone, clothing)
-- "recommendation" = finding a place or service (café, restaurant, hotel, gym)
-- "planning" = organizing activities or schedules
-- "information" = asking for knowledge or facts
-
-Valid domains (choose ONE or null):
+Field "domain" - Choose ONE or null:
 - "fashion" = clothing, shoes, accessories
-- "nutrition" = food, restaurants, cafés, coffee, meals, diet
-- "technology" = laptops, phones, software, apps
-- "fitness" = workouts, exercise, gym, sports
+- "nutrition" = food, restaurants, cafés, coffee, meals
+- "technology" = laptops, phones, software
+- "fitness" = workouts, exercise, gym
 - "travel" = trips, hotels, flights, destinations
-- null = if none of the above match
+- null = none of the above
 
-Examples (output ONLY the JSON):
+EXAMPLES:
 
-Input: "Find me a café for flat white"
-Output: {"type": "recommendation", "domain": "nutrition"}
+Query: "Find me a café for flat white"
+{"type": "recommendation", "domain": "nutrition"}
 
-Input: "I need new sneakers under 100€"
-Output: {"type": "shopping", "domain": "fashion"}
+Query: "I need new sneakers under 100€"
+{"type": "shopping", "domain": "fashion"}
 
-Input: "Help me plan my workout"
-Output: {"type": "planning", "domain": "fitness"}
+Query: "Help me plan my workout"
+{"type": "planning", "domain": "fitness"}
 
-Input: "What is React?"
-Output: {"type": "information", "domain": "technology"}
+Query: "What is React?"
+{"type": "information", "domain": "technology"}
 
-Input: "Recommend a good laptop"
-Output: {"type": "recommendation", "domain": "technology"}
+Query: "Recommend a good laptop"
+{"type": "recommendation", "domain": "technology"}
 
-Input: "I'm craving pizza"
-Output: {"type": "recommendation", "domain": "nutrition"}
+Query: "I'm craving pizza"
+{"type": "recommendation", "domain": "nutrition"}
 
-Remember: Return ONLY the JSON object. No explanation. No conversation.`
+REMEMBER: Return ONLY {"type": "...", "domain": "..."} with NO other fields.`
     });
 
     const response = await session.prompt(`Classify this query and return ONLY the JSON object:
