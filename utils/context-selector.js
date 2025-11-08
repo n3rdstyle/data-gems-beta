@@ -114,21 +114,25 @@ async function analyzeQueryIntent(query) {
     // Use AI to analyze query intent
     const session = await LanguageModel.create({
       language: 'en',
-      systemPrompt: `CLASSIFICATION TASK
+      systemPrompt: `You are a query intent classifier.
 
-REQUIRED OUTPUT FORMAT (USE EXACTLY THESE FIELD NAMES):
-{"type": "VALUE", "domain": "VALUE"}
+Analyze the user query and return EXACTLY TWO fields:
+- "type": the query intent type
+- "domain": the topic domain
 
-DO NOT add any other fields. DO NOT use different field names.
-DO NOT return explanations. ONLY return this exact JSON structure.
+CRITICAL RULES:
+1. Return ONLY these 2 fields: "type" and "domain"
+2. DO NOT add extra fields like "query_type", "cuisine", "dish", "intent", etc.
+3. DO NOT return explanations or conversational text
+4. Field names MUST be exactly "type" and "domain" (not "query_type", not "cuisine")
 
-Field "type" - Choose ONE:
+Valid type values:
 - "shopping" = buying a product (sneakers, laptop, clothing)
 - "recommendation" = finding a place/service (café, restaurant, hotel, gym)
 - "planning" = organizing activities/schedules
 - "information" = asking for knowledge/facts
 
-Field "domain" - Choose ONE or null:
+Valid domain values:
 - "fashion" = clothing, shoes, accessories
 - "nutrition" = food, restaurants, cafés, coffee, meals
 - "technology" = laptops, phones, software
@@ -136,34 +140,22 @@ Field "domain" - Choose ONE or null:
 - "travel" = trips, hotels, flights, destinations
 - null = none of the above
 
-EXAMPLES:
+Examples:
+- "Find me a café for flat white" → {"type": "recommendation", "domain": "nutrition"}
+- "I need new sneakers under 100€" → {"type": "shopping", "domain": "fashion"}
+- "Help me plan my workout" → {"type": "planning", "domain": "fitness"}
+- "What is React?" → {"type": "information", "domain": "technology"}
+- "Recommend a good laptop" → {"type": "recommendation", "domain": "technology"}
+- "I'm craving pizza" → {"type": "recommendation", "domain": "nutrition"}
 
-Query: "Find me a café for flat white"
-{"type": "recommendation", "domain": "nutrition"}
-
-Query: "I need new sneakers under 100€"
-{"type": "shopping", "domain": "fashion"}
-
-Query: "Help me plan my workout"
-{"type": "planning", "domain": "fitness"}
-
-Query: "What is React?"
-{"type": "information", "domain": "technology"}
-
-Query: "Recommend a good laptop"
-{"type": "recommendation", "domain": "technology"}
-
-Query: "I'm craving pizza"
-{"type": "recommendation", "domain": "nutrition"}
-
-REMEMBER: Return ONLY {"type": "...", "domain": "..."} with NO other fields.`
+Output format: {"type": "recommendation", "domain": "nutrition"}`
     });
 
-    const response = await session.prompt(`Classify this query and return ONLY the JSON object:
+    const response = await session.prompt(`Query: "${query}"
 
-"${query}"
+Classify the query and return JSON with exactly 2 fields: "type" and "domain"
+Output:`);
 
-JSON output:`);
     await session.destroy();
 
     console.log('[Context Selector] AI raw response:', response);
