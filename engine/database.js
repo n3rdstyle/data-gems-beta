@@ -8,9 +8,11 @@
 import { createRxDatabase, addRxPlugin } from '../node_modules/rxdb/dist/esm/index.js';
 import { getRxStorageDexie } from '../node_modules/rxdb/dist/esm/plugins/storage-dexie/index.js';
 import { RxDBQueryBuilderPlugin } from '../node_modules/rxdb/dist/esm/plugins/query-builder/index.js';
+import { RxDBUpdatePlugin } from '../node_modules/rxdb/dist/esm/plugins/update/index.js';
 
-// Add query builder plugin
+// Add plugins
 addRxPlugin(RxDBQueryBuilderPlugin);
+addRxPlugin(RxDBUpdatePlugin);
 
 // Note: Dev-mode plugin disabled for Chrome Extension (CSP blocks AJV validator)
 

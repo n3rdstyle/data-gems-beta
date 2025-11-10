@@ -15,6 +15,10 @@ var ContextEngineBridge = (() => {
   var __commonJS = (cb, mod) => function __require() {
     return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
   };
+  var __export = (target, all) => {
+    for (var name in all)
+      __defProp(target, name, { get: all[name], enumerable: true });
+  };
   var __copyProps = (to, from2, except, desc) => {
     if (from2 && typeof from2 === "object" || typeof from2 === "function") {
       for (let key of __getOwnPropNames(from2))
@@ -4595,7 +4599,7 @@ var ContextEngineBridge = (() => {
         function getExistingValues(table, req, effectiveKeys) {
           return req.type === "add" ? Promise.resolve([]) : table.getMany({ trans: req.trans, keys: effectiveKeys, cache: "immutable" });
         }
-        function getFromTransactionCache(keys2, cache2, clone2) {
+        function getFromTransactionCache(keys2, cache2, clone3) {
           try {
             if (!cache2)
               return null;
@@ -4605,7 +4609,7 @@ var ContextEngineBridge = (() => {
             for (var i = 0, j = 0; i < cache2.keys.length && j < keys2.length; ++i) {
               if (cmp2(cache2.keys[i], keys2[j]) !== 0)
                 continue;
-              result.push(clone2 ? deepClone2(cache2.values[i]) : cache2.values[i]);
+              result.push(clone3 ? deepClone2(cache2.values[i]) : cache2.values[i]);
               ++j;
             }
             return result.length === keys2.length ? result : null;
@@ -4870,18 +4874,18 @@ var ContextEngineBridge = (() => {
           if (res.numFailures === numBulkOps) {
             return null;
           }
-          var clone2 = __assign({}, req);
-          if (isArray2(clone2.keys)) {
-            clone2.keys = clone2.keys.filter(function(_, i) {
+          var clone3 = __assign({}, req);
+          if (isArray2(clone3.keys)) {
+            clone3.keys = clone3.keys.filter(function(_, i) {
               return !(i in res.failures);
             });
           }
-          if ("values" in clone2 && isArray2(clone2.values)) {
-            clone2.values = clone2.values.filter(function(_, i) {
+          if ("values" in clone3 && isArray2(clone3.values)) {
+            clone3.values = clone3.values.filter(function(_, i) {
               return !(i in res.failures);
             });
           }
-          return clone2;
+          return clone3;
         }
         function isAboveLower(key, range) {
           return range.lower === void 0 ? true : range.lowerOpen ? cmp2(key, range.lower) > 0 : cmp2(key, range.lower) >= 0;
@@ -9514,6 +9518,11 @@ var ContextEngineBridge = (() => {
     }
     return hasCustomString(a) && a.toString() === b.toString();
   }
+  function unique(input, hashFunction = DEFAULT_HASH_FUNCTION) {
+    const m = ValueMap.init(hashFunction);
+    input.forEach((v) => m.set(v, true));
+    return Array.from(m.keys());
+  }
   var stringify = (v, refs) => {
     if (v === null) return "null";
     if (v === void 0) return "undefined";
@@ -11422,6 +11431,57 @@ var ContextEngineBridge = (() => {
     (nums) => nums.reduce((a, b) => a ^ b, 0)
   );
 
+  // node_modules/mingo/dist/esm/operators/expression/boolean/index.js
+  var boolean_exports = {};
+  __export(boolean_exports, {
+    $and: () => $and,
+    $not: () => $not,
+    $or: () => $or
+  });
+
+  // node_modules/mingo/dist/esm/operators/expression/boolean/and.js
+  var $and = (obj, expr, options) => {
+    const value = computeValue(obj, expr, null, options);
+    return truthy(value, options.useStrictMode) && value.every((v) => truthy(v, options.useStrictMode));
+  };
+
+  // node_modules/mingo/dist/esm/operators/expression/boolean/not.js
+  var $not = (obj, expr, options) => {
+    const booleanExpr = ensureArray(expr);
+    if (booleanExpr.length == 0) return false;
+    assert(booleanExpr.length == 1, "Expression $not takes exactly 1 argument");
+    return !computeValue(obj, booleanExpr[0], null, options);
+  };
+
+  // node_modules/mingo/dist/esm/operators/expression/boolean/or.js
+  var $or = (obj, expr, options) => {
+    const value = computeValue(obj, expr, null, options);
+    const strict = options.useStrictMode;
+    return truthy(value, strict) && value.some((v) => truthy(v, strict));
+  };
+
+  // node_modules/mingo/dist/esm/operators/expression/comparison/index.js
+  var comparison_exports = {};
+  __export(comparison_exports, {
+    $cmp: () => $cmp,
+    $eq: () => $eq2,
+    $gt: () => $gt2,
+    $gte: () => $gte2,
+    $lt: () => $lt2,
+    $lte: () => $lte2,
+    $ne: () => $ne2
+  });
+
+  // node_modules/mingo/dist/esm/operators/expression/comparison/cmp.js
+  var $cmp = (obj, expr, options) => {
+    const args = computeValue(obj, expr, null, options);
+    assert(
+      isArray(args) && args.length == 2,
+      "$cmp: expression must resolve to array of size 2."
+    );
+    return compare(args[0], args[1]);
+  };
+
   // node_modules/mingo/dist/esm/operators/expression/comparison/eq.js
   var $eq2 = createExpressionOperator($eq);
 
@@ -11554,7 +11614,7 @@ var ContextEngineBridge = (() => {
   var MIN_LONG = Number.MIN_SAFE_INTEGER;
 
   // node_modules/mingo/dist/esm/operators/query/logical/and.js
-  var $and = (_, rhs, options) => {
+  var $and2 = (_, rhs, options) => {
     assert(
       isArray(rhs),
       "Invalid expression: $and expects value to be an Array."
@@ -11564,7 +11624,7 @@ var ContextEngineBridge = (() => {
   };
 
   // node_modules/mingo/dist/esm/operators/query/logical/or.js
-  var $or = (_, rhs, options) => {
+  var $or2 = (_, rhs, options) => {
     assert(isArray(rhs), "Invalid expression. $or expects value to be an Array");
     const queries = rhs.map((expr) => new Query(expr, options));
     return (obj) => queries.some((q) => q.test(obj));
@@ -11576,12 +11636,12 @@ var ContextEngineBridge = (() => {
       isArray(rhs),
       "Invalid expression. $nor expects value to be an array."
     );
-    const f = $or("$or", rhs, options);
+    const f = $or2("$or", rhs, options);
     return (obj) => !f(obj);
   };
 
   // node_modules/mingo/dist/esm/operators/query/logical/not.js
-  var $not = (selector, rhs, options) => {
+  var $not2 = (selector, rhs, options) => {
     const criteria = {};
     criteria[selector] = normalize(rhs);
     const query = new Query(criteria, options);
@@ -11612,11 +11672,38 @@ var ContextEngineBridge = (() => {
   // node_modules/mingo/dist/esm/operators/query/comparison/nin.js
   var $nin3 = createQueryOperator($nin);
 
+  // node_modules/mingo/dist/esm/operators/query/evaluation/expr.js
+  function $expr(_, rhs, options) {
+    return (obj) => computeValue(obj, rhs, null, options);
+  }
+
+  // node_modules/mingo/dist/esm/operators/query/evaluation/jsonSchema.js
+  function $jsonSchema(_, schema, options) {
+    if (!options?.jsonSchemaValidator) {
+      throw new MingoError(
+        "Missing option 'jsonSchemaValidator'. Configure to use '$jsonSchema' operator."
+      );
+    }
+    const validate = options?.jsonSchemaValidator(schema);
+    return (obj) => validate(obj);
+  }
+
   // node_modules/mingo/dist/esm/operators/query/evaluation/mod.js
   var $mod2 = createQueryOperator($mod);
 
   // node_modules/mingo/dist/esm/operators/query/evaluation/regex.js
   var $regex2 = createQueryOperator($regex);
+
+  // node_modules/mingo/dist/esm/operators/query/evaluation/where.js
+  function $where(_, rhs, options) {
+    assert(
+      options.scriptEnabled,
+      "$where operator requires 'scriptEnabled' option to be true"
+    );
+    const f = rhs;
+    assert(isFunction2(f), "$where only accepts a Function object");
+    return (obj) => truthy(f.call(obj), options?.useStrictMode);
+  }
 
   // node_modules/mingo/dist/esm/operators/query/array/all.js
   var $all2 = createQueryOperator($all);
@@ -11653,7 +11740,7 @@ var ContextEngineBridge = (() => {
         $project
       });
       useOperators("query", {
-        $and,
+        $and: $and2,
         $eq: $eq3,
         $elemMatch: $elemMatch2,
         $exists,
@@ -11666,8 +11753,8 @@ var ContextEngineBridge = (() => {
         $nin: $nin3,
         $mod: $mod2,
         $nor,
-        $not,
-        $or,
+        $not: $not2,
+        $or: $or2,
         $regex: $regex2,
         $size: $size2,
         $type: $type2
@@ -13765,7 +13852,7 @@ var ContextEngineBridge = (() => {
     _proto.incrementalRemove = function incrementalRemove() {
       return runQueryUpdateFunction(this.asRxQuery, (doc) => doc.incrementalRemove());
     };
-    _proto.update = function update(_updateObj) {
+    _proto.update = function update3(_updateObj) {
       throw pluginMissing("update");
     };
     _proto.patch = function patch(_patch) {
@@ -17476,8 +17563,535 @@ var ContextEngineBridge = (() => {
     }
   };
 
+  // node_modules/mingo/dist/esm/operators/update/index.js
+  var update_exports = {};
+  __export(update_exports, {
+    $addToSet: () => $addToSet,
+    $bit: () => $bit,
+    $currentDate: () => $currentDate,
+    $inc: () => $inc,
+    $max: () => $max,
+    $min: () => $min,
+    $mul: () => $mul,
+    $pop: () => $pop,
+    $pull: () => $pull,
+    $pullAll: () => $pullAll,
+    $push: () => $push2,
+    $rename: () => $rename,
+    $set: () => $set,
+    $unset: () => $unset
+  });
+
+  // node_modules/mingo/dist/esm/operators/query/index.js
+  var query_exports = {};
+  __export(query_exports, {
+    $all: () => $all2,
+    $and: () => $and2,
+    $bitsAllClear: () => $bitsAllClear,
+    $bitsAllSet: () => $bitsAllSet,
+    $bitsAnyClear: () => $bitsAnyClear,
+    $bitsAnySet: () => $bitsAnySet,
+    $elemMatch: () => $elemMatch2,
+    $eq: () => $eq3,
+    $exists: () => $exists,
+    $expr: () => $expr,
+    $gt: () => $gt3,
+    $gte: () => $gte3,
+    $in: () => $in2,
+    $jsonSchema: () => $jsonSchema,
+    $lt: () => $lt3,
+    $lte: () => $lte3,
+    $mod: () => $mod2,
+    $ne: () => $ne3,
+    $nin: () => $nin3,
+    $nor: () => $nor,
+    $not: () => $not2,
+    $or: () => $or2,
+    $regex: () => $regex2,
+    $size: () => $size2,
+    $type: () => $type2,
+    $where: () => $where
+  });
+
+  // node_modules/mingo/dist/esm/operators/query/bitwise/_internal.js
+  var createBitwiseOperator = (predicate) => {
+    return createQueryOperator(
+      (value, mask, _options4) => {
+        let b = 0;
+        if (isArray(mask)) {
+          for (const n of mask) b = b | 1 << n;
+        } else {
+          b = mask;
+        }
+        return predicate(value & b, b);
+      }
+    );
+  };
+
+  // node_modules/mingo/dist/esm/operators/query/bitwise/bitsAllClear.js
+  var $bitsAllClear = createBitwiseOperator((result, _) => result == 0);
+
+  // node_modules/mingo/dist/esm/operators/query/bitwise/bitsAllSet.js
+  var $bitsAllSet = createBitwiseOperator(
+    (result, mask) => result == mask
+  );
+
+  // node_modules/mingo/dist/esm/operators/query/bitwise/bitsAnyClear.js
+  var $bitsAnyClear = createBitwiseOperator(
+    (result, mask) => result < mask
+  );
+
+  // node_modules/mingo/dist/esm/operators/query/bitwise/bitsAnySet.js
+  var $bitsAnySet = createBitwiseOperator((result, _) => result > 0);
+
+  // node_modules/mingo/dist/esm/operators/update/_internal.js
+  var UPDATE_OPTIONS = {
+    cloneMode: "copy",
+    queryOptions: initOptions({
+      context: Context.init().addQueryOps(query_exports).addExpressionOps(boolean_exports).addExpressionOps(comparison_exports)
+    })
+  };
+  var clone2 = (mode, val) => {
+    switch (mode) {
+      case "deep":
+        return cloneDeep(val);
+      case "copy": {
+        if (isDate(val)) return new Date(val);
+        if (isArray(val)) return [...val];
+        if (isObject2(val)) return { ...val };
+        if (isRegExp(val)) return new RegExp(val);
+        return val;
+      }
+      default:
+        return val;
+    }
+  };
+  var FILTER_IDENT_RE = /^[a-z]+[a-zA-Z0-9]*$/;
+  function tokenizePath(selector) {
+    if (!selector.includes(".$")) {
+      return [{ parent: selector, selector }, []];
+    }
+    const begin = selector.indexOf(".$");
+    const end = selector.indexOf("]");
+    const parent = selector.substring(0, begin);
+    const child = selector.substring(begin + 3, end);
+    assert(
+      child === "" || FILTER_IDENT_RE.test(child),
+      "The filter <identifier> must begin with a lowercase letter and contain only alphanumeric characters."
+    );
+    const rest = selector.substring(end + 2);
+    const [next, elems] = rest ? tokenizePath(rest) : [];
+    return [
+      { selector, parent, child: child || "$", next },
+      [child, ...elems || []].filter(Boolean)
+    ];
+  }
+  var applyUpdate = (o, n, q, f, opts) => {
+    const { parent, child: c, next } = n;
+    if (!c) {
+      let b = false;
+      const g = (u, k) => b = Boolean(f(u, k)) || b;
+      walk(o, parent, g, opts);
+      return b;
+    }
+    const t = resolve(o, parent);
+    if (!isArray(t)) return false;
+    return t.map((e, i) => {
+      if (q[c] && !q[c].test({ [c]: e })) return false;
+      return next ? applyUpdate(e, next, q, f, opts) : f(t, i);
+    }).some(Boolean);
+  };
+  function walkExpression(expr, arrayFilter, options, callback) {
+    const res = [];
+    for (const [selector, val] of Object.entries(expr)) {
+      const [node, vars] = tokenizePath(selector);
+      if (!vars.length) {
+        if (callback(val, node, {})) res.push(node.parent);
+      } else {
+        const conditions = {};
+        arrayFilter.forEach((o) => {
+          Object.keys(o).forEach((k) => {
+            vars.forEach((w) => {
+              if (k === w || k.startsWith(w + ".")) {
+                conditions[w] = conditions[w] || {};
+                Object.assign(conditions[w], { [k]: o[k] });
+              }
+            });
+          });
+        });
+        const queries = {};
+        for (const [k, condition] of Object.entries(conditions)) {
+          queries[k] = new Query(condition, options.queryOptions);
+        }
+        if (callback(val, node, queries)) res.push(node.parent);
+      }
+    }
+    return res;
+  }
+
+  // node_modules/mingo/dist/esm/operators/update/addToSet.js
+  var $addToSet = (obj, expr, arrayFilters = [], options = UPDATE_OPTIONS) => {
+    return walkExpression(expr, arrayFilters, options, (val, node, queries) => {
+      const args = { $each: [val] };
+      if (isObject2(val) && has(val, "$each")) {
+        Object.assign(args, val);
+      }
+      return applyUpdate(
+        obj,
+        node,
+        queries,
+        (o, k) => {
+          const prev = o[k] || (o[k] = []);
+          const common = intersection([prev, args.$each]);
+          if (common.length === args.$each.length) return false;
+          o[k] = clone2(options.cloneMode, unique(prev.concat(args.$each)));
+          return true;
+        },
+        { buildGraph: true }
+      );
+    });
+  };
+
+  // node_modules/mingo/dist/esm/operators/update/bit.js
+  var BIT_OPS = /* @__PURE__ */ new Set(["and", "or", "xor"]);
+  var $bit = (obj, expr, arrayFilters = [], options = UPDATE_OPTIONS) => {
+    return walkExpression(expr, arrayFilters, options, (val, node, queries) => {
+      const op = Object.keys(val);
+      assert(
+        op.length === 1 && BIT_OPS.has(op[0]),
+        `Invalid bit operator '${op[0]}'. Must be one of 'and', 'or', or 'xor'.`
+      );
+      return applyUpdate(
+        obj,
+        node,
+        queries,
+        (o, k) => {
+          let n = o[k];
+          const v = val[op[0]];
+          if (n !== void 0 && !(isNumber(n) && isNumber(v))) return false;
+          n = n || 0;
+          switch (op[0]) {
+            case "and":
+              o[k] = n & v;
+              break;
+            case "or":
+              o[k] = n | v;
+              break;
+            case "xor":
+              o[k] = n ^ v;
+              break;
+          }
+          return o[k] !== n;
+        },
+        { buildGraph: true }
+      );
+    });
+  };
+
+  // node_modules/mingo/dist/esm/operators/update/currentDate.js
+  var $currentDate = (obj, expr, arrayFilters = [], options = UPDATE_OPTIONS) => {
+    const now3 = Date.now();
+    return walkExpression(expr, arrayFilters, options, (_, node, queries) => {
+      return applyUpdate(
+        obj,
+        node,
+        queries,
+        (o, k) => {
+          o[k] = now3;
+          return true;
+        },
+        { buildGraph: true }
+      );
+    });
+  };
+
+  // node_modules/mingo/dist/esm/operators/update/inc.js
+  var $inc = (obj, expr, arrayFilters = [], options = UPDATE_OPTIONS) => {
+    return walkExpression(expr, arrayFilters, options, (val, node, queries) => {
+      if (!node.child) {
+        const n = resolve(obj, node.parent);
+        assert(
+          n === void 0 || isNumber(n),
+          `cannot apply $inc to a value of non-numeric type`
+        );
+      }
+      return applyUpdate(
+        obj,
+        node,
+        queries,
+        (o, k) => {
+          o[k] = (o[k] || (o[k] = 0)) + val;
+          return true;
+        },
+        { buildGraph: true }
+      );
+    });
+  };
+
+  // node_modules/mingo/dist/esm/operators/update/max.js
+  var $max = (obj, expr, arrayFilters = [], options = UPDATE_OPTIONS) => {
+    return walkExpression(expr, arrayFilters, options, (val, node, queries) => {
+      return applyUpdate(
+        obj,
+        node,
+        queries,
+        (o, k) => {
+          if (o[k] !== void 0 && compare(o[k], val) > -1) return false;
+          o[k] = val;
+          return true;
+        },
+        { buildGraph: true }
+      );
+    });
+  };
+
+  // node_modules/mingo/dist/esm/operators/update/min.js
+  var $min = (obj, expr, arrayFilters = [], options = UPDATE_OPTIONS) => {
+    return walkExpression(expr, arrayFilters, options, (val, node, queries) => {
+      return applyUpdate(
+        obj,
+        node,
+        queries,
+        (o, k) => {
+          if (o[k] !== void 0 && compare(o[k], val) < 1) return false;
+          o[k] = val;
+          return true;
+        },
+        { buildGraph: true }
+      );
+    });
+  };
+
+  // node_modules/mingo/dist/esm/operators/update/mul.js
+  var $mul = (obj, expr, arrayFilters = [], options = UPDATE_OPTIONS) => {
+    return walkExpression(expr, arrayFilters, options, (val, node, queries) => {
+      return applyUpdate(
+        obj,
+        node,
+        queries,
+        (o, k) => {
+          const prev = o[k];
+          o[k] = o[k] === void 0 ? 0 : o[k] * val;
+          return o[k] !== prev;
+        },
+        { buildGraph: true }
+      );
+    });
+  };
+
+  // node_modules/mingo/dist/esm/operators/update/pop.js
+  var $pop = (obj, expr, arrayFilters = [], options = UPDATE_OPTIONS) => {
+    return walkExpression(expr, arrayFilters, options, (val, node, queries) => {
+      return applyUpdate(obj, node, queries, (o, k) => {
+        const arr = o[k];
+        assert(
+          isArray(arr),
+          `path '${node.selector}' contains an element of non-array type.`
+        );
+        if (!arr.length) return false;
+        if (val === -1) {
+          arr.splice(0, 1);
+        } else {
+          arr.pop();
+        }
+        return true;
+      });
+    });
+  };
+
+  // node_modules/mingo/dist/esm/operators/update/pull.js
+  var $pull = (obj, expr, arrayFilters = [], options = UPDATE_OPTIONS) => {
+    return walkExpression(expr, arrayFilters, options, (val, node, queries) => {
+      const wrap = !isObject2(val) || Object.keys(val).some(isOperator);
+      const query = new Query(
+        wrap ? { k: val } : val,
+        options.queryOptions
+      );
+      const pred = wrap ? (v) => query.test({ k: v }) : (v) => query.test(v);
+      return applyUpdate(obj, node, queries, (o, k) => {
+        const prev = o[k];
+        const curr = new Array();
+        const found = prev.map((v) => {
+          const b = pred(v);
+          if (!b) curr.push(v);
+          return b;
+        }).some(Boolean);
+        if (!found) return false;
+        o[k] = curr;
+        return true;
+      });
+    });
+  };
+
+  // node_modules/mingo/dist/esm/operators/update/pullAll.js
+  var $pullAll = (obj, expr, arrayFilters = [], options = UPDATE_OPTIONS) => {
+    const pullExpr = {};
+    Object.entries(expr).forEach(([k, v]) => {
+      pullExpr[k] = { $in: v };
+    });
+    return $pull(obj, pullExpr, arrayFilters, options);
+  };
+
+  // node_modules/mingo/dist/esm/operators/update/push.js
+  var OPERATOR_MODIFIERS = Object.freeze([
+    "$each",
+    "$slice",
+    "$sort",
+    "$position"
+  ]);
+  var $push2 = (obj, expr, arrayFilters = [], options = UPDATE_OPTIONS) => {
+    return walkExpression(expr, arrayFilters, options, (val, node, queries) => {
+      const args = {
+        $each: [val]
+      };
+      if (isObject2(val) && OPERATOR_MODIFIERS.some((m) => has(val, m))) {
+        Object.assign(args, val);
+      }
+      return applyUpdate(
+        obj,
+        node,
+        queries,
+        (o, k) => {
+          const arr = o[k] || (o[k] = []);
+          const prev = arr.slice(0, args.$slice || arr.length);
+          const oldsize = arr.length;
+          const pos = isNumber(args.$position) ? args.$position : arr.length;
+          arr.splice(pos, 0, ...clone2(options.cloneMode, args.$each));
+          if (args.$sort) {
+            const sortKey = isObject2(args.$sort) ? Object.keys(args.$sort || {}).pop() : "";
+            const order = !sortKey ? args.$sort : args.$sort[sortKey];
+            const f = !sortKey ? (a) => a : (a) => resolve(a, sortKey);
+            arr.sort((a, b) => order * compare(f(a), f(b)));
+          }
+          if (isNumber(args.$slice)) {
+            if (args.$slice < 0) arr.splice(0, arr.length + args.$slice);
+            else arr.splice(args.$slice);
+          }
+          return oldsize != arr.length || !isEqual(prev, arr);
+        },
+        { descendArray: true, buildGraph: true }
+      );
+    });
+  };
+
+  // node_modules/mingo/dist/esm/operators/update/set.js
+  var $set = (obj, expr, arrayFilters = [], options = UPDATE_OPTIONS) => {
+    return walkExpression(expr, arrayFilters, options, (val, node, queries) => {
+      return applyUpdate(
+        obj,
+        node,
+        queries,
+        (o, k) => {
+          if (isEqual(o[k], val)) return false;
+          o[k] = clone2(options.cloneMode, val);
+          return true;
+        },
+        { buildGraph: true }
+      );
+    });
+  };
+
+  // node_modules/mingo/dist/esm/operators/update/rename.js
+  var $rename = (obj, expr, arrayFilters = [], options = UPDATE_OPTIONS) => {
+    const res = [];
+    const changed = walkExpression(expr, arrayFilters, options, (val, node, queries) => {
+      return applyUpdate(obj, node, queries, (o, k) => {
+        if (!has(o, k)) return false;
+        res.push(...$set(obj, { [val]: o[k] }, arrayFilters, options));
+        delete o[k];
+        return true;
+      });
+    });
+    return Array.from(new Set(changed.concat(res)));
+  };
+
+  // node_modules/mingo/dist/esm/operators/update/unset.js
+  var $unset = (obj, expr, arrayFilters = [], options = UPDATE_OPTIONS) => {
+    return walkExpression(expr, arrayFilters, options, (_, node, queries) => {
+      return applyUpdate(obj, node, queries, (o, k) => {
+        if (!has(o, k)) return false;
+        if (isArray(o)) {
+          o[k] = null;
+        } else {
+          delete o[k];
+        }
+        return true;
+      });
+    });
+  };
+
+  // node_modules/mingo/dist/esm/updater.js
+  function createUpdater(defaultOptions) {
+    defaultOptions = defaultOptions ?? UPDATE_OPTIONS;
+    return (obj, expr, arrayFilters = [], condition = {}, options = defaultOptions) => {
+      const entry = Object.entries(expr);
+      assert(
+        entry.length === 1,
+        "Update expression must contain only one operator."
+      );
+      const [op, args] = entry[0];
+      assert(
+        has(update_exports, op),
+        `Update operator '${op}' is not supported.`
+      );
+      const mutate = update_exports[op];
+      if (Object.keys(condition).length) {
+        const q = new Query(condition, options.queryOptions);
+        if (!q.test(obj)) return [];
+      }
+      return mutate(obj, args, arrayFilters, options);
+    };
+  }
+  var update = createUpdater();
+
+  // node_modules/rxdb/dist/esm/plugins/update/mingo-updater.js
+  var updater;
+  function mingoUpdater(d, op) {
+    if (!updater) {
+      var updateObject = createUpdater({
+        cloneMode: "none"
+      });
+      updater = (d2, op2) => {
+        var cloned = clone(d2);
+        updateObject(cloned, op2);
+        return cloned;
+      };
+    }
+    return updater(d, op);
+  }
+
+  // node_modules/rxdb/dist/esm/plugins/update/index.js
+  function incrementalUpdate(updateObj) {
+    return this.incrementalModify((docData) => {
+      var newDocData = mingoUpdater(docData, updateObj);
+      return newDocData;
+    });
+  }
+  function update2(updateObj) {
+    var oldDocData = this._data;
+    var newDocData = mingoUpdater(oldDocData, updateObj);
+    return this._saveData(newDocData, oldDocData);
+  }
+  async function RxQueryUpdate(updateObj) {
+    return runQueryUpdateFunction(this.asRxQuery, (doc) => doc.update(updateObj));
+  }
+  var RxDBUpdatePlugin = {
+    name: "update",
+    rxdb: true,
+    prototypes: {
+      RxDocument: (proto) => {
+        proto.update = update2;
+        proto.incrementalUpdate = incrementalUpdate;
+      },
+      RxQuery: (proto) => {
+        proto.update = RxQueryUpdate;
+      }
+    }
+  };
+
   // engine/database.js
   addRxPlugin(RxDBQueryBuilderPlugin);
+  addRxPlugin(RxDBUpdatePlugin);
   var gemSchema = {
     version: 0,
     primaryKey: "id",
