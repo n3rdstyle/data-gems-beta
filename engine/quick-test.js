@@ -48,8 +48,14 @@
       const results = await window.ContextEngineAPI.search(test.query, {}, 3);
       if (results.length > 0) {
         console.log(`✅ PASSED: "${test.query}" → ${results.length} results`);
-        console.log(`   Top result: "${results[0].value.substring(0, 60)}..."`);
-        console.log(`   Score: ${results[0].score?.toFixed(4) || 'N/A'}`);
+
+        // Convert RxDB document to plain object if needed
+        const topResult = results[0].toJSON ? results[0].toJSON() : results[0];
+        const value = topResult.value || topResult._data?.value || 'N/A';
+        const score = topResult.score || topResult._score || 0;
+
+        console.log(`   Top result: "${value.substring(0, 60)}..."`);
+        console.log(`   Score: ${score.toFixed(4)}`);
       } else {
         console.log(`⚠️  WARNING: "${test.query}" → 0 results (expected ${test.expect})`);
       }
@@ -69,8 +75,12 @@
     };
 
     allGems.forEach(gem => {
-      if (gem.semanticType) {
-        typeCount[gem.semanticType]++;
+      // Convert RxDB document to plain object
+      const gemData = gem.toJSON ? gem.toJSON() : gem;
+      const semanticType = gemData.semanticType || gemData._data?.semanticType;
+
+      if (semanticType) {
+        typeCount[semanticType]++;
       } else {
         typeCount.unclassified++;
       }
@@ -81,7 +91,11 @@
 
     // Test 5: Keyword Coverage
     console.log('\n%c🔤 Test 5: Keyword Coverage', 'color: #2196F3; font-weight: bold');
-    const gemsWithKeywords = allGems.filter(gem => gem.keywords && Object.keys(gem.keywords).length > 0);
+    const gemsWithKeywords = allGems.filter(gem => {
+      const gemData = gem.toJSON ? gem.toJSON() : gem;
+      const keywords = gemData.keywords || gemData._data?.keywords;
+      return keywords && Object.keys(keywords).length > 0;
+    });
     const keywordCoverage = (gemsWithKeywords.length / allGems.length * 100).toFixed(1);
 
     console.log('✅ PASSED: Keyword coverage calculated');
@@ -90,8 +104,10 @@
     // Extract most common keywords
     const allKeywords = new Map();
     allGems.forEach(gem => {
-      if (gem.keywords) {
-        Object.entries(gem.keywords).forEach(([word, freq]) => {
+      const gemData = gem.toJSON ? gem.toJSON() : gem;
+      const keywords = gemData.keywords || gemData._data?.keywords;
+      if (keywords) {
+        Object.entries(keywords).forEach(([word, freq]) => {
           allKeywords.set(word, (allKeywords.get(word) || 0) + freq);
         });
       }
@@ -109,7 +125,9 @@
     console.log('\n%c📂 Test 6: Collection Distribution', 'color: #2196F3; font-weight: bold');
     const collectionCount = new Map();
     allGems.forEach(gem => {
-      gem.collections?.forEach(col => {
+      const gemData = gem.toJSON ? gem.toJSON() : gem;
+      const collections = gemData.collections || gemData._data?.collections;
+      collections?.forEach(col => {
         collectionCount.set(col, (collectionCount.get(col) || 0) + 1);
       });
     });
@@ -138,22 +156,26 @@
     console.log(`   Constraints: ${constraintResults.length} results`);
 
     if (preferenceResults.length > 0) {
-      console.log(`   Example preference: "${preferenceResults[0].value.substring(0, 60)}..."`);
+      const prefGemData = preferenceResults[0].toJSON ? preferenceResults[0].toJSON() : preferenceResults[0];
+      const prefValue = prefGemData.value || prefGemData._data?.value || 'N/A';
+      console.log(`   Example preference: "${prefValue.substring(0, 60)}..."`);
     }
 
     // Test 8: Get Single Gem
     console.log('\n%c🔍 Test 8: Get Single Gem by ID', 'color: #2196F3; font-weight: bold');
     if (allGems.length > 0) {
-      const sampleId = allGems[0].id;
+      const firstGemData = allGems[0].toJSON ? allGems[0].toJSON() : allGems[0];
+      const sampleId = firstGemData.id || firstGemData._data?.id;
       const singleGem = await window.ContextEngineAPI.getGem(sampleId);
 
       if (singleGem) {
+        const singleGemData = singleGem.toJSON ? singleGem.toJSON() : singleGem;
         console.log('✅ PASSED: Single gem retrieval works');
         console.log('   Sample gem:', {
-          id: singleGem.id,
-          semanticType: singleGem.semanticType,
-          collections: singleGem.collections,
-          keywordCount: Object.keys(singleGem.keywords || {}).length
+          id: singleGemData.id || singleGemData._data?.id,
+          semanticType: singleGemData.semanticType || singleGemData._data?.semanticType,
+          collections: singleGemData.collections || singleGemData._data?.collections,
+          keywordCount: Object.keys(singleGemData.keywords || singleGemData._data?.keywords || {}).length
         });
       } else {
         console.log('❌ FAILED: Could not retrieve gem');

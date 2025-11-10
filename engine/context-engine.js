@@ -236,8 +236,14 @@ export class ContextEngine {
       useDiversity
     });
 
-    console.log(`[ContextEngine] Search complete: ${results.length} results`);
-    return results;
+    // Convert results from { id, score, gem } to plain gem objects with score attached
+    const plainResults = results.map(result => ({
+      ...result.gem,
+      score: result.score
+    }));
+
+    console.log(`[ContextEngine] Search complete: ${plainResults.length} results`);
+    return plainResults;
   }
 
   /**

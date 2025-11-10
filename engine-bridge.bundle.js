@@ -18783,8 +18783,12 @@ var ContextEngine = class {
       limit,
       useDiversity
     });
-    console.log(`[ContextEngine] Search complete: ${results.length} results`);
-    return results;
+    const plainResults = results.map((result) => ({
+      ...result.gem,
+      score: result.score
+    }));
+    console.log(`[ContextEngine] Search complete: ${plainResults.length} results`);
+    return plainResults;
   }
   /**
    * Search with semantic type filtering
