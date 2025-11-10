@@ -7,14 +7,12 @@
 
 import { createRxDatabase, addRxPlugin } from '../node_modules/rxdb/dist/esm/index.js';
 import { getRxStorageDexie } from '../node_modules/rxdb/dist/esm/plugins/storage-dexie/index.js';
-import { RxDBDevModePlugin } from '../node_modules/rxdb/dist/esm/plugins/dev-mode/index.js';
 import { RxDBQueryBuilderPlugin } from '../node_modules/rxdb/dist/esm/plugins/query-builder/index.js';
 
-// Add plugins (dev mode only in development)
-if (process.env.NODE_ENV === 'development') {
-  addRxPlugin(RxDBDevModePlugin);
-}
+// Add query builder plugin
 addRxPlugin(RxDBQueryBuilderPlugin);
+
+// Note: Dev-mode plugin disabled for Chrome Extension (CSP blocks AJV validator)
 
 /**
  * Gem Schema for RxDB
@@ -48,7 +46,8 @@ const gemSchema = {
     },
     timestamp: {
       type: 'number',
-      minimum: 0
+      minimum: 0,
+      multipleOf: 1  // Required for indexed number fields
     },
 
     // NEW: Semantic Metadata
@@ -94,16 +93,16 @@ const gemSchema = {
     },
     enrichmentTimestamp: {
       type: 'number',
-      minimum: 0
+      minimum: 0,
+      multipleOf: 1  // Required for indexed number fields
     },
     userVerified: {
       type: 'boolean'
     }
   },
-  required: ['id', 'value'],  // Only id and value are required
+  required: ['id', 'value', 'timestamp', 'collections', 'subCollections'],  // Indexed fields must be required for Dexie
   indexes: [
     'timestamp',
-    'semanticType',
     ['collections'],  // Multi-entry index for array
     ['subCollections']
   ]
@@ -113,6 +112,7 @@ const gemSchema = {
  * Database instance (singleton)
  */
 let dbInstance = null;
+let initPromise = null;  // Prevent race conditions
 
 /**
  * Initialize RxDB database
@@ -124,15 +124,24 @@ export async function initDatabase() {
     return dbInstance;
   }
 
+  // If already initializing, return the same promise
+  if (initPromise) {
+    console.log('[Database] Initialization already in progress, waiting...');
+    return initPromise;
+  }
+
   console.log('[Database] Initializing RxDB with IndexedDB backend...');
+
+  // Store the initialization promise
+  initPromise = (async () => {
 
   try {
     // Create database
     const db = await createRxDatabase({
-      name: 'data_gems_db',
+      name: 'rxdb-datagems-context',
       storage: getRxStorageDexie(),
-      multiInstance: false,  // Single instance (Chrome extension context)
-      ignoreDuplicate: true
+      multiInstance: true,  // Allow multiple instances (Popup reopens each time)
+      eventReduce: true  // Share events between instances
     });
 
     console.log('[Database] RxDB created successfully');
@@ -162,8 +171,14 @@ export async function initDatabase() {
 
   } catch (error) {
     console.error('[Database] Failed to initialize:', error);
+    initPromise = null;  // Reset on error so retry is possible
     throw error;
+  } finally {
+    initPromise = null;  // Clear promise when done
   }
+  })();
+
+  return initPromise;
 }
 
 /**
@@ -208,13 +223,11 @@ export async function getDatabaseStats() {
     return null;
   }
 
-  const count = await collection.count().exec();
-  const withVectors = await collection.count({
-    selector: { vector: { $exists: true } }
-  }).exec();
-  const withSemantics = await collection.count({
-    selector: { semanticType: { $exists: true } }
-  }).exec();
+  // Get all gems and count in-memory (avoid $exists operator which isn't supported)
+  const allGems = await collection.find().exec();
+  const count = allGems.length;
+  const withVectors = allGems.filter(gem => gem.vector && gem.vector.length > 0).length;
+  const withSemantics = allGems.filter(gem => gem.semanticType).length;
 
   return {
     totalGems: count,

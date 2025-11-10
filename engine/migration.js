@@ -258,9 +258,7 @@ export async function syncNewGemsToRxDB() {
  * Useful for backup or rollback
  * @returns {Promise<Object>} Export results
  */
-export async function exportToChromeStor
-
-age() {
+export async function exportToChromeStorage() {
   console.log('[Migration] Exporting RxDB gems to chrome.storage format...');
 
   try {
