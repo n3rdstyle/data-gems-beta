@@ -3,8 +3,20 @@
  * Handles background tasks and lifecycle events
  */
 
+// Service workers use 'self' instead of 'window'
+// Create window alias for compatibility with bundle
+if (typeof window === 'undefined') {
+  self.window = self;
+}
+
 // Load Context Engine v2
-importScripts('engine-bridge.bundle.js');
+console.log('[Background] Loading Context Engine v2 bundle...');
+try {
+  importScripts('engine-bridge.bundle.js');
+  console.log('[Background] ✓ Context Engine bundle loaded');
+} catch (error) {
+  console.error('[Background] ✗ Failed to load Context Engine bundle:', error);
+}
 
 // Context Engine instance (initialized on first use)
 let contextEngineReady = false;
@@ -15,14 +27,21 @@ let contextEngineInitializing = false;
  * Called lazily on first Context Engine API call
  */
 async function ensureContextEngine() {
+  console.log('[Background] ensureContextEngine() called, ready:', contextEngineReady, 'initializing:', contextEngineInitializing);
+
   if (contextEngineReady) {
     return;
   }
 
   if (contextEngineInitializing) {
     // Wait for initialization to complete
-    while (!contextEngineReady) {
+    let waitCount = 0;
+    while (!contextEngineReady && waitCount < 50) {
       await new Promise(resolve => setTimeout(resolve, 100));
+      waitCount++;
+    }
+    if (!contextEngineReady) {
+      throw new Error('[Background] Context Engine initialization timeout');
     }
     return;
   }
@@ -31,11 +50,17 @@ async function ensureContextEngine() {
   console.log('[Background] Initializing Context Engine v2...');
 
   try {
-    await window.ContextEngineAPI.initialize();
+    // Check if ContextEngineAPI is available
+    if (!self.ContextEngineAPI) {
+      throw new Error('[Background] ContextEngineAPI not found after bundle load');
+    }
+
+    console.log('[Background] ContextEngineAPI available, calling initialize()...');
+    await self.ContextEngineAPI.initialize();
     contextEngineReady = true;
-    console.log('[Background] Context Engine v2 ready');
+    console.log('[Background] ✓ Context Engine v2 ready');
   } catch (error) {
-    console.error('[Background] Failed to initialize Context Engine v2:', error);
+    console.error('[Background] ✗ Failed to initialize Context Engine v2:', error);
     contextEngineInitializing = false;
     throw error;
   }
@@ -116,15 +141,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
  * Handle Context Engine API messages from content scripts
  */
 async function handleContextEngineMessage(request, sender, sendResponse) {
+  console.log('[Background] Received Context Engine message:', request.action);
+
   try {
     // Ensure Context Engine is initialized
     await ensureContextEngine();
 
     const action = request.action.replace('contextEngine.', '');
+    console.log('[Background] Handling action:', action);
 
     switch (action) {
       case 'search':
-        const results = await window.ContextEngineAPI.search(
+        const results = await self.ContextEngineAPI.search(
           request.query,
           request.filters || {},
           request.limit || 10
@@ -142,11 +170,12 @@ async function handleContextEngineMessage(request, sender, sendResponse) {
             score: gemData.score || result.score || 0
           };
         });
+        console.log('[Background] Returning', plainResults.length, 'search results');
         sendResponse({ success: true, results: plainResults });
         break;
 
       case 'getAllGems':
-        const allGems = await window.ContextEngineAPI.getAllGems(request.filters || {});
+        const allGems = await self.ContextEngineAPI.getAllGems(request.filters || {});
         const plainGems = allGems.map(gem => {
           const gemData = gem.toJSON ? gem.toJSON() : gem;
           return {
@@ -158,11 +187,12 @@ async function handleContextEngineMessage(request, sender, sendResponse) {
             keywords: gemData.keywords || gemData._data?.keywords
           };
         });
+        console.log('[Background] Returning', plainGems.length, 'gems');
         sendResponse({ success: true, gems: plainGems });
         break;
 
       case 'getGem':
-        const gem = await window.ContextEngineAPI.getGem(request.id);
+        const gem = await self.ContextEngineAPI.getGem(request.id);
         if (gem) {
           const gemData = gem.toJSON ? gem.toJSON() : gem;
           sendResponse({
@@ -182,12 +212,15 @@ async function handleContextEngineMessage(request, sender, sendResponse) {
         break;
 
       case 'getStats':
-        const stats = await window.ContextEngineAPI.getStats();
+        const stats = await self.ContextEngineAPI.getStats();
+        console.log('[Background] Returning stats:', stats);
         sendResponse({ success: true, stats });
         break;
 
       case 'isReady':
-        sendResponse({ success: true, isReady: window.ContextEngineAPI.isReady });
+        const isReady = self.ContextEngineAPI?.isReady || false;
+        console.log('[Background] Context Engine ready?', isReady);
+        sendResponse({ success: true, isReady });
         break;
 
       default:
