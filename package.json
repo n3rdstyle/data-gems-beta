@@ -16,5 +16,10 @@
     "browser-extension",
     "design-system",
     "chrome-extension"
-  ]
+  ],
+  "dependencies": {
+    "dexie": "^4.2.1",
+    "rxdb": "^16.20.0",
+    "rxjs": "^7.8.2"
+  }
 }

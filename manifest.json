@@ -21,6 +21,7 @@
   },
   "permissions": [
     "storage",
+    "unlimitedStorage",
     "tabs"
   ],
   "host_permissions": [
