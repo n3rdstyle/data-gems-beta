@@ -42,7 +42,7 @@
         "https://twitter.com/*"
       ],
       "js": [
-        "content-scripts/context-engine-bundle.js",
+        "content-scripts/context-engine-api.js",
         "utils/ai-helper.js",
         "utils/context-selector.js",
         "content-scripts/profile-injector.js",

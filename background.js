@@ -3,6 +3,44 @@
  * Handles background tasks and lifecycle events
  */
 
+// Load Context Engine v2
+importScripts('engine-bridge.bundle.js');
+
+// Context Engine instance (initialized on first use)
+let contextEngineReady = false;
+let contextEngineInitializing = false;
+
+/**
+ * Initialize Context Engine v2
+ * Called lazily on first Context Engine API call
+ */
+async function ensureContextEngine() {
+  if (contextEngineReady) {
+    return;
+  }
+
+  if (contextEngineInitializing) {
+    // Wait for initialization to complete
+    while (!contextEngineReady) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    return;
+  }
+
+  contextEngineInitializing = true;
+  console.log('[Background] Initializing Context Engine v2...');
+
+  try {
+    await window.ContextEngineAPI.initialize();
+    contextEngineReady = true;
+    console.log('[Background] Context Engine v2 ready');
+  } catch (error) {
+    console.error('[Background] Failed to initialize Context Engine v2:', error);
+    contextEngineInitializing = false;
+    throw error;
+  }
+}
+
 // Initialize extension on install
 chrome.runtime.onInstalled.addListener((details) => {
   // Set default data on fresh install
@@ -25,6 +63,12 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 // Handle messages from popup or content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  // Handle Context Engine API calls
+  if (request.action?.startsWith('contextEngine.')) {
+    handleContextEngineMessage(request, sender, sendResponse);
+    return true; // Keep channel open for async response
+  }
+
   // Add message handlers here as needed
   switch (request.action) {
     case 'getData':
@@ -67,6 +111,93 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ error: 'Unknown action' });
   }
 });
+
+/**
+ * Handle Context Engine API messages from content scripts
+ */
+async function handleContextEngineMessage(request, sender, sendResponse) {
+  try {
+    // Ensure Context Engine is initialized
+    await ensureContextEngine();
+
+    const action = request.action.replace('contextEngine.', '');
+
+    switch (action) {
+      case 'search':
+        const results = await window.ContextEngineAPI.search(
+          request.query,
+          request.filters || {},
+          request.limit || 10
+        );
+        // Convert RxDB documents to plain objects
+        const plainResults = results.map(result => {
+          const gemData = result.toJSON ? result.toJSON() : result;
+          return {
+            id: gemData.id || gemData._data?.id,
+            value: gemData.value || gemData._data?.value,
+            collections: gemData.collections || gemData._data?.collections,
+            subCollections: gemData.subCollections || gemData._data?.subCollections,
+            semanticType: gemData.semanticType || gemData._data?.semanticType,
+            keywords: gemData.keywords || gemData._data?.keywords,
+            score: gemData.score || result.score || 0
+          };
+        });
+        sendResponse({ success: true, results: plainResults });
+        break;
+
+      case 'getAllGems':
+        const allGems = await window.ContextEngineAPI.getAllGems(request.filters || {});
+        const plainGems = allGems.map(gem => {
+          const gemData = gem.toJSON ? gem.toJSON() : gem;
+          return {
+            id: gemData.id || gemData._data?.id,
+            value: gemData.value || gemData._data?.value,
+            collections: gemData.collections || gemData._data?.collections,
+            subCollections: gemData.subCollections || gemData._data?.subCollections,
+            semanticType: gemData.semanticType || gemData._data?.semanticType,
+            keywords: gemData.keywords || gemData._data?.keywords
+          };
+        });
+        sendResponse({ success: true, gems: plainGems });
+        break;
+
+      case 'getGem':
+        const gem = await window.ContextEngineAPI.getGem(request.id);
+        if (gem) {
+          const gemData = gem.toJSON ? gem.toJSON() : gem;
+          sendResponse({
+            success: true,
+            gem: {
+              id: gemData.id || gemData._data?.id,
+              value: gemData.value || gemData._data?.value,
+              collections: gemData.collections || gemData._data?.collections,
+              subCollections: gemData.subCollections || gemData._data?.subCollections,
+              semanticType: gemData.semanticType || gemData._data?.semanticType,
+              keywords: gemData.keywords || gemData._data?.keywords
+            }
+          });
+        } else {
+          sendResponse({ success: true, gem: null });
+        }
+        break;
+
+      case 'getStats':
+        const stats = await window.ContextEngineAPI.getStats();
+        sendResponse({ success: true, stats });
+        break;
+
+      case 'isReady':
+        sendResponse({ success: true, isReady: window.ContextEngineAPI.isReady });
+        break;
+
+      default:
+        sendResponse({ success: false, error: `Unknown Context Engine action: ${action}` });
+    }
+  } catch (error) {
+    console.error('[Background] Context Engine error:', error);
+    sendResponse({ success: false, error: error.message });
+  }
+}
 
 /**
  * Monitor tab updates for auto-injection
