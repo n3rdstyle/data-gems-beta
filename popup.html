@@ -85,6 +85,22 @@
       position: relative;
     }
   </style>
+
+  <!-- Import Maps for ES6 Modules -->
+  <script type="importmap">
+    {
+      "imports": {
+        "rxdb": "./node_modules/rxdb/dist/esm/index.js",
+        "rxdb/plugins/storage-dexie": "./node_modules/rxdb/dist/esm/plugins/storage-dexie/index.js",
+        "rxdb/plugins/dev-mode": "./node_modules/rxdb/dist/esm/plugins/dev-mode/index.js",
+        "rxdb/plugins/query-builder": "./node_modules/rxdb/dist/esm/plugins/query-builder/index.js",
+        "rxjs": "./node_modules/rxjs/dist/esm/index.js"
+      }
+    }
+  </script>
+
+  <!-- Context Engine v2 Bridge -->
+  <script type="module" src="./engine-bridge.js"></script>
 </head>
 <body>
   <div id="app"></div>
