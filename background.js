@@ -18,6 +18,73 @@ try {
   console.error('[Background] ✗ Failed to load Context Engine bundle:', error);
 }
 
+// Offscreen Document Management (for WASM embedding generation)
+let offscreenDocumentCreated = false;
+
+/**
+ * Create offscreen document for embedding generation
+ * Offscreen documents support WASM unlike Service Workers
+ */
+async function ensureOffscreenDocument() {
+  if (offscreenDocumentCreated) {
+    return;
+  }
+
+  try {
+    // Check if offscreen document already exists
+    const existingContexts = await chrome.runtime.getContexts({
+      contextTypes: ['OFFSCREEN_DOCUMENT']
+    });
+
+    if (existingContexts.length > 0) {
+      offscreenDocumentCreated = true;
+      console.log('[Background] Offscreen document already exists');
+      return;
+    }
+
+    // Create offscreen document
+    await chrome.offscreen.createDocument({
+      url: 'offscreen.html',
+      reasons: ['WORKERS'], // Using for ML model inference
+      justification: 'Generate text embeddings using Transformers.js for semantic search'
+    });
+
+    offscreenDocumentCreated = true;
+    console.log('[Background] ✓ Offscreen document created');
+  } catch (error) {
+    console.error('[Background] ✗ Failed to create offscreen document:', error);
+    throw error;
+  }
+}
+
+/**
+ * Send embedding request to offscreen document
+ * @param {string} text - Text to embed
+ * @returns {Promise<number[]>} 384-dim embedding vector
+ */
+async function generateEmbeddingOffscreen(text) {
+  await ensureOffscreenDocument();
+
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      {
+        target: 'offscreen',
+        type: 'generateEmbedding',
+        text
+      },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else if (response.success) {
+          resolve(response.embedding);
+        } else {
+          reject(new Error(response.error || 'Unknown error'));
+        }
+      }
+    );
+  });
+}
+
 // Context Engine instance (initialized on first use)
 let contextEngineReady = false;
 let contextEngineInitializing = false;
@@ -67,7 +134,14 @@ async function ensureContextEngine() {
 }
 
 // Initialize extension on install
-chrome.runtime.onInstalled.addListener((details) => {
+chrome.runtime.onInstalled.addListener(async (details) => {
+  // Create offscreen document for embeddings
+  try {
+    await ensureOffscreenDocument();
+  } catch (error) {
+    console.error('[Background] Failed to create offscreen document on install:', error);
+  }
+
   // Set default data on fresh install
   if (details.reason === 'install') {
     const installDate = new Date().toISOString();
@@ -86,11 +160,33 @@ chrome.runtime.onInstalled.addListener((details) => {
   }
 });
 
+// Ensure offscreen document on startup
+chrome.runtime.onStartup.addListener(async () => {
+  try {
+    await ensureOffscreenDocument();
+  } catch (error) {
+    console.error('[Background] Failed to create offscreen document on startup:', error);
+  }
+});
+
 // Handle messages from popup or content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // Handle Context Engine API calls
   if (request.action?.startsWith('contextEngine.')) {
     handleContextEngineMessage(request, sender, sendResponse);
+    return true; // Keep channel open for async response
+  }
+
+  // Forward offscreen document messages (for embeddings)
+  if (request.target === 'offscreen') {
+    // Messages from enrichment.js need to be forwarded to offscreen document
+    chrome.runtime.sendMessage(request, (response) => {
+      if (chrome.runtime.lastError) {
+        sendResponse({ success: false, error: chrome.runtime.lastError.message });
+      } else {
+        sendResponse(response);
+      }
+    });
     return true; // Keep channel open for async response
   }
 

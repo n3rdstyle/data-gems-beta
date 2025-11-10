@@ -1,10 +1,10 @@
 /**
  * Gem Enrichment Module
- * Context Engine v2 - Auto-Enrichment with Gemini Nano
+ * Context Engine v2 - Auto-Enrichment
  *
  * Enriches gems with:
- * - 384-dim vector embeddings (Gemini Nano Embedder)
- * - Semantic type classification (Gemini Nano LanguageModel)
+ * - 384-dim vector embeddings (via Offscreen Document + Transformers.js)
+ * - Semantic type classification (Chrome LanguageModel or Fallback)
  * - Keywords for BM25 sparse search
  */
 
@@ -101,37 +101,36 @@ export class Enrichment {
   }
 
   /**
-   * Initialize Embedder for vector generation
+   * Initialize Embedder
+   * In Service Worker: Uses offscreen document for WASM
+   * In other contexts: Would use Transformers.js directly (not needed for now)
    */
   async initEmbedder() {
     try {
-      if (typeof Embedder === 'undefined') {
-        console.warn('[Enrichment] Embedder API not available (Chrome 135+)');
-        return false;
-      }
+      console.log('[Enrichment] Checking embedder availability...');
 
-      const availability = await Embedder.availability();
-
-      if (availability === 'readily' || availability === 'available') {
-        this.embedderSession = await Embedder.create({
-          // No configuration needed for default embedder
-        });
-
+      // Service Workers can't run WASM due to CSP
+      // We'll use message passing to offscreen document instead
+      if (typeof chrome !== 'undefined' && chrome.runtime) {
+        // Check if offscreen document is available
+        this.embedderSession = 'offscreen'; // Marker that we're using offscreen
         this.isAvailable.embedder = true;
-        console.log('[Enrichment] Embedder ready');
+        console.log('[Enrichment] Using offscreen document for embeddings');
         return true;
       } else {
-        console.warn('[Enrichment] Embedder not readily available:', availability);
+        console.warn('[Enrichment] No embedding method available');
         return false;
       }
     } catch (error) {
-      console.error('[Enrichment] Error initializing Embedder:', error);
+      console.error('[Enrichment] Error initializing embedder:', error);
+      this.isAvailable.embedder = false;
       return false;
     }
   }
 
   /**
    * Generate 384-dim embedding for text
+   * Delegates to offscreen document via message passing
    * @param {string} text - Text to embed
    * @returns {Promise<number[]|null>} 384-dim vector or null
    */
@@ -142,18 +141,32 @@ export class Enrichment {
     }
 
     try {
-      // Gemini Nano Embedder API returns Float32Array
-      const embedding = await this.embedderSession.embed(text);
-
-      // Convert to regular array and ensure 384 dimensions
-      const vector = Array.from(embedding);
-
-      if (vector.length !== 384) {
-        console.warn(`[Enrichment] Unexpected embedding dimension: ${vector.length}, expected 384`);
-        return null;
+      // Use offscreen document for embedding generation
+      if (this.embedderSession === 'offscreen') {
+        // This call will be intercepted by background.js
+        // which forwards it to the offscreen document
+        return await new Promise((resolve, reject) => {
+          chrome.runtime.sendMessage(
+            {
+              target: 'offscreen',
+              type: 'generateEmbedding',
+              text
+            },
+            (response) => {
+              if (chrome.runtime.lastError) {
+                reject(new Error(chrome.runtime.lastError.message));
+              } else if (response && response.success) {
+                resolve(response.embedding);
+              } else {
+                reject(new Error(response?.error || 'Unknown error'));
+              }
+            }
+          );
+        });
       }
 
-      return vector;
+      console.warn('[Enrichment] Unknown embedder session type:', this.embedderSession);
+      return null;
     } catch (error) {
       console.error('[Enrichment] Error generating embedding:', error);
       return null;

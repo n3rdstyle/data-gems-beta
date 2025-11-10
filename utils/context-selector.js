@@ -117,17 +117,28 @@ async function analyzeQueryIntent(query, availableCategories = []) {
       systemPrompt: `You are a query classifier. Select the best matching type and domain from the provided lists.
 
 CRITICAL RULES:
-1. ONLY use values from the lists provided - DO NOT invent new values
+1. ONLY use EXACT values from the lists provided - DO NOT invent, modify, or generalize values
 2. Return EXACTLY this format: {"type": "VALUE_FROM_TYPE_LIST", "domain": "VALUE_FROM_DOMAIN_LIST"}
 3. DO NOT add extra fields, DO NOT modify field names
-4. Pick the CLOSEST match even if not perfect
-5. For domain: select from user's actual categories, or use null if none match
+4. Match case-sensitively - use exact capitalization from the list
+5. For domain selection:
+   - First, try to find a category that genuinely matches the query topic
+   - If a good match exists, use it (e.g., "running" → "Fitness")
+   - If NO category is a good match, use null (e.g., "tell a joke" → null)
+   - NEVER invent new categories (e.g., "running", "workout", "exercise" are INVALID)
 
 Examples showing correct selection:
 - "Find me a café" → {"type": "recommendation", "domain": "Nutrition"}
 - "I need sneakers" → {"type": "shopping", "domain": "Fashion"}
-- "Plan workout" → {"type": "planning", "domain": "Fitness"}
+- "Plan running workout" → {"type": "planning", "domain": "Fitness"} (running relates to Fitness)
 - "What is React?" → {"type": "information", "domain": "Technology"}
+- "Tell me a joke" → {"type": "information", "domain": null} (no relevant category)
+
+IMPORTANT:
+- Sports/running/exercise → "Fitness" (if available)
+- Food/restaurants/recipes → "Nutrition" (if available)
+- Clothes/shoes/style → "Fashion" (if available)
+- If unsure or no clear match → use null
 
 Output JSON only: {"type": "...", "domain": "..."}`
     });
@@ -179,9 +190,21 @@ Return JSON only:`);
       } else if (result.domain === null || result.domain === 'null') {
         domain = null;
       } else {
-        console.warn('[Context Selector] AI returned invalid domain:', result.domain);
-        console.warn('[Context Selector] Available categories:', availableCategories.join(', '));
-        throw new Error('Invalid domain value');
+        // Try case-insensitive match
+        const matchedDomain = availableCategories.find(cat =>
+          cat.toLowerCase() === result.domain.toLowerCase()
+        );
+
+        if (matchedDomain) {
+          domain = matchedDomain;
+          console.log('[Context Selector] Domain matched (case-insensitive):', result.domain, '→', matchedDomain);
+        } else {
+          // AI returned invalid domain - log warning but continue with null instead of failing
+          console.warn('[Context Selector] AI returned invalid domain:', result.domain);
+          console.warn('[Context Selector] Available categories:', availableCategories.join(', '));
+          console.warn('[Context Selector] Setting domain to null and continuing...');
+          domain = null;
+        }
       }
 
       console.log('[Context Selector] ✓ AI detected intent:', { type, domain });
@@ -450,6 +473,143 @@ Respond with JSON array only:`;
   } catch (error) {
     console.error('[Context Selector] Error selecting categories:', error);
     return [];
+  }
+}
+
+/**
+ * Batch version: Select relevant categories for MULTIPLE sub-questions in one AI call
+ * @param {Array<string>} subQuestions - Array of sub-questions
+ * @param {Array<string>} allCategories - Available categories
+ * @returns {Promise<Array<Array>>} Array of category arrays (one per sub-question)
+ */
+async function selectRelevantCategoriesForSubQuestionsBatch(subQuestions, allCategories) {
+  try {
+    const session = await LanguageModel.create({
+      language: 'en',
+      systemPrompt: `You are a contextual category selector for multiple questions.
+For each question, identify categories that could provide useful personal context.
+
+CRITICAL RULES:
+1. ONLY select categories from the "Available categories" list provided
+2. NEVER invent or guess category names - use EXACT names from the list
+3. Output ONE array per question, in the same order as questions
+4. Each array contains objects with category name and confidence score (1-10)
+5. Focus on PRIMARY topic first, include supportive categories if highly relevant
+6. ALWAYS return at least 1 category per question if any connection exists
+
+Output format:
+[
+  [{"category":"Nutrition","score":10}],
+  [{"category":"Fitness","score":9},{"category":"Health","score":7}],
+  ...
+]`
+    });
+
+    const categoriesStr = allCategories.join(', ');
+    const questionsFormatted = subQuestions.map((q, i) => `${i + 1}. ${q}`).join('\n');
+
+    const prompt = `Questions:
+${questionsFormatted}
+
+Available categories: ${categoriesStr}
+
+For each question above, select relevant categories with confidence scores (1-10).
+Return a JSON array of arrays - one inner array per question, in order.
+Respond with JSON only:`;
+
+    console.log('[Context Selector] 🚀 Batch: Asking AI for categories for', subQuestions.length, 'sub-questions...');
+
+    const response = await session.prompt(prompt);
+    await session.destroy();
+
+    console.log('[Context Selector] Batch AI raw response:', response);
+
+    // Parse response - expecting array of arrays
+    const cleaned = response.trim().replace(/```json\n?/g, '').replace(/```\n?/g, '');
+
+    // Find outermost array
+    const firstBracket = cleaned.indexOf('[');
+    const lastBracket = cleaned.lastIndexOf(']');
+
+    if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
+      const jsonStr = cleaned.substring(firstBracket, lastBracket + 1);
+      let parsed = JSON.parse(jsonStr);
+
+      // Handle case where AI returns [[{question, categories}, ...]] instead of [[categories], [categories], ...]
+      // Extract the inner array if it's wrapped
+      if (Array.isArray(parsed) && parsed.length === 1 && Array.isArray(parsed[0])) {
+        // Check if first element has {question, categories} structure
+        if (parsed[0][0] && typeof parsed[0][0] === 'object' && 'categories' in parsed[0][0]) {
+          console.log('[Context Selector] Detected nested question/categories format, extracting...');
+          // Extract categories from each question object
+          parsed = parsed[0].map(item => item.categories || []);
+        }
+      }
+
+      const categoriesPerQuestion = parsed;
+
+      if (!Array.isArray(categoriesPerQuestion) || categoriesPerQuestion.length !== subQuestions.length) {
+        console.error('[Context Selector] Batch response has wrong length:', {
+          expected: subQuestions.length,
+          got: categoriesPerQuestion?.length,
+          response: categoriesPerQuestion
+        });
+        // Fallback to empty arrays
+        return subQuestions.map(() => []);
+      }
+
+      // Validate and normalize each question's categories
+      const normalized = categoriesPerQuestion.map((questionCategories, qIndex) => {
+        if (!Array.isArray(questionCategories)) {
+          console.warn(`[Context Selector] Q${qIndex + 1} categories not an array:`, questionCategories);
+          return [];
+        }
+
+        // Handle multiple AI response formats
+        let items = questionCategories;
+
+        // Format 1: Single object with {categories: [...], scores: [...]}
+        if (items.length === 1 && items[0].categories && Array.isArray(items[0].categories)) {
+          const obj = items[0];
+          const cats = obj.categories;
+          const scores = obj.scores || cats.map(() => 8); // Default score if missing
+          items = cats.map((cat, i) => ({
+            category: cat,
+            score: scores[i] || 8
+          }));
+        }
+
+        const validated = items
+          .filter(item => {
+            const hasCategory = item && typeof item.category === 'string';
+            const hasScore = typeof item.score === 'number' || typeof item.confidence === 'number';
+            return hasCategory && hasScore;
+          })
+          .map(item => ({
+            category: item.category,
+            score: Math.max(1, Math.min(10, item.score || item.confidence))
+          }))
+          .filter(item => {
+            const exists = allCategories.includes(item.category);
+            if (!exists) {
+              console.warn(`[Context Selector] Q${qIndex + 1}: AI selected non-existent category "${item.category}"`);
+            }
+            return exists;
+          });
+
+        return validated;
+      });
+
+      console.log('[Context Selector] ✓ Batch: Processed categories for', normalized.length, 'questions');
+      return normalized;
+    }
+
+    console.warn('[Context Selector] Could not parse batch category response');
+    return subQuestions.map(() => []);
+
+  } catch (error) {
+    console.error('[Context Selector] Error in batch category selection:', error);
+    return subQuestions.map(() => []);
   }
 }
 
@@ -1344,6 +1504,84 @@ function formatPromptWithContext(originalPrompt, selectedGems) {
 }
 
 /**
+ * Format selected gems grouped by sub-questions
+ * @param {string} originalPrompt - The original prompt
+ * @param {Array<string>} subQuestions - Array of sub-questions
+ * @param {Array<Array>} gemsBySubQuestion - Array of gem arrays, one per sub-question
+ * @returns {string} Formatted prompt with context grouped by sub-questions
+ */
+function formatPromptWithSubQuestions(originalPrompt, subQuestions, gemsBySubQuestion) {
+  if (!subQuestions || subQuestions.length === 0 || !gemsBySubQuestion) {
+    return originalPrompt;
+  }
+
+  // Start with original prompt
+  let formatted = `${originalPrompt}\n\n`;
+
+  // Add introductory text
+  formatted += `Please consider the following information about me:\n\n`;
+
+  // Group gems by sub-question
+  subQuestions.forEach((question, index) => {
+    const gems = gemsBySubQuestion[index] || [];
+
+    if (gems.length === 0) {
+      // Skip sub-questions with no gems
+      return;
+    }
+
+    // Add sub-question as header
+    formatted += `${question}\n`;
+
+    // Add all gems for this sub-question
+    gems.forEach(gem => {
+      // Determine type from collections or use generic "context"
+      let type = 'context';
+      if (gem.collections && gem.collections.length > 0) {
+        type = gem.collections[0].toLowerCase().replace(/\s+/g, '_');
+      }
+
+      // Format the value with more complete information
+      let value = gem.value.trim();
+
+      // If multiline, include more content but format compactly
+      const lines = value.split('\n').filter(line => line.trim().length > 0);
+      if (lines.length > 1) {
+        // For structured data (like Training/Protein logs), include all items
+        value = lines[0]; // Title/header line
+
+        // Include all data lines (up to 8 items to keep it reasonable)
+        if (lines.length > 1) {
+          const dataLines = lines.slice(1, Math.min(lines.length, 9));
+          // Use line breaks within the gem data
+          value = `${value}\n${dataLines.join('\n')}`;
+        }
+      }
+
+      // More generous character limit for structured data
+      if (value.length > 400) {
+        // Try to cut at a natural line break
+        const truncated = value.substring(0, 397);
+        const lastNewline = truncated.lastIndexOf('\n');
+        if (lastNewline > 200) {
+          value = value.substring(0, lastNewline) + '\n...';
+        } else {
+          value = truncated + '...';
+        }
+      }
+
+      // Format as bullet point under the sub-question
+      formatted += `- @${type} ${value}\n`;
+    });
+
+    // Add blank line between sub-questions
+    formatted += `\n`;
+  });
+
+  return formatted.trim();
+}
+
+/**
  * Check if prompt is complex enough to benefit from decomposition
  * @param {string} promptText - The user's prompt
  * @returns {boolean} True if prompt should be decomposed
@@ -1471,40 +1709,58 @@ Return ONLY a JSON array: ["question 1", "question 2", ...]`;
     const response = await session.prompt(prompt);
     await session.destroy();
 
-    // Parse JSON array
-    const cleaned = response.trim().replace(/```json\n?/g, '').replace(/```\n?/g, '');
-    const match = cleaned.match(/\[.*?\]/s);
+    console.log('[Context Selector] AI raw decomposition response:', response);
 
-    if (match) {
-      const questions = JSON.parse(match[0]);
+    // Parse JSON array - find complete array from first [ to last ]
+    const cleaned = response.trim().replace(/```json\n?/g, '').replace(/```\n?/g, '');
+
+    // Find the first [ and last ] to get complete JSON array
+    const firstBracket = cleaned.indexOf('[');
+    const lastBracket = cleaned.lastIndexOf(']');
+
+    if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
+      const jsonStr = cleaned.substring(firstBracket, lastBracket + 1);
+      console.log('[Context Selector] Extracted JSON string:', jsonStr);
+
+      const questions = JSON.parse(jsonStr);
 
       // Validate: must be array of strings, 2-5 items
       if (Array.isArray(questions) &&
           questions.length >= 2 &&
           questions.length <= 5 &&
           questions.every(q => typeof q === 'string')) {
-        console.log('[Context Selector] Decomposed into', questions.length, 'sub-questions:', questions);
+        console.log('[Context Selector] ✓ Decomposed into', questions.length, 'sub-questions:', questions);
         return questions;
       } else {
-        console.warn('[Context Selector] Invalid decomposition format:', questions);
+        console.warn('[Context Selector] Invalid decomposition format - not an array of 2-5 strings:', {
+          isArray: Array.isArray(questions),
+          length: questions?.length,
+          allStrings: Array.isArray(questions) ? questions.every(q => typeof q === 'string') : false,
+          questions
+        });
         return [];
       }
     }
 
-    console.warn('[Context Selector] Could not parse decomposition response:', response);
+    console.warn('[Context Selector] Could not find JSON array in response. Cleaned response:', cleaned);
     return [];
 
   } catch (error) {
     console.error('[Context Selector] Error decomposing prompt:', error);
+    console.error('[Context Selector] Failed to parse. Response was:', response);
     return [];
   }
 }
 
 /**
  * Merge gem results from multiple sub-queries with smart deduplication and diversity
+ * IMPORTANT: Now returns structured data grouped by sub-question
+ * Uses threshold-based selection instead of hard limits - all relevant gems are included
  * @param {Array<Array>} subQueryResults - Array of gem arrays from each sub-question
- * @param {number} maxGems - Maximum number of gems to return
- * @returns {Array} Merged and deduplicated gems
+ * @param {number} maxGems - DEPRECATED: Not used for selection, only for constraint validation (legacy)
+ * @param {string} originalQuery - Original user query for intent analysis
+ * @param {Object} profile - User profile (legacy)
+ * @returns {Array<Array>} Array of gem arrays, one per sub-question (preserves structure)
  */
 async function mergeGemResults(subQueryResults, maxGems, originalQuery = null, profile = null) {
   console.log('[Context Selector] Merging results from', subQueryResults.length, 'sub-queries');
@@ -1622,31 +1878,50 @@ async function mergeGemResults(subQueryResults, maxGems, originalQuery = null, p
     }
   }
 
-  // Diversity selection: Ensure we get context from different sub-questions
-  const selected = [];
-  const sourceCount = new Map(); // Track how many gems from each source
+  // NEW APPROACH: Group gems by sub-question instead of flattening
+  // This preserves the logical structure and shows which gems answer which sub-questions
+
+  // Initialize result structure: one array per sub-question
+  const gemsBySubQuestion = subQueryResults.map(() => []);
+
+  // Threshold-based selection: Include all gems above relevance threshold
+  // Diversity filter: Only prevent duplicate gems across sub-questions
+
+  // Relevance threshold: Gems must score at least this to be included
+  // Score is calculated from: base AI score + position bonus + appearance bonus
+  // Typical scores: 8-11 (normal), 12-15 (high), 16+ (multi-domain/critical)
+  const RELEVANCE_THRESHOLD = 8; // TODO: Make configurable via settings
+
+  const seenGemIds = new Set(); // Track gems to prevent duplicates
 
   for (const entry of allGems) {
-    if (selected.length >= maxGems) break;
-
-    // Diversity: limit gems per source (60% of maxGems)
-    // maxGems=3 → max 2 per source, maxGems=5 → max 3 per source
-    const primarySource = entry.sources[0];
-    const currentCount = sourceCount.get(primarySource) || 0;
-    const maxPerSource = Math.ceil(maxGems * 0.6);
-
-    // Exception: If gem appears in multiple sub-queries (cross-domain), always include
-    if (entry.appearances > 1 || currentCount < maxPerSource) {
-      selected.push(entry.gem);
-      sourceCount.set(primarySource, currentCount + 1);
-
-      console.log(`[Context Selector] Selected gem (appearances: ${entry.appearances}, mergeScore: ${entry.score}, aiScore: ${entry.gem._aiRelevanceScore || 'N/A'}): ${entry.gem.value.substring(0, 60)}...`);
+    // Skip if below relevance threshold
+    if (entry.score < RELEVANCE_THRESHOLD) {
+      console.log(`[Context Selector] Skipping low-score gem (score: ${entry.score}): ${entry.gem.value.substring(0, 60)}...`);
+      continue;
     }
+
+    // Skip if already added (diversity filter for duplicates)
+    if (seenGemIds.has(entry.gem.id)) {
+      console.log(`[Context Selector] Skipping duplicate gem: ${entry.gem.value.substring(0, 60)}...`);
+      continue;
+    }
+
+    // Add gem to its primary sub-question
+    const primarySource = entry.sources[0];
+    gemsBySubQuestion[primarySource].push(entry.gem);
+    seenGemIds.add(entry.gem.id);
+
+    console.log(`[Context Selector] Assigned to Q${primarySource + 1} (appearances: ${entry.appearances}, score: ${entry.score}): ${entry.gem.value.substring(0, 60)}...`);
   }
 
-  console.log('[Context Selector] Final selection:', selected.length, 'gems with diversity from', sourceCount.size, 'sub-queries');
+  // Log distribution
+  const totalSelected = seenGemIds.size;
+  const distribution = gemsBySubQuestion.map((gems, i) => `Q${i + 1}: ${gems.length}`).join(', ');
+  console.log('[Context Selector] Final selection:', totalSelected, 'gems distributed as:', distribution);
+  console.log('[Context Selector] Relevance threshold:', RELEVANCE_THRESHOLD, '(gems below this score were filtered out)');
 
-  return selected;
+  return gemsBySubQuestion;
 }
 
 /**
@@ -1654,10 +1929,21 @@ async function mergeGemResults(subQueryResults, maxGems, originalQuery = null, p
  * @param {string} promptText - The user's prompt
  * @param {object} profile - User profile with preferences
  * @param {boolean} useAI - Whether to use AI for selection (default: true)
- * @param {number} maxGems - Maximum number of gems to include (default: 5)
+ * @param {number} maxGems - Soft limit for gems per sub-query search (default: 5). Final count is threshold-based, not hard-limited.
  * @returns {Promise<string>} Optimized prompt with context
  */
 async function optimizePromptWithContext(promptText, profile, useAI = true, maxGems = 5) {
+  const startTime = performance.now();
+  let lastTime = startTime;
+
+  const logTiming = (label) => {
+    const now = performance.now();
+    const duration = ((now - lastTime) / 1000).toFixed(2);
+    const total = ((now - startTime) / 1000).toFixed(2);
+    console.log(`⏱️ [Timing] ${label}: ${duration}s (total: ${total}s)`);
+    lastTime = now;
+  };
+
   try {
     // Check if we should use AI and decomposition
     const shouldUseFanOut = useAI && typeof LanguageModel !== 'undefined';
@@ -1672,6 +1958,7 @@ async function optimizePromptWithContext(promptText, profile, useAI = true, maxG
 
     // ALWAYS use decomposition with Context Engine v2 or legacy method
     console.log('[Context Selector] 🔀 Using Question Decomposition Fan-Out (always-on mode)');
+    logTiming('Start');
 
     // Get available categories
     let availableCategories;
@@ -1694,6 +1981,7 @@ async function optimizePromptWithContext(promptText, profile, useAI = true, maxG
           .filter(Boolean)
       )];
     }
+    logTiming('Get categories');
 
     // STEP 1: Analyze intent ONCE before decomposition
     const queryIntent = await analyzeQueryIntent(promptText, availableCategories);
@@ -1702,9 +1990,11 @@ async function optimizePromptWithContext(promptText, profile, useAI = true, maxG
       domain: queryIntent.domain,
       availableCategories: availableCategories.join(', ')
     });
+    logTiming('Intent analysis');
 
     // STEP 2: Decompose into sub-questions (ALWAYS)
     const subQuestions = await decomposePromptIntoSubQuestions(promptText);
+    logTiming('Decomposition');
 
     if (subQuestions.length < 2) {
       console.log('[Context Selector] Decomposition failed or returned <2 questions, falling back to single-query');
@@ -1722,13 +2012,23 @@ async function optimizePromptWithContext(promptText, profile, useAI = true, maxG
     let subQueryResults;
 
     if (window.ContextEngineAPI?.isReady) {
-      // Use Context Engine v2 for each sub-question
+      // OPTIMIZATION: Batch category detection for all sub-questions in one AI call
+      // This reduces N sequential AI calls to 1 batch call, saving ~75% of category detection time
+      console.log('[Context Selector] 🚀 Batch-detecting categories for all sub-questions...');
+      const batchCategoryResults = await selectRelevantCategoriesForSubQuestionsBatch(
+        subQuestions,
+        availableCategories
+      );
+      logTiming('Batch category detection');
+
+      // Use Context Engine v2 for each sub-question with pre-computed categories
       subQueryResults = await Promise.all(
-        subQuestions.map(subQ => searchSubQuestionWithContextEngine(
+        subQuestions.map((subQ, index) => searchSubQuestionWithContextEngine(
           subQ,
           queryIntent,
           Math.ceil(maxGems / 1.5),
-          promptText
+          promptText,
+          batchCategoryResults[index] // Pass pre-computed categories
         ))
       );
     } else {
@@ -1746,14 +2046,23 @@ async function optimizePromptWithContext(promptText, profile, useAI = true, maxG
     console.log('[Context Selector] Sub-query results:', subQueryResults.map((r, i) =>
       `Q${i + 1}: ${r.length} gems`
     ).join(', '));
+    logTiming('Sub-query searches (parallel)');
 
-    // STEP 4: Merge results from all sub-questions
-    const selectedGems = await mergeGemResults(subQueryResults, maxGems, promptText, profile);
+    // STEP 4: Merge results from all sub-questions (preserves structure)
+    const gemsBySubQuestion = await mergeGemResults(subQueryResults, maxGems, promptText, profile);
+    logTiming('Merge results');
 
-    console.log('[Context Selector] ✓ Fan-out complete: Selected', selectedGems.length, 'unique gems');
+    const totalGems = gemsBySubQuestion.reduce((sum, gems) => sum + gems.length, 0);
+    console.log('[Context Selector] ✓ Fan-out complete: Selected', totalGems, 'gems across', subQuestions.length, 'sub-questions');
 
-    // Format and return
-    return formatPromptWithContext(promptText, selectedGems);
+    // Format with sub-question structure
+    const result = formatPromptWithSubQuestions(promptText, subQuestions, gemsBySubQuestion);
+    logTiming('Format output');
+
+    const totalTime = ((performance.now() - startTime) / 1000).toFixed(2);
+    console.log(`⏱️ [Timing] 🏁 COMPLETE: ${totalTime}s total`);
+
+    return result;
 
   } catch (error) {
     console.error('[Context Selector] Error optimizing prompt:', error);
@@ -1764,22 +2073,36 @@ async function optimizePromptWithContext(promptText, profile, useAI = true, maxG
 /**
  * Search a sub-question using Context Engine v2
  * Includes category detection, filtering, and diversity
+ * @param {string} subQuestion - The sub-question to search
+ * @param {object} queryIntent - The query intent
+ * @param {number} limit - Max gems to return
+ * @param {string} originalQuery - Original user query
+ * @param {Array} precomputedCategories - Optional pre-computed category results from batch call
  */
-async function searchSubQuestionWithContextEngine(subQuestion, queryIntent, limit, originalQuery) {
+async function searchSubQuestionWithContextEngine(subQuestion, queryIntent, limit, originalQuery, precomputedCategories = null) {
   try {
-    // Get all categories from Context Engine
-    const allGems = await window.ContextEngineAPI.getAllGems();
-    const availableCategories = [...new Set(
-      allGems.flatMap(gem => gem.collections || []).filter(Boolean)
-    )];
+    let selectedCategories;
 
-    // Detect relevant categories for this sub-question
-    const categoryResults = await selectRelevantCategoriesWithAI(subQuestion, availableCategories);
-    const selectedCategories = categoryResults
-      .filter(item => item.score >= 7)
-      .map(item => item.category);
+    if (precomputedCategories) {
+      // Use pre-computed categories from batch call (optimization)
+      selectedCategories = precomputedCategories
+        .filter(item => item.score >= 7)
+        .map(item => item.category);
+      console.log(`[Context Selector] 🚀 Using batch-computed categories for "${subQuestion.substring(0, 50)}...":`, selectedCategories);
+    } else {
+      // Fallback: Individual category detection (slower)
+      const allGems = await window.ContextEngineAPI.getAllGems();
+      const availableCategories = [...new Set(
+        allGems.flatMap(gem => gem.collections || []).filter(Boolean)
+      )];
 
-    console.log(`[Context Selector] Sub-question "${subQuestion.substring(0, 50)}..." → Categories:`, selectedCategories);
+      const categoryResults = await selectRelevantCategoriesWithAI(subQuestion, availableCategories);
+      selectedCategories = categoryResults
+        .filter(item => item.score >= 7)
+        .map(item => item.category);
+
+      console.log(`[Context Selector] Sub-question "${subQuestion.substring(0, 50)}..." → Categories:`, selectedCategories);
+    }
 
     // Build filters
     const filters = {};
