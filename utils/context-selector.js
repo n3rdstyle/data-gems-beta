@@ -1659,6 +1659,71 @@ async function mergeGemResults(subQueryResults, maxGems, originalQuery = null, p
  */
 async function optimizePromptWithContext(promptText, profile, useAI = true, maxGems = 5) {
   try {
+    // Try Context Engine v2 first (100x faster!)
+    if (window.ContextEngineAPI?.isReady) {
+      console.log('[Context Selector] 🚀 Using Context Engine v2 hybrid search');
+
+      try {
+        // Analyze query intent for semantic filtering
+        const availableCategories = [...new Set(
+          (await window.ContextEngineAPI.getAllGems())
+            .flatMap(gem => {
+              const gemData = gem.toJSON ? gem.toJSON() : gem;
+              return gemData.collections || gemData._data?.collections || [];
+            })
+            .filter(Boolean)
+        )];
+
+        const queryIntent = await analyzeQueryIntent(promptText, availableCategories);
+
+        // Build filters based on intent
+        const filters = {};
+        if (queryIntent.requiredSemanticTypes?.length > 0) {
+          filters.semanticTypes = queryIntent.requiredSemanticTypes;
+        }
+        if (queryIntent.domain) {
+          filters.collections = [queryIntent.domain];
+        }
+
+        console.log('[Context Selector] Searching with filters:', filters);
+
+        // Hybrid search with Context Engine v2
+        const selectedGems = await window.ContextEngineAPI.search(
+          promptText,
+          filters,
+          maxGems
+        );
+
+        console.log('[Context Selector] Context Engine v2 returned', selectedGems.length, 'gems');
+
+        if (selectedGems.length > 0) {
+          // Convert RxDB documents to plain objects if needed
+          const plainGems = selectedGems.map(gem => {
+            const gemData = gem.toJSON ? gem.toJSON() : gem;
+            return {
+              id: gemData.id || gemData._data?.id,
+              value: gemData.value || gemData._data?.value,
+              collections: gemData.collections || gemData._data?.collections,
+              subCollections: gemData.subCollections || gemData._data?.subCollections,
+              semanticType: gemData.semanticType || gemData._data?.semanticType,
+              state: 'default'  // Context Engine doesn't store state
+            };
+          });
+
+          return formatPromptWithContext(promptText, plainGems);
+        }
+
+        console.log('[Context Selector] No results from Context Engine v2, falling back to legacy method');
+      } catch (error) {
+        console.error('[Context Selector] Context Engine v2 error, falling back to legacy method:', error);
+      }
+    } else {
+      console.log('[Context Selector] Context Engine v2 not ready, using legacy method');
+    }
+
+    // Fallback: Legacy method (original implementation)
+    console.log('[Context Selector] Using legacy selection method');
+
     // Extract data gems from profile + enrich with basic info
     const dataGems = enrichGemsWithBasicInfo(profile);
 
