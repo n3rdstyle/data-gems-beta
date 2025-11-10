@@ -1637,93 +1637,103 @@ function shouldDecomposePrompt(promptText) {
 }
 
 /**
- * Decompose complex prompt into focused sub-questions
+ * Decompose complex prompt into focused sub-prompts
  * @param {string} promptText - The user's prompt
- * @returns {Promise<Array<string>>} Array of sub-questions (2-5 questions)
+ * @returns {Promise<Array<string>>} Array of sub-prompts (2-5 prompts)
  */
-async function decomposePromptIntoSubQuestions(promptText) {
+async function decomposeIntoSubPrompts(promptText) {
   try {
     const session = await LanguageModel.create({
       language: 'en',
       systemPrompt: `You are a prompt decomposition expert.
-Decompose user requests into 2-5 focused sub-questions that target specific aspects of personal context.
+Decompose user requests into 2-5 focused sub-prompts for targeted data retrieval.
 
 CRITICAL RULES:
-1. Only ask questions DIRECTLY RELEVANT to the original query
-   - If the query mentions "pizza", DO NOT ask "What cuisine do you like?"
-   - If the query mentions "sneakers", DO NOT ask generic "shoe preferences"
-   - Focus on the SPECIFIC topic, not general categories
+1. Each sub-prompt MUST include the main topic from the original request
+   - If original says "sneakers", EVERY sub-prompt must mention "sneakers"
+   - If original says "pizza restaurant", EVERY sub-prompt must mention "pizza restaurant"
+   - This ensures vector search maintains context
 
-2. Only ask about GAPS in the information needed
-   - Don't ask about things already specified in the query
-   - Don't ask generic questions that don't help answer the specific request
+2. Start each sub-prompt with action verbs: "Find", "Get", "Identify", "Show"
 
-3. Each sub-question should target ONE specific aspect:
-   - Specific preferences within the topic
-   - Budget/constraints
-   - Style/aesthetics preferences
-   - Brand preferences
-   - Practical requirements
+3. Target ONE specific aspect per sub-prompt:
+   - Activity level / use case
+   - Budget / price constraints
+   - Style / aesthetic preferences
+   - Brand preferences / requirements
+   - Technical specifications / features
 
-4. Output 2-5 questions (adjust based on query complexity):
-   - Simple queries: 2-3 FOCUSED questions
-   - Complex queries: 4-5 SPECIFIC questions
+4. Keep context-specific, not generic:
+   - Good: "Find sneakers for my activity level"
+   - Bad: "What is my activity level?" (loses context)
 
-5. Questions should be complementary, not overlapping
+5. Output 2-5 prompts (adjust based on query complexity):
+   - Simple queries: 2-3 prompts
+   - Complex queries: 4-5 prompts
 
 Examples:
 
 Input: "Help me plan a healthy post-workout breakfast"
 Output:
-1. What are my nutrition preferences?
-2. What are my workout habits?
-3. What are my breakfast preferences?
-4. What are my health goals?
-5. What are my dietary restrictions?
+["Find post-workout breakfast options based on my nutrition preferences",
+ "Find post-workout breakfast options matching my workout habits",
+ "Find post-workout breakfast options within my budget",
+ "Find post-workout breakfast options aligned with my health goals"]
 
 Input: "Recommend a good restaurant for date night"
 Output:
-1. What type of cuisine do I prefer for special occasions?
-2. What is my budget for date night dining?
-3. What type of ambiance or atmosphere do I enjoy?
+["Find date night restaurants matching my cuisine preferences",
+ "Find date night restaurants within my dining budget",
+ "Find date night restaurants with my preferred ambiance"]
 
 Input: "Best laptop for my work"
 Output:
-1. What is my profession and work requirements?
-2. What is my budget for technology?
-3. What are my computing preferences?
-4. What software do I use regularly?
+["Find laptops suitable for my profession and work requirements",
+ "Find laptops within my technology budget",
+ "Find laptops with my preferred specifications",
+ "Find laptops compatible with my software needs"]
 
-Input: "Best pizza"
+Input: "Recommend sneakers for daily use"
 Output:
-1. What are my pizza topping preferences?
-2. What is my budget for dining out?
+["Find sneakers for daily use matching my activity level",
+ "Find sneakers for daily use within my budget",
+ "Find sneakers for daily use in my preferred style",
+ "Find sneakers for daily use from my preferred brands"]
 
-Input: "Help me find a new casual sneaker"
+Input: "Best pizza in my area"
 Output:
-1. What is my casual fashion style?
-2. What sneaker brands do I prefer or avoid?
-3. What is my budget for casual footwear?
-4. What colors or aesthetics do I prefer for shoes?
+["Find pizza restaurants matching my topping preferences",
+ "Find pizza restaurants within my dining budget"]
 
-Input: "Recommend a good Italian restaurant"
-Output:
-1. What are my Italian food preferences (pasta, pizza, seafood, etc.)?
-2. What is my budget for dining out?
-3. What location or neighborhood do I prefer?
-
-IMPORTANT: Focus on the SPECIFIC topic mentioned in the query. Don't ask generic questions!
+IMPORTANT: ALWAYS include the main topic in each sub-prompt!
 
 Output ONLY a JSON array of strings.`
     });
 
-    const prompt = `Decompose this into 2-5 focused sub-questions:
+    const prompt = `You are a prompt decomposition expert. Decompose user requests into 2-5 focused sub-prompts for data retrieval.
 
+CRITICAL RULES:
+- Each sub-prompt MUST include the main topic from the original request
+- Start with action verbs: "Find", "Get", "Show"
+- Keep context-specific, not generic
+
+Examples:
+
+Input: "Recommend sneakers for daily use"
+Output: ["Find sneakers for daily use matching my activity level", "Find sneakers for daily use within my budget", "Find sneakers for daily use in my preferred style"]
+
+Input: "Best laptop for my work"
+Output: ["Find laptops suitable for my profession", "Find laptops within my budget", "Find laptops with my preferred specifications"]
+
+Input: "I am looking for a new mobile phone"
+Output: ["Find mobile phones within my budget", "Find mobile phones with my preferred features", "Find mobile phones for my primary use cases"]
+
+Now decompose this request:
 "${promptText}"
 
-Return ONLY a JSON array: ["question 1", "question 2", ...]`;
+Return ONLY a JSON array of 2-5 sub-prompts: ["prompt 1", "prompt 2", ...]`;
 
-    console.log('[Context Selector] Asking AI to decompose prompt...');
+    console.log('[Context Selector] Asking AI to decompose into sub-prompts...');
 
     const response = await session.prompt(prompt);
     await session.destroy();
@@ -1741,21 +1751,21 @@ Return ONLY a JSON array: ["question 1", "question 2", ...]`;
       const jsonStr = cleaned.substring(firstBracket, lastBracket + 1);
       console.log('[Context Selector] Extracted JSON string:', jsonStr);
 
-      const questions = JSON.parse(jsonStr);
+      const subPrompts = JSON.parse(jsonStr);
 
       // Validate: must be array of strings, 2-5 items
-      if (Array.isArray(questions) &&
-          questions.length >= 2 &&
-          questions.length <= 5 &&
-          questions.every(q => typeof q === 'string')) {
-        console.log('[Context Selector] ✓ Decomposed into', questions.length, 'sub-questions:', questions);
-        return questions;
+      if (Array.isArray(subPrompts) &&
+          subPrompts.length >= 2 &&
+          subPrompts.length <= 5 &&
+          subPrompts.every(p => typeof p === 'string')) {
+        console.log('[Context Selector] ✓ Decomposed into', subPrompts.length, 'sub-prompts:', subPrompts);
+        return subPrompts;
       } else {
         console.warn('[Context Selector] Invalid decomposition format - not an array of 2-5 strings:', {
-          isArray: Array.isArray(questions),
-          length: questions?.length,
-          allStrings: Array.isArray(questions) ? questions.every(q => typeof q === 'string') : false,
-          questions
+          isArray: Array.isArray(subPrompts),
+          length: subPrompts?.length,
+          allStrings: Array.isArray(subPrompts) ? subPrompts.every(p => typeof p === 'string') : false,
+          subPrompts
         });
         return [];
       }
@@ -1840,6 +1850,8 @@ async function mergeGemResults(subQueryResults, maxGems, originalQuery = null, p
   })));
 
   // CONSTRAINT VALIDATION: Ensure critical constraints are included for shopping queries
+  // DISABLED: AI-scoring should already prioritize important constraints
+  /*
   if (originalQuery) {
     const queryIntent = await analyzeQueryIntent(originalQuery);
 
@@ -1896,6 +1908,7 @@ async function mergeGemResults(subQueryResults, maxGems, originalQuery = null, p
       }
     }
   }
+  */
 
   // NEW APPROACH: Group gems by sub-question instead of flattening
   // This preserves the logical structure and shows which gems answer which sub-questions
@@ -2003,6 +2016,8 @@ async function optimizePromptWithContext(promptText, profile, useAI = true, maxG
     logTiming('Get categories');
 
     // STEP 1: Analyze intent ONCE before decomposition
+    // DISABLED FOR TESTING: Intent analysis not needed with AI-scoring (saves ~1.2s)
+    /*
     const queryIntent = await analyzeQueryIntent(promptText, availableCategories);
     console.log('[Context Selector] Pre-analyzed query intent:', {
       type: queryIntent.type,
@@ -2010,13 +2025,16 @@ async function optimizePromptWithContext(promptText, profile, useAI = true, maxG
       availableCategories: availableCategories.join(', ')
     });
     logTiming('Intent analysis');
+    */
+    const queryIntent = null; // Skip intent analysis
+    console.log('[Context Selector] ⚡ Skipping intent analysis - AI-scoring will handle relevance');
 
-    // STEP 2: Decompose into sub-questions (ALWAYS)
-    const subQuestions = await decomposePromptIntoSubQuestions(promptText);
+    // STEP 2: Decompose into sub-prompts (ALWAYS)
+    const subQuestions = await decomposeIntoSubPrompts(promptText);
     logTiming('Decomposition');
 
     if (subQuestions.length < 2) {
-      console.log('[Context Selector] Decomposition failed or returned <2 questions, falling back to single-query');
+      console.log('[Context Selector] Decomposition failed or returned <2 prompts, falling back to single-query');
       // Fallback to single-query
       if (window.ContextEngineAPI?.isReady) {
         return await singleQueryWithContextEngine(promptText, queryIntent, maxGems);
@@ -2025,7 +2043,7 @@ async function optimizePromptWithContext(promptText, profile, useAI = true, maxG
       }
     }
 
-    console.log('[Context Selector] Decomposed into', subQuestions.length, 'sub-questions');
+    console.log('[Context Selector] Decomposed into', subQuestions.length, 'sub-prompts');
 
     // STEP 3: For EACH sub-question - search with Context Engine v2 or legacy
     let subQueryResults;
@@ -2033,21 +2051,25 @@ async function optimizePromptWithContext(promptText, profile, useAI = true, maxG
     if (window.ContextEngineAPI?.isReady) {
       // OPTIMIZATION: Batch category detection for all sub-questions in one AI call
       // This reduces N sequential AI calls to 1 batch call, saving ~75% of category detection time
+      // DISABLED FOR TESTING: Testing performance without category detection (100 gems = fast enough)
+      /*
       console.log('[Context Selector] 🚀 Batch-detecting categories for all sub-questions...');
       const batchCategoryResults = await selectRelevantCategoriesForSubQuestionsBatch(
         subQuestions,
         availableCategories
       );
       logTiming('Batch category detection');
+      */
 
-      // Use Context Engine v2 for each sub-question with pre-computed categories
+      // Use Context Engine v2 for each sub-question WITHOUT category filtering
+      console.log('[Context Selector] 🚀 Skipping category detection - searching all gems with vector search');
       subQueryResults = await Promise.all(
         subQuestions.map((subQ, index) => searchSubQuestionWithContextEngine(
           subQ,
           queryIntent,
           Math.ceil(maxGems / 1.5),
           promptText,
-          batchCategoryResults[index] // Pass pre-computed categories
+          null // No pre-computed categories - search all gems
         ))
       );
     } else {
@@ -2062,17 +2084,17 @@ async function optimizePromptWithContext(promptText, profile, useAI = true, maxG
       );
     }
 
-    console.log('[Context Selector] Sub-query results:', subQueryResults.map((r, i) =>
-      `Q${i + 1}: ${r.length} gems`
+    console.log('[Context Selector] Sub-prompt search results:', subQueryResults.map((r, i) =>
+      `P${i + 1}: ${r.length} gems`
     ).join(', '));
-    logTiming('Sub-query searches (parallel)');
+    logTiming('Sub-prompt searches (parallel)');
 
-    // STEP 4: Merge results from all sub-questions (preserves structure)
+    // STEP 4: Merge results from all sub-prompts (preserves structure)
     const gemsBySubQuestion = await mergeGemResults(subQueryResults, maxGems, promptText, profile);
     logTiming('Merge results');
 
     const totalGems = gemsBySubQuestion.reduce((sum, gems) => sum + gems.length, 0);
-    console.log('[Context Selector] ✓ Fan-out complete: Selected', totalGems, 'gems across', subQuestions.length, 'sub-questions');
+    console.log('[Context Selector] ✓ Fan-out complete: Selected', totalGems, 'gems across', subQuestions.length, 'sub-prompts');
 
     // Format with sub-question structure
     const result = formatPromptWithSubQuestions(promptText, subQuestions, gemsBySubQuestion);
@@ -2157,10 +2179,27 @@ Example for 3 items: [[10], [7], [2]]`;
         throw new Error('Invalid AI response format');
       }
 
-      // Validate scores array length
-      if (!Array.isArray(scores) || scores.length !== batch.length) {
-        console.error(`[Context Selector] Score count mismatch. Expected ${batch.length}, got ${scores?.length}`);
-        throw new Error(`Expected ${batch.length} scores, got ${scores?.length}`);
+      // Validate scores array format
+      if (!Array.isArray(scores)) {
+        console.error(`[Context Selector] Invalid scores format - not an array`);
+        throw new Error('Invalid AI response format');
+      }
+
+      // Handle mismatch by truncating or padding (AI sometimes returns wrong count)
+      if (scores.length !== batch.length) {
+        console.warn(`[Context Selector] ⚠️ Score count mismatch. Expected ${batch.length}, got ${scores.length}. Adjusting...`);
+
+        if (scores.length > batch.length) {
+          // Too many scores - truncate to match batch size
+          scores = scores.slice(0, batch.length);
+          console.log(`[Context Selector] ✂️ Truncated to ${batch.length} scores`);
+        } else {
+          // Too few scores - pad with default middle score
+          while (scores.length < batch.length) {
+            scores.push(5); // Default middle score (not great, not terrible)
+          }
+          console.log(`[Context Selector] 📝 Padded to ${batch.length} scores with defaults`);
+        }
       }
 
       // Assign scores to gems
@@ -2174,7 +2213,8 @@ Example for 3 items: [[10], [7], [2]]`;
           baseScore = 0;
         }
 
-        // Apply semantic type boosting
+        // DISABLED: No semantic type boosting - AI score is sufficient
+        /*
         let finalScore = baseScore;
         if (queryIntent?.requiredSemanticTypes?.includes(gem.semanticType)) {
           const boosts = { constraint: 6, preference: 5, characteristic: 1 };
@@ -2185,11 +2225,12 @@ Example for 3 items: [[10], [7], [2]]`;
             console.log(`[Context Selector] 📈 AI+Boost: ${baseScore} → ${finalScore} (+${boost}) | "${gem.value.substring(0, 50)}..."`);
           }
         }
+        */
 
         scoredGems.push({
           ...gem,
           aiScore: baseScore,
-          score: finalScore
+          score: baseScore  // Use AI score directly without boosting
         });
       }
 
@@ -2214,9 +2255,12 @@ Example for 3 items: [[10], [7], [2]]`;
  */
 async function searchSubQuestionWithContextEngine(subQuestion, queryIntent, limit, originalQuery, precomputedCategories = null) {
   try {
-    let selectedCategories;
+    let selectedCategories = [];
 
-    if (precomputedCategories) {
+    if (precomputedCategories === null) {
+      // NO CATEGORY DETECTION - Search all gems (optimized for <500 gems)
+      console.log(`[Context Selector] 🎯 No category filtering for "${subQuestion.substring(0, 50)}..." - searching all gems`);
+    } else if (precomputedCategories) {
       // Use pre-computed categories from batch call (optimization)
       selectedCategories = precomputedCategories
         .filter(item => item.score >= 7)
@@ -2239,9 +2283,12 @@ async function searchSubQuestionWithContextEngine(subQuestion, queryIntent, limi
 
     // Build filters
     const filters = {};
-    if (queryIntent.requiredSemanticTypes?.length > 0) {
+    // DISABLED: No semantic type filtering - AI-scoring handles relevance
+    /*
+    if (queryIntent?.requiredSemanticTypes?.length > 0) {
       filters.semanticTypes = queryIntent.requiredSemanticTypes;
     }
+    */
     if (selectedCategories.length > 0) {
       filters.collections = selectedCategories;
     }
@@ -2335,7 +2382,7 @@ if (typeof module !== 'undefined' && module.exports) {
     formatPromptWithContext,
     optimizePromptWithContext,
     shouldDecomposePrompt,
-    decomposePromptIntoSubQuestions,
+    decomposeIntoSubPrompts,
     mergeGemResults
   };
 }
