@@ -579,6 +579,25 @@ Respond with JSON only:`;
           }));
         }
 
+        // Format 2: String format "Category (score)"
+        if (items.length > 0 && typeof items[0] === 'string') {
+          items = items.map(str => {
+            // Match pattern: "Category (score)" or "Category(score)"
+            const match = str.match(/^(.+?)\s*\((\d+)\)$/);
+            if (match) {
+              return {
+                category: match[1].trim(),
+                score: parseInt(match[2], 10)
+              };
+            }
+            // Fallback: just category name without score
+            return {
+              category: str.trim(),
+              score: 8 // Default score
+            };
+          });
+        }
+
         const validated = items
           .filter(item => {
             const hasCategory = item && typeof item.category === 'string';
@@ -2071,6 +2090,120 @@ async function optimizePromptWithContext(promptText, profile, useAI = true, maxG
 }
 
 /**
+ * Score gems with AI for relevance to a query
+ * Used after Context Engine search to validate semantic matches
+ * @param {string} query - The query to score against
+ * @param {Array} gems - Gems to score
+ * @param {Object} queryIntent - Intent with semantic types for boosting
+ * @returns {Promise<Array>} Gems with AI scores
+ */
+async function scoreGemsWithAIAfterSearch(query, gems, queryIntent) {
+  if (gems.length === 0) return [];
+
+  const scoredGems = [];
+  const BATCH_SIZE = 10;
+  const totalBatches = Math.ceil(gems.length / BATCH_SIZE);
+
+  console.log(`[Context Selector] 🎯 AI-scoring ${gems.length} Context Engine results in ${totalBatches} batches`);
+
+  for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+    const startIdx = batchIndex * BATCH_SIZE;
+    const endIdx = Math.min(startIdx + BATCH_SIZE, gems.length);
+    const batch = gems.slice(startIdx, endIdx);
+
+    try {
+      // Build batch prompt
+      const gemsList = batch.map((gem, i) => {
+        const shortValue = gem.value.substring(0, 150).replace(/\n/g, ' ');
+        return `${i + 1}. "${shortValue}"`;
+      }).join('\n\n');
+
+      const prompt = `Rate how relevant each data point is to this query: "${query}"
+
+Data points:
+${gemsList}
+
+For each data point, assign a relevance score from 0-10:
+- 10 = Directly answers the question
+- 7-9 = Highly relevant context
+- 4-6 = Somewhat related
+- 0-3 = Not relevant
+
+Return ONLY a JSON array of arrays with scores (no text):
+[[score1], [score2], ...]
+
+Example for 3 items: [[10], [7], [2]]`;
+
+      // Use LanguageModel directly (same as other parts of this file)
+      const session = await LanguageModel.create({
+        language: 'en'
+      });
+      const aiResponse = await session.prompt(prompt);
+      session.destroy();
+
+      // Extract JSON from markdown code block if present
+      let jsonString = aiResponse.trim();
+      const jsonMatch = jsonString.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
+      if (jsonMatch) {
+        jsonString = jsonMatch[1];
+      }
+
+      // Parse scores with error handling
+      let scores;
+      try {
+        scores = JSON.parse(jsonString);
+      } catch (parseError) {
+        console.error(`[Context Selector] Failed to parse AI scores:`, aiResponse);
+        throw new Error('Invalid AI response format');
+      }
+
+      // Validate scores array length
+      if (!Array.isArray(scores) || scores.length !== batch.length) {
+        console.error(`[Context Selector] Score count mismatch. Expected ${batch.length}, got ${scores?.length}`);
+        throw new Error(`Expected ${batch.length} scores, got ${scores?.length}`);
+      }
+
+      // Assign scores to gems
+      for (let i = 0; i < batch.length; i++) {
+        const gem = batch[i];
+        let baseScore = Array.isArray(scores[i]) ? scores[i][0] : scores[i];
+
+        // Validate score is a number
+        if (typeof baseScore !== 'number' || baseScore < 0 || baseScore > 10) {
+          console.warn(`[Context Selector] Invalid score ${baseScore} for gem ${i}, using 0`);
+          baseScore = 0;
+        }
+
+        // Apply semantic type boosting
+        let finalScore = baseScore;
+        if (queryIntent?.requiredSemanticTypes?.includes(gem.semanticType)) {
+          const boosts = { constraint: 6, preference: 5, characteristic: 1 };
+          const boost = boosts[gem.semanticType] || 0;
+          finalScore = baseScore + boost;
+
+          if (boost > 0 && baseScore >= 7) {
+            console.log(`[Context Selector] 📈 AI+Boost: ${baseScore} → ${finalScore} (+${boost}) | "${gem.value.substring(0, 50)}..."`);
+          }
+        }
+
+        scoredGems.push({
+          ...gem,
+          aiScore: baseScore,
+          score: finalScore
+        });
+      }
+
+    } catch (error) {
+      console.error(`[Context Selector] Error scoring batch ${batchIndex + 1}:`, error);
+      // Add gems with score 0 on error
+      batch.forEach(gem => scoredGems.push({ ...gem, aiScore: 0, score: 0 }));
+    }
+  }
+
+  return scoredGems;
+}
+
+/**
  * Search a sub-question using Context Engine v2
  * Includes category detection, filtering, and diversity
  * @param {string} subQuestion - The sub-question to search
@@ -2114,13 +2247,14 @@ async function searchSubQuestionWithContextEngine(subQuestion, queryIntent, limi
     }
 
     // Search Context Engine v2 with diversity enabled
+    // Get 2x limit for AI filtering (vector search returns semantically similar, not necessarily relevant)
     const results = await window.ContextEngineAPI.search(
       subQuestion,
       filters,
-      limit
+      limit * 2
     );
 
-    // Convert to plain objects (Context Engine returns plain objects already in content scripts)
+    // Convert to plain objects
     const plainGems = results.map(gem => ({
       id: gem.id,
       value: gem.value,
@@ -2128,11 +2262,22 @@ async function searchSubQuestionWithContextEngine(subQuestion, queryIntent, limi
       subCollections: gem.subCollections || [],
       semanticType: gem.semanticType,
       keywords: gem.keywords,
-      score: gem.score,
+      vectorScore: gem.score,  // Keep vector similarity score
       state: 'default'
     }));
 
-    return plainGems;
+    // AI-score for actual relevance validation
+    const scoredGems = await scoreGemsWithAIAfterSearch(subQuestion, plainGems, queryIntent);
+
+    // Filter by AI score threshold (>=7) and limit
+    const relevantGems = scoredGems
+      .filter(gem => gem.score >= 7)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit);
+
+    console.log(`[Context Selector] 🎯 AI-filtered: ${results.length} → ${relevantGems.length} gems (threshold ≥7)`);
+
+    return relevantGems;
 
   } catch (error) {
     console.error('[Context Selector] Error searching sub-question with Context Engine:', error);
@@ -2193,4 +2338,35 @@ if (typeof module !== 'undefined' && module.exports) {
     decomposePromptIntoSubQuestions,
     mergeGemResults
   };
+}
+
+// Expose main function globally for content scripts
+console.log('[Context Selector] Initializing optimizePromptWithContext...');
+try {
+  window.optimizePromptWithContext = optimizePromptWithContext;
+  window.dataGemsShared = window.dataGemsShared || {};
+  window.dataGemsShared.optimizePromptWithContext = optimizePromptWithContext;
+  console.log('[Context Selector] ✓ optimizePromptWithContext initialized successfully');
+
+  // Create bridge for ISOLATED world scripts to call MAIN world functions
+  document.addEventListener('dataGems:optimizePrompt', async (event) => {
+    console.log('[Context Selector] Bridge: Received optimization request');
+    try {
+      const { promptText, profile, useAI, maxGems, requestId } = event.detail;
+      const result = await optimizePromptWithContext(promptText, profile, useAI, maxGems);
+
+      // Send result back
+      document.dispatchEvent(new CustomEvent('dataGems:optimizePrompt:result', {
+        detail: { requestId, result }
+      }));
+    } catch (error) {
+      console.error('[Context Selector] Bridge: Optimization failed:', error);
+      document.dispatchEvent(new CustomEvent('dataGems:optimizePrompt:error', {
+        detail: { requestId, error: error.message }
+      }));
+    }
+  });
+  console.log('[Context Selector] ✓ Event bridge initialized');
+} catch (error) {
+  console.error('[Context Selector] ✗ Failed to initialize:', error);
 }

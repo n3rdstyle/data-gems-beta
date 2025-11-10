@@ -309,10 +309,18 @@ DO NOT add any explanation, markdown, or extra text. ONLY the JSON array.`
   }
 }
 
-// Create singleton instance
-const aiHelper = new AIHelper();
+// Create singleton instance and expose globally for content scripts
+console.log('[AI Helper] Initializing aiHelper...');
+try {
+  window.aiHelper = new AIHelper();
+  window.dataGemsShared = window.dataGemsShared || {};
+  window.dataGemsShared.aiHelper = window.aiHelper;
+  console.log('[AI Helper] ✓ aiHelper initialized successfully');
+} catch (error) {
+  console.error('[AI Helper] ✗ Failed to initialize aiHelper:', error);
+}
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { AIHelper, aiHelper };
+  module.exports = { AIHelper, aiHelper: window.aiHelper };
 }

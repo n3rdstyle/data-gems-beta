@@ -7,6 +7,47 @@
 (function() {
 'use strict';
 
+// Bridge wrapper for MAIN world function
+// Since this script runs in ISOLATED world and optimizePromptWithContext is in MAIN world,
+// we use Custom Events to communicate between worlds
+function optimizePromptWithContext(promptText, profile, useAI, maxGems) {
+  return new Promise((resolve, reject) => {
+    const requestId = `opt_${Date.now()}_${Math.random()}`;
+
+    // Set up listeners for result
+    const resultHandler = (event) => {
+      if (event.detail.requestId === requestId) {
+        document.removeEventListener('dataGems:optimizePrompt:result', resultHandler);
+        document.removeEventListener('dataGems:optimizePrompt:error', errorHandler);
+        resolve(event.detail.result);
+      }
+    };
+
+    const errorHandler = (event) => {
+      if (event.detail.requestId === requestId) {
+        document.removeEventListener('dataGems:optimizePrompt:result', resultHandler);
+        document.removeEventListener('dataGems:optimizePrompt:error', errorHandler);
+        reject(new Error(event.detail.error));
+      }
+    };
+
+    document.addEventListener('dataGems:optimizePrompt:result', resultHandler);
+    document.addEventListener('dataGems:optimizePrompt:error', errorHandler);
+
+    // Send request to MAIN world
+    document.dispatchEvent(new CustomEvent('dataGems:optimizePrompt', {
+      detail: { promptText, profile, useAI, maxGems, requestId }
+    }));
+
+    // Timeout after 60 seconds
+    setTimeout(() => {
+      document.removeEventListener('dataGems:optimizePrompt:result', resultHandler);
+      document.removeEventListener('dataGems:optimizePrompt:error', errorHandler);
+      reject(new Error('Optimization timeout'));
+    }, 60000);
+  });
+}
+
 // Configuration
 // N8N_WEBHOOK_URL - Commented out, using local optimization instead
 // const N8N_WEBHOOK_URL = 'https://n3rdstyle.app.n8n.cloud/webhook/ea6a32cc-72a6-4183-bacc-c5c2746ebca9';

@@ -6,6 +6,11 @@
  * but routes all calls through chrome.runtime.sendMessage to the background worker.
  */
 
+// Create shared global object for all content scripts
+if (!window.dataGemsShared) {
+  window.dataGemsShared = {};
+}
+
 window.ContextEngineAPI = {
   isReady: false,
   isInitializing: false,
@@ -123,5 +128,63 @@ window.ContextEngineAPI = {
     console.error('[ContextEngineAPI] Auto-initialization failed:', error);
   }
 })();
+
+// Bridge for MAIN world requests
+document.addEventListener('dataGems:contextEngine:request', async (event) => {
+  const { action, params, requestId } = event.detail;
+  console.log('[ContextEngineAPI] Bridge: Received request from MAIN world:', action);
+
+  try {
+    let result;
+
+    switch (action) {
+      case 'initialize':
+        // Wait for Context Engine to be ready (max 10 seconds)
+        if (!window.ContextEngineAPI.isReady) {
+          console.log('[ContextEngineAPI] Bridge: Waiting for Context Engine to initialize...');
+          const startTime = Date.now();
+          while (!window.ContextEngineAPI.isReady && (Date.now() - startTime) < 10000) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+        }
+        result = { isReady: window.ContextEngineAPI.isReady };
+        console.log('[ContextEngineAPI] Bridge: Returning isReady:', result.isReady);
+        break;
+
+      case 'search':
+        result = await window.ContextEngineAPI.search(
+          params.query,
+          params.filters,
+          params.limit
+        );
+        break;
+
+      case 'getAllGems':
+        result = await window.ContextEngineAPI.getAllGems(params.filters);
+        break;
+
+      case 'getGem':
+        result = await window.ContextEngineAPI.getGem(params.id);
+        break;
+
+      case 'getStats':
+        result = await window.ContextEngineAPI.getStats();
+        break;
+
+      default:
+        throw new Error(`Unknown action: ${action}`);
+    }
+
+    // Send result back to MAIN world
+    document.dispatchEvent(new CustomEvent('dataGems:contextEngine:result', {
+      detail: { requestId, result }
+    }));
+  } catch (error) {
+    console.error('[ContextEngineAPI] Bridge: Request failed:', error);
+    document.dispatchEvent(new CustomEvent('dataGems:contextEngine:error', {
+      detail: { requestId, error: error.message }
+    }));
+  }
+});
 
 console.log('[ContextEngineAPI] Message passing wrapper loaded');
