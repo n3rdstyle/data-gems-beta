@@ -1659,147 +1659,98 @@ async function mergeGemResults(subQueryResults, maxGems, originalQuery = null, p
  */
 async function optimizePromptWithContext(promptText, profile, useAI = true, maxGems = 5) {
   try {
-    // Try Context Engine v2 first (100x faster!)
-    if (window.ContextEngineAPI?.isReady) {
-      console.log('[Context Selector] 🚀 Using Context Engine v2 hybrid search');
-
-      try {
-        // Analyze query intent for semantic filtering
-        const availableCategories = [...new Set(
-          (await window.ContextEngineAPI.getAllGems())
-            .flatMap(gem => {
-              const gemData = gem.toJSON ? gem.toJSON() : gem;
-              return gemData.collections || gemData._data?.collections || [];
-            })
-            .filter(Boolean)
-        )];
-
-        const queryIntent = await analyzeQueryIntent(promptText, availableCategories);
-
-        // Build filters based on intent
-        const filters = {};
-        if (queryIntent.requiredSemanticTypes?.length > 0) {
-          filters.semanticTypes = queryIntent.requiredSemanticTypes;
-        }
-        if (queryIntent.domain) {
-          filters.collections = [queryIntent.domain];
-        }
-
-        console.log('[Context Selector] Searching with filters:', filters);
-
-        // Hybrid search with Context Engine v2
-        const selectedGems = await window.ContextEngineAPI.search(
-          promptText,
-          filters,
-          maxGems
-        );
-
-        console.log('[Context Selector] Context Engine v2 returned', selectedGems.length, 'gems');
-
-        if (selectedGems.length > 0) {
-          // Convert RxDB documents to plain objects if needed
-          const plainGems = selectedGems.map(gem => {
-            const gemData = gem.toJSON ? gem.toJSON() : gem;
-            return {
-              id: gemData.id || gemData._data?.id,
-              value: gemData.value || gemData._data?.value,
-              collections: gemData.collections || gemData._data?.collections,
-              subCollections: gemData.subCollections || gemData._data?.subCollections,
-              semanticType: gemData.semanticType || gemData._data?.semanticType,
-              state: 'default'  // Context Engine doesn't store state
-            };
-          });
-
-          return formatPromptWithContext(promptText, plainGems);
-        }
-
-        console.log('[Context Selector] No results from Context Engine v2, falling back to legacy method');
-      } catch (error) {
-        console.error('[Context Selector] Context Engine v2 error, falling back to legacy method:', error);
-      }
-    } else {
-      console.log('[Context Selector] Context Engine v2 not ready, using legacy method');
-    }
-
-    // Fallback: Legacy method (original implementation)
-    console.log('[Context Selector] Using legacy selection method');
-
-    // Extract data gems from profile + enrich with basic info
-    const dataGems = enrichGemsWithBasicInfo(profile);
-
-    // Filter out hidden items
-    const visibleGems = dataGems.filter(gem => gem.state !== 'hidden');
-
-    if (visibleGems.length === 0) {
-      console.log('[Context Selector] No visible data gems found');
-      return promptText;
-    }
-
-    console.log('[Context Selector] Analyzing', visibleGems.length, 'data gems');
-
-    // ALWAYS use fan-out decomposition (no complexity check)
+    // Check if we should use AI and decomposition
     const shouldUseFanOut = useAI && typeof LanguageModel !== 'undefined';
 
-    if (shouldUseFanOut) {
-      console.log('[Context Selector] 🔀 Using Question Decomposition Fan-Out (always-on mode)');
+    if (!shouldUseFanOut) {
+      console.log('[Context Selector] AI not available, using keyword-based selection');
+      const dataGems = enrichGemsWithBasicInfo(profile);
+      const visibleGems = dataGems.filter(gem => gem.state !== 'hidden');
+      const selectedGems = selectRelevantGemsByKeywords(promptText, visibleGems, maxGems);
+      return formatPromptWithContext(promptText, selectedGems);
+    }
 
-      // Extract available categories from gems for intent detection
-      const availableCategories = [...new Set(
-        visibleGems
+    // ALWAYS use decomposition with Context Engine v2 or legacy method
+    console.log('[Context Selector] 🔀 Using Question Decomposition Fan-Out (always-on mode)');
+
+    // Get available categories
+    let availableCategories;
+    if (window.ContextEngineAPI?.isReady) {
+      console.log('[Context Selector] 🚀 Using Context Engine v2 as data source');
+      // Get categories from Context Engine
+      const allGems = await window.ContextEngineAPI.getAllGems();
+      availableCategories = [...new Set(
+        allGems
           .flatMap(gem => gem.collections || [])
           .filter(Boolean)
       )];
+    } else {
+      console.log('[Context Selector] Context Engine v2 not ready, using legacy data source');
+      // Get categories from profile
+      const dataGems = enrichGemsWithBasicInfo(profile);
+      availableCategories = [...new Set(
+        dataGems
+          .flatMap(gem => gem.collections || [])
+          .filter(Boolean)
+      )];
+    }
 
-      // OPTIMIZATION: Analyze intent ONCE before decomposition (not per sub-query)
-      const queryIntent = await analyzeQueryIntent(promptText, availableCategories);
-      console.log('[Context Selector] Pre-analyzed query intent:', {
-        type: queryIntent.type,
-        domain: queryIntent.domain,
-        availableCategories: availableCategories.join(', ')
-      });
+    // STEP 1: Analyze intent ONCE before decomposition
+    const queryIntent = await analyzeQueryIntent(promptText, availableCategories);
+    console.log('[Context Selector] Pre-analyzed query intent:', {
+      type: queryIntent.type,
+      domain: queryIntent.domain,
+      availableCategories: availableCategories.join(', ')
+    });
 
-      // Decompose into sub-questions
-      const subQuestions = await decomposePromptIntoSubQuestions(promptText);
+    // STEP 2: Decompose into sub-questions (ALWAYS)
+    const subQuestions = await decomposePromptIntoSubQuestions(promptText);
 
-      if (subQuestions.length >= 2) {
-        console.log('[Context Selector] Decomposed into', subQuestions.length, 'sub-questions');
-
-        // Run each sub-question through existing pipeline IN PARALLEL
-        // IMPORTANT: Pass original query so scoring AI knows the full context
-        // IMPORTANT: Pass isSubQuery=true to disable semantic expansion (use direct category matches only)
-        // IMPORTANT: Pass queryIntent to avoid re-analyzing intent 5 times
-        const subQueryResults = await Promise.all(
-          subQuestions.map(subQ =>
-            selectRelevantGemsWithAI(subQ, visibleGems, Math.ceil(maxGems / 1.5), profile, promptText, true, queryIntent)
-          )
-        );
-
-        console.log('[Context Selector] Sub-query results:', subQueryResults.map((r, i) =>
-          `Q${i + 1}: ${r.length} gems`
-        ).join(', '));
-
-        // Merge results with smart deduplication and diversity
-        const selectedGems = await mergeGemResults(subQueryResults, maxGems, promptText, profile);
-
-        console.log('[Context Selector] ✓ Fan-out complete: Selected', selectedGems.length, 'unique gems');
-
-        // Format and return
-        return formatPromptWithContext(promptText, selectedGems);
+    if (subQuestions.length < 2) {
+      console.log('[Context Selector] Decomposition failed or returned <2 questions, falling back to single-query');
+      // Fallback to single-query
+      if (window.ContextEngineAPI?.isReady) {
+        return await singleQueryWithContextEngine(promptText, queryIntent, maxGems);
       } else {
-        console.log('[Context Selector] Decomposition failed or returned <2 questions, falling back to single-query');
+        return await singleQueryLegacy(promptText, profile, maxGems);
       }
     }
 
-    // Fallback: Use single-query approach (original behavior)
-    console.log('[Context Selector] Using single-query approach');
-    let selectedGems;
-    if (useAI && typeof LanguageModel !== 'undefined') {
-      selectedGems = await selectRelevantGemsWithAI(promptText, visibleGems, maxGems, profile);
+    console.log('[Context Selector] Decomposed into', subQuestions.length, 'sub-questions');
+
+    // STEP 3: For EACH sub-question - search with Context Engine v2 or legacy
+    let subQueryResults;
+
+    if (window.ContextEngineAPI?.isReady) {
+      // Use Context Engine v2 for each sub-question
+      subQueryResults = await Promise.all(
+        subQuestions.map(subQ => searchSubQuestionWithContextEngine(
+          subQ,
+          queryIntent,
+          Math.ceil(maxGems / 1.5),
+          promptText
+        ))
+      );
     } else {
-      selectedGems = selectRelevantGemsByKeywords(promptText, visibleGems, maxGems);
+      // Use legacy method for each sub-question
+      const dataGems = enrichGemsWithBasicInfo(profile);
+      const visibleGems = dataGems.filter(gem => gem.state !== 'hidden');
+
+      subQueryResults = await Promise.all(
+        subQuestions.map(subQ =>
+          selectRelevantGemsWithAI(subQ, visibleGems, Math.ceil(maxGems / 1.5), profile, promptText, true, queryIntent)
+        )
+      );
     }
 
-    console.log('[Context Selector] Selected', selectedGems.length, 'relevant gems');
+    console.log('[Context Selector] Sub-query results:', subQueryResults.map((r, i) =>
+      `Q${i + 1}: ${r.length} gems`
+    ).join(', '));
+
+    // STEP 4: Merge results from all sub-questions
+    const selectedGems = await mergeGemResults(subQueryResults, maxGems, promptText, profile);
+
+    console.log('[Context Selector] ✓ Fan-out complete: Selected', selectedGems.length, 'unique gems');
 
     // Format and return
     return formatPromptWithContext(promptText, selectedGems);
@@ -1809,6 +1760,99 @@ async function optimizePromptWithContext(promptText, profile, useAI = true, maxG
     return promptText; // Return original on error
   }
 }
+
+/**
+ * Search a sub-question using Context Engine v2
+ * Includes category detection, filtering, and diversity
+ */
+async function searchSubQuestionWithContextEngine(subQuestion, queryIntent, limit, originalQuery) {
+  try {
+    // Get all categories from Context Engine
+    const allGems = await window.ContextEngineAPI.getAllGems();
+    const availableCategories = [...new Set(
+      allGems.flatMap(gem => gem.collections || []).filter(Boolean)
+    )];
+
+    // Detect relevant categories for this sub-question
+    const categoryResults = await selectRelevantCategoriesWithAI(subQuestion, availableCategories);
+    const selectedCategories = categoryResults
+      .filter(item => item.score >= 7)
+      .map(item => item.category);
+
+    console.log(`[Context Selector] Sub-question "${subQuestion.substring(0, 50)}..." → Categories:`, selectedCategories);
+
+    // Build filters
+    const filters = {};
+    if (queryIntent.requiredSemanticTypes?.length > 0) {
+      filters.semanticTypes = queryIntent.requiredSemanticTypes;
+    }
+    if (selectedCategories.length > 0) {
+      filters.collections = selectedCategories;
+    }
+
+    // Search Context Engine v2 with diversity enabled
+    const results = await window.ContextEngineAPI.search(
+      subQuestion,
+      filters,
+      limit
+    );
+
+    // Convert to plain objects (Context Engine returns plain objects already in content scripts)
+    const plainGems = results.map(gem => ({
+      id: gem.id,
+      value: gem.value,
+      collections: gem.collections || [],
+      subCollections: gem.subCollections || [],
+      semanticType: gem.semanticType,
+      keywords: gem.keywords,
+      score: gem.score,
+      state: 'default'
+    }));
+
+    return plainGems;
+
+  } catch (error) {
+    console.error('[Context Selector] Error searching sub-question with Context Engine:', error);
+    return [];
+  }
+}
+
+/**
+ * Single query fallback with Context Engine v2
+ */
+async function singleQueryWithContextEngine(promptText, queryIntent, maxGems) {
+  const filters = {};
+  if (queryIntent.requiredSemanticTypes?.length > 0) {
+    filters.semanticTypes = queryIntent.requiredSemanticTypes;
+  }
+  if (queryIntent.domain) {
+    filters.collections = [queryIntent.domain];
+  }
+
+  const results = await window.ContextEngineAPI.search(promptText, filters, maxGems);
+
+  const plainGems = results.map(gem => ({
+    id: gem.id,
+    value: gem.value,
+    collections: gem.collections || [],
+    subCollections: gem.subCollections || [],
+    semanticType: gem.semanticType,
+    state: 'default'
+  }));
+
+  return formatPromptWithContext(promptText, plainGems);
+}
+
+/**
+ * Single query fallback with legacy method
+ */
+async function singleQueryLegacy(promptText, profile, maxGems) {
+  const dataGems = enrichGemsWithBasicInfo(profile);
+  const visibleGems = dataGems.filter(gem => gem.state !== 'hidden');
+  const selectedGems = await selectRelevantGemsWithAI(promptText, visibleGems, maxGems, profile);
+  return formatPromptWithContext(promptText, selectedGems);
+}
+
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
