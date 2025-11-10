@@ -5,10 +5,10 @@
  * Sets up RxDB with IndexedDB backend and Vector plugin for semantic search
  */
 
-import { createRxDatabase, addRxPlugin } from 'rxdb';
-import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
-import { RxDBDevModePlugin } from 'rxdb/plugins/dev-mode';
-import { RxDBQueryBuilderPlugin } from 'rxdb/plugins/query-builder';
+import { createRxDatabase, addRxPlugin } from '../node_modules/rxdb/dist/esm/index.js';
+import { getRxStorageDexie } from '../node_modules/rxdb/dist/esm/plugins/storage-dexie/index.js';
+import { RxDBDevModePlugin } from '../node_modules/rxdb/dist/esm/plugins/dev-mode/index.js';
+import { RxDBQueryBuilderPlugin } from '../node_modules/rxdb/dist/esm/plugins/query-builder/index.js';
 
 // Add plugins (dev mode only in development)
 if (process.env.NODE_ENV === 'development') {
