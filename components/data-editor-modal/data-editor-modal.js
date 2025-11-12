@@ -34,7 +34,8 @@ function createDataEditorModal(options = {}) {
   // Track AI-suggested collections and user edits
   let aiSuggestedCollections = [];
   let debounceTimer = null;
-  let userHasEditedCollections = false;  // NEW: Track if user manually edited collections
+  let userHasEditedCollections = false;  // Track if user manually edited collections
+  let aiHasRunOnce = false;  // NEW: Track if AI has already run once
 
   // Create modal overlay using overlay component
   const overlay = createOverlay({
@@ -137,56 +138,46 @@ function createDataEditorModal(options = {}) {
       const isTopicEmpty = !topicValue || topicValue.trim() === '';
       saveButton.setDisabled(isTextEmpty || isTopicEmpty);
 
-      // AI Auto-Categorization
+      // AI Auto-Categorization (only runs ONCE initially, not on every keystroke)
       if (autoCategorizeEnabled && !isTextEmpty && typeof aiHelper !== 'undefined') {
-        // Clear previous debounce timer
-        if (debounceTimer) {
-          clearTimeout(debounceTimer);
-        }
-
-        // Debounce AI call by 500ms
-        debounceTimer = setTimeout(async () => {
-          try {
-            // If user has manually edited collections, STOP all AI suggestions
-            if (userHasEditedCollections) {
-              console.log('[Data Editor Modal] User has manually edited collections, skipping AI suggestions');
-              return;
-            }
-
-            // Get topic for context
-            const currentTopic = topicInputField.getValue();
-
-            // Combine topic and text for better categorization
-            const contextText = currentTopic
-              ? `Topic: ${currentTopic}\n\n${newText}`
-              : newText;
-
-            // Get AI suggestions (using both topic and value)
-            const suggestions = await aiHelper.suggestCategories(contextText, existingTags);
-
-            if (suggestions.length > 0) {
-              console.log('[Data Editor Modal] AI suggested categories:', suggestions);
-
-              // Remove old AI suggestions
-              const tagList = collectionEditField.getTagList();
-              const currentTags = tagList.getTags();
-              aiSuggestedCollections.forEach(oldSuggestion => {
-                const tagToRemove = currentTags.find(t => t.getLabel() === oldSuggestion);
-                if (tagToRemove) {
-                  collectionEditField.removeCollection(tagToRemove);
-                }
-              });
-
-              // Add new AI suggestions
-              aiSuggestedCollections = suggestions;
-              suggestions.forEach(suggestion => {
-                collectionEditField.addCollection(suggestion);
-              });
-            }
-          } catch (error) {
-            console.error('[Data Editor Modal] AI categorization error:', error);
+        // Only run AI once when user first enters text
+        if (!aiHasRunOnce && !userHasEditedCollections) {
+          // Clear previous debounce timer
+          if (debounceTimer) {
+            clearTimeout(debounceTimer);
           }
-        }, 500);
+
+          // Debounce AI call by 500ms
+          debounceTimer = setTimeout(async () => {
+            try {
+              // Mark that AI has run once
+              aiHasRunOnce = true;
+
+              // Get topic for context
+              const currentTopic = topicInputField.getValue();
+
+              // Use topic as primary context if available
+              const contextText = currentTopic || newText;
+
+              console.log('[Data Editor Modal] Running AI categorization once with context:', contextText);
+
+              // Get AI suggestions (prioritizing topic)
+              const suggestions = await aiHelper.suggestCategories(contextText, existingTags);
+
+              if (suggestions.length > 0) {
+                console.log('[Data Editor Modal] AI suggested categories:', suggestions);
+
+                // Add AI suggestions (don't remove anything first time)
+                aiSuggestedCollections = suggestions;
+                suggestions.forEach(suggestion => {
+                  collectionEditField.addCollection(suggestion);
+                });
+              }
+            } catch (error) {
+              console.error('[Data Editor Modal] AI categorization error:', error);
+            }
+          }, 500);
+        }
       }
     },
     onEnter: () => {
