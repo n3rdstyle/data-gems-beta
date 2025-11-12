@@ -75,7 +75,7 @@ function createDataEditorModal(options = {}) {
   const saveButton = createPrimaryButton({
     label: 'Save',
     variant: 'v2',
-    disabled: !preferenceText || preferenceText.trim() === '',
+    disabled: !preferenceText || preferenceText.trim() === '' || !preferenceTopic || preferenceTopic.trim() === '',
     onClick: () => {
       // Get current state from text edit field
       const currentState = textEditField.getState();
@@ -83,6 +83,12 @@ function createDataEditorModal(options = {}) {
       // Get topic value
       const topicValue = topicInputField.getValue();
       console.log('[DataEditorModal] Save clicked, topic:', topicValue);
+
+      // Validate topic is not empty
+      if (!topicValue || topicValue.trim() === '') {
+        alert('Please enter a topic for this preference.');
+        return;
+      }
 
       // Call save callback with all data including state
       if (onSave) {
@@ -100,10 +106,17 @@ function createDataEditorModal(options = {}) {
   // ===== Topic Input Field Section =====
   const topicInputField = createInputField({
     type: 'text',
-    label: 'Topic (optional)',
+    label: 'Topic',
     placeholder: 'e.g., "Wie ist deine Morning-Routine?"',
     value: preferenceTopic,
-    maxLength: 500
+    maxLength: 500,
+    required: true,
+    onChange: (newTopic) => {
+      // Update save button state when topic changes
+      const isTextEmpty = !textEditField.getText() || textEditField.getText().trim() === '';
+      const isTopicEmpty = !newTopic || newTopic.trim() === '';
+      saveButton.setDisabled(isTextEmpty || isTopicEmpty);
+    }
   });
 
   // ===== Text Edit Field Section =====
@@ -117,12 +130,14 @@ function createDataEditorModal(options = {}) {
     mergedFrom: mergedFrom, // Pass merged from data if available
     onShowOriginals: isMergeMode ? showOriginalsModal : null, // Show originals callback
     onTextChange: async (newText) => {
-      // Enable/disable save button based on text content
-      const isEmpty = !newText || newText.trim() === '';
-      saveButton.setDisabled(isEmpty);
+      // Enable/disable save button based on text content AND topic
+      const isTextEmpty = !newText || newText.trim() === '';
+      const topicValue = topicInputField.getValue();
+      const isTopicEmpty = !topicValue || topicValue.trim() === '';
+      saveButton.setDisabled(isTextEmpty || isTopicEmpty);
 
       // AI Auto-Categorization
-      if (autoCategorizeEnabled && !isEmpty && typeof aiHelper !== 'undefined') {
+      if (autoCategorizeEnabled && !isTextEmpty && typeof aiHelper !== 'undefined') {
         // Clear previous debounce timer
         if (debounceTimer) {
           clearTimeout(debounceTimer);
@@ -140,8 +155,16 @@ function createDataEditorModal(options = {}) {
               return;
             }
 
-            // Get AI suggestions
-            const suggestions = await aiHelper.suggestCategories(newText, existingTags);
+            // Get topic for context
+            const currentTopic = topicInputField.getValue();
+
+            // Combine topic and text for better categorization
+            const contextText = currentTopic
+              ? `Topic: ${currentTopic}\n\n${newText}`
+              : newText;
+
+            // Get AI suggestions (using both topic and value)
+            const suggestions = await aiHelper.suggestCategories(contextText, existingTags);
 
             if (suggestions.length > 0) {
               console.log('[Data Editor Modal] AI suggested categories:', suggestions);
