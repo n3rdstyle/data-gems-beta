@@ -89,15 +89,34 @@ export class ContextEngine {
       enrichedGem = await this.enrichment.enrichGem(gem);
     }
 
-    // Insert into vector store (which wraps RxDB collection)
+    // Extract child gems to insert (if any)
+    const childGems = enrichedGem._childGemsToInsert || [];
+    delete enrichedGem._childGemsToInsert;  // Remove temp property
+
+    // Insert primary gem into vector store (which wraps RxDB collection)
     await this.vectorStore.insert(enrichedGem);
 
-    // Update BM25 index
+    // Insert child gems
+    if (childGems.length > 0) {
+      console.log(`[ContextEngine] Inserting ${childGems.length} child gems for: ${gem.id}`);
+      for (const childGem of childGems) {
+        await this.vectorStore.insert(childGem);
+
+        // Update BM25 index for child
+        if (childGem.keywords) {
+          await this.bm25.updateIndex(childGem);
+        }
+      }
+    }
+
+    // Update BM25 index for primary gem
     if (enrichedGem.keywords) {
       await this.bm25.updateIndex(enrichedGem);
     }
 
-    console.log(`[ContextEngine] Gem added successfully: ${gem.id}`);
+    console.log(`[ContextEngine] Gem added successfully: ${gem.id}`, {
+      childGems: childGems.length
+    });
     return enrichedGem;
   }
 

@@ -13,6 +13,7 @@ function createDataEditorModal(options = {}) {
     title = 'Settings',
     onClose = null,
     preferenceTitle = 'Preference',
+    preferenceTopic = '', // NEW: Topic for the preference (optional)
     preferenceText = '',
     preferenceHidden = false,
     preferenceFavorited = false,
@@ -79,9 +80,14 @@ function createDataEditorModal(options = {}) {
       // Get current state from text edit field
       const currentState = textEditField.getState();
 
+      // Get topic value
+      const topicValue = topicInputField.getValue();
+      console.log('[DataEditorModal] Save clicked, topic:', topicValue);
+
       // Call save callback with all data including state
       if (onSave) {
         onSave({
+          topic: topicValue,  // NEW: Include topic
           text: textEditField.getText(),
           collections: collectionEditField.getCollections(),
           hidden: currentState.hidden,
@@ -89,6 +95,15 @@ function createDataEditorModal(options = {}) {
         });
       }
     }
+  });
+
+  // ===== Topic Input Field Section =====
+  const topicInputField = createInputField({
+    type: 'text',
+    label: 'Topic (optional)',
+    placeholder: 'e.g., "Wie ist deine Morning-Routine?"',
+    value: preferenceTopic,
+    maxLength: 500
   });
 
   // ===== Text Edit Field Section =====
@@ -192,6 +207,7 @@ function createDataEditorModal(options = {}) {
   });
 
   // Add sections to content
+  contentContainer.appendChild(topicInputField.element);
   contentContainer.appendChild(textEditField.element);
   contentContainer.appendChild(collectionEditField.element);
 
@@ -326,6 +342,14 @@ function createDataEditorModal(options = {}) {
 
     getCollectionEditField() {
       return collectionEditField;
+    },
+
+    getTopic() {
+      return topicInputField.getValue();
+    },
+
+    setTopic(topic) {
+      topicInputField.setValue(topic);
     },
 
     getText() {

@@ -57,7 +57,7 @@ class DataList {
 
   /**
    * Populate the list with data
-   * @param {Array} data - Array of objects with { name, state, collections, id, source, mergedFrom }
+   * @param {Array} data - Array of objects with { name, state, collections, id, source, mergedFrom, topic }
    */
   populate(data) {
     // Clear existing cards
@@ -65,7 +65,7 @@ class DataList {
 
     // Create new cards
     data.forEach(item => {
-      this.addCard(item.name, item.state || 'default', item.collections || [], item.id, item.source, item.mergedFrom);
+      this.addCard(item.name, item.state || 'default', item.collections || [], item.id, item.source, item.mergedFrom, item.topic);
     });
   }
 
@@ -77,9 +77,10 @@ class DataList {
    * @param {string} id - Card ID (optional)
    * @param {object} source - Source metadata (e.g., { type: 'google', url: '...' })
    * @param {Array} mergedFrom - Array of original merged cards (optional)
+   * @param {string} topic - Topic/question for the preference (optional)
    * @returns {DataCard} - The created card instance
    */
-  addCard(name, state = 'default', collections = [], id = null, source = null, mergedFrom = null) {
+  addCard(name, state = 'default', collections = [], id = null, source = null, mergedFrom = null, topic = null) {
     // Create card without callback first
     const card = createDataCard({
       id: id,
@@ -88,6 +89,7 @@ class DataList {
       collections: collections,
       source: source,
       mergedFrom: mergedFrom,
+      topic: topic,
       onClick: this.onCardClick ? (card) => this.onCardClick(card, this.modalContainer) : null
     });
 

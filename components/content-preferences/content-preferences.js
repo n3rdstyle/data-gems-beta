@@ -663,8 +663,8 @@ function createContentPreferences(options = {}) {
       headline.setText(newTitle);
     },
 
-    addCard(name, state = 'default', collections = [], id = null) {
-      return dataList.addCard(name, state, collections, id);
+    addCard(name, state = 'default', collections = [], id = null, source = null, mergedFrom = null, topic = null) {
+      return dataList.addCard(name, state, collections, id, source, mergedFrom, topic);
     },
 
     removeCard(card) {

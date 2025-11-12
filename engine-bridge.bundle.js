@@ -86,7 +86,7 @@ var ContextEngineBridge = (() => {
         }
         var _global = typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : global;
         var keys = Object.keys;
-        var isArray2 = Array.isArray;
+        var isArray4 = Array.isArray;
         if (typeof Promise !== "undefined" && !_global.Promise) {
           _global.Promise = Promise;
         }
@@ -193,7 +193,7 @@ var ContextEngineBridge = (() => {
               var remainingKeyPath = keyPath.substr(period + 1);
               if (remainingKeyPath === "")
                 if (value === void 0) {
-                  if (isArray2(obj) && !isNaN(parseInt(currentKeyPath)))
+                  if (isArray4(obj) && !isNaN(parseInt(currentKeyPath)))
                     obj.splice(currentKeyPath, 1);
                   else
                     delete obj[currentKeyPath];
@@ -207,7 +207,7 @@ var ContextEngineBridge = (() => {
               }
             } else {
               if (value === void 0) {
-                if (isArray2(obj) && !isNaN(parseInt(keyPath)))
+                if (isArray4(obj) && !isNaN(parseInt(keyPath)))
                   obj.splice(keyPath, 1);
                 else
                   delete obj[keyPath];
@@ -274,7 +274,7 @@ var ContextEngineBridge = (() => {
           var rv = circularRefs.get(x);
           if (rv)
             return rv;
-          if (isArray2(x)) {
+          if (isArray4(x)) {
             rv = [];
             circularRefs.set(x, rv);
             for (var i = 0, l = x.length; i < l; ++i) {
@@ -315,7 +315,7 @@ var ContextEngineBridge = (() => {
         function getArrayOf(arrayLike) {
           var i, a, x, it;
           if (arguments.length === 1) {
-            if (isArray2(arrayLike))
+            if (isArray4(arrayLike))
               return arrayLike.slice();
             if (this === NO_CHAR_ARRAY && typeof arrayLike === "string")
               return [arrayLike];
@@ -1342,7 +1342,7 @@ var ContextEngineBridge = (() => {
           Table2.prototype.where = function(indexOrCrit) {
             if (typeof indexOrCrit === "string")
               return new this.db.WhereClause(this, indexOrCrit);
-            if (isArray2(indexOrCrit))
+            if (isArray4(indexOrCrit))
               return new this.db.WhereClause(this, "[".concat(indexOrCrit.join("+"), "]"));
             var keyPaths = keys(indexOrCrit);
             if (keyPaths.length === 1)
@@ -1381,7 +1381,7 @@ var ContextEngineBridge = (() => {
                 prevIndex || index,
                 prevIndex || !index ? combine(prevFilterFn, index && index.multi ? function(x) {
                   var prop = getByKeyPath(x, keyPath);
-                  return isArray2(prop) && prop.some(function(item) {
+                  return isArray4(prop) && prop.some(function(item) {
                     return equals(value, item);
                   });
                 } : function(x) {
@@ -1413,7 +1413,7 @@ var ContextEngineBridge = (() => {
             return new this.db.Collection(new this.db.WhereClause(this));
           };
           Table2.prototype.orderBy = function(index) {
-            return new this.db.Collection(new this.db.WhereClause(this, isArray2(index) ? "[".concat(index.join("+"), "]") : index));
+            return new this.db.Collection(new this.db.WhereClause(this, isArray4(index) ? "[".concat(index.join("+"), "]") : index));
           };
           Table2.prototype.reverse = function() {
             return this.toCollection().reverse();
@@ -1493,7 +1493,7 @@ var ContextEngineBridge = (() => {
             });
           };
           Table2.prototype.update = function(keyOrObject, modifications) {
-            if (typeof keyOrObject === "object" && !isArray2(keyOrObject)) {
+            if (typeof keyOrObject === "object" && !isArray4(keyOrObject)) {
               var key = getByKeyPath(keyOrObject, this.schema.primKey.keyPath);
               if (key === void 0)
                 return rejection(new exceptions.InvalidArgument("Given object does not contain its primary key"));
@@ -1685,12 +1685,12 @@ var ContextEngineBridge = (() => {
               return evs[eventName];
             }
           };
-          rv.addEventType = add3;
+          rv.addEventType = add4;
           for (var i = 1, l = arguments.length; i < l; ++i) {
-            add3(arguments[i]);
+            add4(arguments[i]);
           }
           return rv;
-          function add3(eventName, chainFunction, defaultFunction) {
+          function add4(eventName, chainFunction, defaultFunction) {
             if (typeof eventName === "object")
               return addConfiguredEvents(eventName);
             if (!chainFunction)
@@ -1719,10 +1719,10 @@ var ContextEngineBridge = (() => {
           function addConfiguredEvents(cfg) {
             keys(cfg).forEach(function(eventName) {
               var args = cfg[eventName];
-              if (isArray2(args)) {
-                add3(eventName, cfg[eventName][0], cfg[eventName][1]);
+              if (isArray4(args)) {
+                add4(eventName, cfg[eventName][0], cfg[eventName][1]);
               } else if (args === "asap") {
-                var context2 = add3(eventName, mirror, function fire() {
+                var context2 = add4(eventName, mirror, function fire() {
                   var i2 = arguments.length, args2 = new Array(i2);
                   while (i2--)
                     args2[i2] = arguments[i2];
@@ -1857,8 +1857,8 @@ var ContextEngineBridge = (() => {
             var _a2;
             if (this.add !== void 0) {
               var term = this.add;
-              if (isArray2(term)) {
-                return __spreadArray2(__spreadArray2([], isArray2(value) ? value : [], true), term, true).sort();
+              if (isArray4(term)) {
+                return __spreadArray2(__spreadArray2([], isArray4(value) ? value : [], true), term, true).sort();
               }
               if (typeof term === "number")
                 return (Number(value) || 0) + term;
@@ -1873,8 +1873,8 @@ var ContextEngineBridge = (() => {
             }
             if (this.remove !== void 0) {
               var subtrahend_1 = this.remove;
-              if (isArray2(subtrahend_1)) {
-                return isArray2(value) ? value.filter(function(item) {
+              if (isArray4(subtrahend_1)) {
+                return isArray4(value) ? value.filter(function(item) {
                   return !subtrahend_1.includes(item);
                 }).sort() : [];
               }
@@ -3060,7 +3060,7 @@ var ContextEngineBridge = (() => {
                   return trans.objectStore(table);
                 }).map(function(store) {
                   var keyPath = store.keyPath, autoIncrement = store.autoIncrement;
-                  var compound = isArray2(keyPath);
+                  var compound = isArray4(keyPath);
                   var outbound = keyPath == null;
                   var indexByKeyPath = {};
                   var result = {
@@ -3079,7 +3079,7 @@ var ContextEngineBridge = (() => {
                       return store.index(indexName);
                     }).map(function(index) {
                       var name = index.name, unique2 = index.unique, multiEntry = index.multiEntry, keyPath2 = index.keyPath;
-                      var compound2 = isArray2(keyPath2);
+                      var compound2 = isArray4(keyPath2);
                       var result2 = {
                         name,
                         compound: compound2,
@@ -3744,7 +3744,7 @@ var ContextEngineBridge = (() => {
             index = index.trim();
             var name = index.replace(/([&*]|\+\+)/g, "");
             var keyPath = /^\[/.test(name) ? name.match(/^\[(.*)\]$/)[1].split("+") : name;
-            return createIndexSpec(name, keyPath || null, /\&/.test(index), /\*/.test(index), /\+\+/.test(index), isArray2(keyPath), indexNum === 0);
+            return createIndexSpec(name, keyPath || null, /\&/.test(index), /\*/.test(index), /\+\+/.test(index), isArray4(keyPath), indexNum === 0);
           });
         }
         var Version = (function() {
@@ -4256,7 +4256,7 @@ var ContextEngineBridge = (() => {
           function step(getNext) {
             return function(val) {
               var next = getNext(val), value = next.value;
-              return next.done ? value : !value || typeof value.then !== "function" ? isArray2(value) ? Promise.all(value).then(onSuccess, onError) : onSuccess(value) : value.then(onSuccess, onError);
+              return next.done ? value : !value || typeof value.then !== "function" ? isArray4(value) ? Promise.all(value).then(onSuccess, onError) : onSuccess(value) : value.then(onSuccess, onError);
             };
           }
           return step(callNext)();
@@ -4332,7 +4332,7 @@ var ContextEngineBridge = (() => {
           });
         }
         function pad(a, value, count) {
-          var result = isArray2(a) ? a.slice() : [a];
+          var result = isArray4(a) ? a.slice() : [a];
           for (var i = 0; i < count; ++i)
             result.push(value);
           return result;
@@ -4700,7 +4700,7 @@ var ContextEngineBridge = (() => {
                   return id;
                 }), req.values] : [], keys2 = _c[0], newObjs = _c[1];
                 var oldCache = req.trans["_cache"];
-                if (isArray2(keys2)) {
+                if (isArray4(keys2)) {
                   pkRangeSet.addKeys(keys2);
                   var oldObjs = type6 === "delete" || keys2.length === newObjs.length ? getFromTransactionCache(keys2, oldCache) : null;
                   if (!oldObjs) {
@@ -4847,7 +4847,7 @@ var ContextEngineBridge = (() => {
               return obj != null ? ix.extractKey(obj) : null;
             }
             var addKeyOrKeys = function(key) {
-              return ix.multiEntry && isArray2(key) ? key.forEach(function(key2) {
+              return ix.multiEntry && isArray4(key) ? key.forEach(function(key2) {
                 return rangeSet.addKey(key2);
               }) : rangeSet.addKey(key);
             };
@@ -4875,12 +4875,12 @@ var ContextEngineBridge = (() => {
             return null;
           }
           var clone3 = __assign({}, req);
-          if (isArray2(clone3.keys)) {
+          if (isArray4(clone3.keys)) {
             clone3.keys = clone3.keys.filter(function(_, i) {
               return !(i in res.failures);
             });
           }
-          if ("values" in clone3 && isArray2(clone3.values)) {
+          if ("values" in clone3 && isArray4(clone3.values)) {
             clone3.values = clone3.values.filter(function(_, i) {
               return !(i in res.failures);
             });
@@ -4917,7 +4917,7 @@ var ContextEngineBridge = (() => {
                 if (includedPKs.hasKey(pk))
                   continue;
                 var key = extractIndex(value);
-                if (multiEntry && isArray2(key) ? key.some(function(k) {
+                if (multiEntry && isArray4(key) ? key.some(function(k) {
                   return isWithinRange(k, queryRange);
                 }) : isWithinRange(key, queryRange)) {
                   includedPKs.addKey(pk);
@@ -5702,12 +5702,12 @@ var ContextEngineBridge = (() => {
                 closed = true;
                 if (abortController)
                   abortController.abort();
-                if (startedListening)
+                if (startedListening2)
                   globalEvents.storagemutated.unsubscribe(mutationListener);
               }
             };
             observer.start && observer.start(subscription);
-            var startedListening = false;
+            var startedListening2 = false;
             var doQuery = function() {
               return execInGlobalContext(_doQuery);
             };
@@ -5745,9 +5745,9 @@ var ContextEngineBridge = (() => {
                 }
                 accumMuts = {};
                 currentObs = subscr;
-                if (!objectIsEmpty(currentObs) && !startedListening) {
+                if (!objectIsEmpty(currentObs) && !startedListening2) {
                   globalEvents(DEXIE_STORAGE_MUTATED_EVENT_NAME, mutationListener);
-                  startedListening = true;
+                  startedListening2 = true;
                 }
                 execInGlobalContext(function() {
                   return !closed && observer.next && observer.next(result);
@@ -5947,7 +5947,7 @@ var ContextEngineBridge = (() => {
             }
           });
         }
-        function add2(value) {
+        function add3(value) {
           return new PropModification2({ add: value });
         }
         function remove2(value) {
@@ -5967,7 +5967,7 @@ var ContextEngineBridge = (() => {
           PropModSymbol: PropModSymbol2,
           PropModification: PropModification2,
           replacePrefix: replacePrefix2,
-          add: add2,
+          add: add3,
           remove: remove2,
           "default": Dexie$1,
           RangeSet: RangeSet2,
@@ -6022,8 +6022,20 @@ var ContextEngineBridge = (() => {
   }
 
   // node_modules/rxdb/dist/esm/plugins/utils/utils-array.js
+  function lastOfArray(ar) {
+    return ar[ar.length - 1];
+  }
   function toArray(input) {
     return Array.isArray(input) ? input.slice(0) : [input];
+  }
+  function batchArray(array, batchSize) {
+    array = array.slice(0);
+    var ret = [];
+    while (array.length) {
+      var batch = array.splice(0, batchSize);
+      ret.push(batch);
+    }
+    return ret;
   }
   function isMaybeReadonlyArray(x) {
     return Array.isArray(x);
@@ -6042,15 +6054,15 @@ var ContextEngineBridge = (() => {
     }
     return count;
   }
-  function appendToArray(ar, add2) {
-    var addSize = add2.length;
+  function appendToArray(ar, add3) {
+    var addSize = add3.length;
     if (addSize === 0) {
       return;
     }
     var baseSize = ar.length;
-    ar.length = baseSize + add2.length;
+    ar.length = baseSize + add3.length;
     for (var i = 0; i < addSize; ++i) {
-      ar[baseSize + i] = add2[i];
+      ar[baseSize + i] = add3[i];
     }
   }
   function uniqueArray(arrArg) {
@@ -6439,6 +6451,13 @@ var ContextEngineBridge = (() => {
   function promiseWait(ms = 0) {
     return new Promise((res) => setTimeout(res, ms));
   }
+  function toPromise(maybePromise) {
+    if (maybePromise && typeof maybePromise.then === "function") {
+      return maybePromise;
+    } else {
+      return Promise.resolve(maybePromise);
+    }
+  }
   var PROMISE_RESOLVE_TRUE = Promise.resolve(true);
   var PROMISE_RESOLVE_FALSE = Promise.resolve(false);
   var PROMISE_RESOLVE_NULL = Promise.resolve(null);
@@ -6736,6 +6755,25 @@ var ContextEngineBridge = (() => {
     pluginName += "Plugin";
     return new Error("You are using a function which must be overwritten by a plugin.\n        You should either prevent the usage of this function or add the plugin via:\n            import { " + pluginName + " } from 'rxdb/plugins/" + pluginKey + "';\n            addRxPlugin(" + pluginName + ");\n        ");
   }
+  function errorToPlainJson(err) {
+    var ret = {
+      name: err.name,
+      message: err.message,
+      rxdb: err.rxdb,
+      parameters: err.parameters,
+      extensions: err.extensions,
+      code: err.code,
+      url: err.url,
+      /**
+       * stack must be last to make it easier to read the json in a console.
+       * Also we ensure that each linebreak is spaced so that the chrome devtools
+       * shows urls to the source code that can be clicked to inspect
+       * the correct place in the code.
+       */
+      stack: !err.stack ? void 0 : err.stack.replace(/\n/g, " \n ")
+    };
+    return ret;
+  }
 
   // node_modules/rxdb/dist/esm/plugins/utils/utils-time.js
   var _lastNow = 0;
@@ -6932,6 +6970,11 @@ var ContextEngineBridge = (() => {
     } else {
       return primaryKey.key;
     }
+  }
+  function getLengthOfPrimaryKey(schema) {
+    var primaryPath = getPrimaryFieldOfPrimaryKey(schema.primaryKey);
+    var schemaPart = getSchemaByObjectPath(schema, primaryPath);
+    return ensureNotFalsy(schemaPart.maxLength);
   }
   function getComposedPrimaryKeyOfDocumentData(jsonSchema, documentData) {
     if (typeof jsonSchema.primaryKey === "string") {
@@ -7157,6 +7200,11 @@ var ContextEngineBridge = (() => {
   })();
   function getIndexes(jsonSchema) {
     return (jsonSchema.indexes || []).map((index) => isMaybeReadonlyArray(index) ? index : [index]);
+  }
+  function getPreviousVersions(schema) {
+    var version = schema.version ? schema.version : 0;
+    var c = 0;
+    return new Array(version).fill(0).map(() => c++);
   }
   function createRxSchema(jsonSchema, hashFunction, runPreCreateHooks = true) {
     if (runPreCreateHooks) {
@@ -8109,7 +8157,7 @@ var ContextEngineBridge = (() => {
   }
   function fromAsyncIterable(asyncIterable) {
     return new Observable(function(subscriber) {
-      process(asyncIterable, subscriber).catch(function(err) {
+      process2(asyncIterable, subscriber).catch(function(err) {
         return subscriber.error(err);
       });
     });
@@ -8117,7 +8165,7 @@ var ContextEngineBridge = (() => {
   function fromReadableStreamLike(readableStream) {
     return fromAsyncIterable(readableStreamLikeToAsyncGenerator(readableStream));
   }
-  function process(asyncIterable, subscriber) {
+  function process2(asyncIterable, subscriber) {
     var asyncIterable_1, asyncIterable_1_1;
     var e_2, _a;
     return __awaiter(this, void 0, void 0, function() {
@@ -8233,6 +8281,9 @@ var ContextEngineBridge = (() => {
   function last(arr) {
     return arr[arr.length - 1];
   }
+  function popResultSelector(args) {
+    return isFunction(last(args)) ? args.pop() : void 0;
+  }
   function popScheduler(args) {
     return isScheduler(last(args)) ? args.pop() : void 0;
   }
@@ -8260,6 +8311,33 @@ var ContextEngineBridge = (() => {
     if (!repeat) {
       return scheduleSubscription;
     }
+  }
+
+  // node_modules/rxjs/dist/esm5/internal/util/argsArgArrayOrObject.js
+  var isArray = Array.isArray;
+  var getPrototypeOf = Object.getPrototypeOf;
+  var objectProto = Object.prototype;
+  var getKeys = Object.keys;
+  function argsArgArrayOrObject(args) {
+    if (args.length === 1) {
+      var first_1 = args[0];
+      if (isArray(first_1)) {
+        return { args: first_1, keys: null };
+      }
+      if (isPOJO(first_1)) {
+        var keys = getKeys(first_1);
+        return {
+          args: keys.map(function(key) {
+            return first_1[key];
+          }),
+          keys
+        };
+      }
+    }
+    return { args, keys: null };
+  }
+  function isPOJO(obj) {
+    return obj && typeof obj === "object" && getPrototypeOf(obj) === objectProto;
   }
 
   // node_modules/rxjs/dist/esm5/internal/operators/observeOn.js
@@ -8416,6 +8494,85 @@ var ContextEngineBridge = (() => {
         subscriber.next(project.call(thisArg, value, index++));
       }));
     });
+  }
+
+  // node_modules/rxjs/dist/esm5/internal/util/mapOneOrManyArgs.js
+  var isArray2 = Array.isArray;
+  function callOrApply(fn, args) {
+    return isArray2(args) ? fn.apply(void 0, __spreadArray([], __read(args))) : fn(args);
+  }
+  function mapOneOrManyArgs(fn) {
+    return map(function(args) {
+      return callOrApply(fn, args);
+    });
+  }
+
+  // node_modules/rxjs/dist/esm5/internal/util/createObject.js
+  function createObject(keys, values) {
+    return keys.reduce(function(result, key, i) {
+      return result[key] = values[i], result;
+    }, {});
+  }
+
+  // node_modules/rxjs/dist/esm5/internal/observable/combineLatest.js
+  function combineLatest() {
+    var args = [];
+    for (var _i = 0; _i < arguments.length; _i++) {
+      args[_i] = arguments[_i];
+    }
+    var scheduler = popScheduler(args);
+    var resultSelector = popResultSelector(args);
+    var _a = argsArgArrayOrObject(args), observables = _a.args, keys = _a.keys;
+    if (observables.length === 0) {
+      return from([], scheduler);
+    }
+    var result = new Observable(combineLatestInit(observables, scheduler, keys ? function(values) {
+      return createObject(keys, values);
+    } : identity));
+    return resultSelector ? result.pipe(mapOneOrManyArgs(resultSelector)) : result;
+  }
+  function combineLatestInit(observables, scheduler, valueTransform) {
+    if (valueTransform === void 0) {
+      valueTransform = identity;
+    }
+    return function(subscriber) {
+      maybeSchedule(scheduler, function() {
+        var length = observables.length;
+        var values = new Array(length);
+        var active = length;
+        var remainingFirstValues = length;
+        var _loop_1 = function(i2) {
+          maybeSchedule(scheduler, function() {
+            var source = from(observables[i2], scheduler);
+            var hasFirstValue = false;
+            source.subscribe(createOperatorSubscriber(subscriber, function(value) {
+              values[i2] = value;
+              if (!hasFirstValue) {
+                hasFirstValue = true;
+                remainingFirstValues--;
+              }
+              if (!remainingFirstValues) {
+                subscriber.next(valueTransform(values.slice()));
+              }
+            }, function() {
+              if (!--active) {
+                subscriber.complete();
+              }
+            }));
+          }, subscriber);
+        };
+        for (var i = 0; i < length; i++) {
+          _loop_1(i);
+        }
+      }, subscriber);
+    };
+  }
+  function maybeSchedule(scheduler, execute, subscription) {
+    if (scheduler) {
+      executeSchedule(subscription, scheduler, execute);
+    } else {
+      execute();
+    }
   }
 
   // node_modules/rxjs/dist/esm5/internal/operators/mergeInternals.js
@@ -8721,6 +8878,15 @@ var ContextEngineBridge = (() => {
     });
   }
 
+  // node_modules/rxjs/dist/esm5/internal/util/EmptyError.js
+  var EmptyError = createErrorClass(function(_super) {
+    return function EmptyErrorImpl() {
+      _super(this);
+      this.name = "EmptyError";
+      this.message = "no elements in sequence";
+    };
+  });
+
   // node_modules/rxjs/dist/esm5/internal/operators/merge.js
   function merge() {
     var args = [];
@@ -8956,6 +9122,32 @@ var ContextEngineBridge = (() => {
     });
   }
 
+  // node_modules/rxjs/dist/esm5/internal/operators/switchMap.js
+  function switchMap(project, resultSelector) {
+    return operate(function(source, subscriber) {
+      var innerSubscriber = null;
+      var index = 0;
+      var isComplete = false;
+      var checkComplete = function() {
+        return isComplete && !innerSubscriber && subscriber.complete();
+      };
+      source.subscribe(createOperatorSubscriber(subscriber, function(value) {
+        innerSubscriber === null || innerSubscriber === void 0 ? void 0 : innerSubscriber.unsubscribe();
+        var innerIndex = 0;
+        var outerIndex = index++;
+        innerFrom(project(value, outerIndex)).subscribe(innerSubscriber = createOperatorSubscriber(subscriber, function(innerValue) {
+          return subscriber.next(resultSelector ? resultSelector(value, innerValue, outerIndex, innerIndex++) : innerValue);
+        }, function() {
+          innerSubscriber = null;
+          checkComplete();
+        }));
+      }, function() {
+        isComplete = true;
+        checkComplete();
+      }));
+    });
+  }
+
   // node_modules/rxdb/dist/esm/rx-change-event.js
   function getDocumentDataOfRxChangeEvent(rxChangeEvent) {
     if (rxChangeEvent.documentData) {
@@ -9009,6 +9201,28 @@ var ContextEngineBridge = (() => {
         };
       }
       return events;
+    });
+  }
+
+  // node_modules/rxjs/dist/esm5/internal/firstValueFrom.js
+  function firstValueFrom(source, config2) {
+    var hasConfig = typeof config2 === "object";
+    return new Promise(function(resolve2, reject) {
+      var subscriber = new SafeSubscriber({
+        next: function(value) {
+          resolve2(value);
+          subscriber.unsubscribe();
+        },
+        error: reject,
+        complete: function() {
+          if (hasConfig) {
+            resolve2(config2.defaultValue);
+          } else {
+            reject(new EmptyError());
+          }
+        }
+      });
+      source.subscribe(subscriber);
     });
   }
 
@@ -9392,7 +9606,7 @@ var ContextEngineBridge = (() => {
   var isString = (v) => typeof v === "string";
   var isSymbol = (v) => typeof v === "symbol";
   var isNumber = (v) => !isNaN(v) && typeof v === "number";
-  var isArray = Array.isArray;
+  var isArray3 = Array.isArray;
   function isObject2(v) {
     if (!v) return false;
     const p = Object.getPrototypeOf(v);
@@ -9404,8 +9618,8 @@ var ContextEngineBridge = (() => {
   var isFunction2 = (v) => typeof v === "function";
   var isNil = (v) => v === null || v === void 0;
   var truthy = (arg, strict = true) => !!arg || strict && arg === "";
-  var isEmpty = (x) => isNil(x) || isString(x) && !x || isArray(x) && x.length === 0 || isObject2(x) && Object.keys(x).length === 0;
-  var ensureArray = (x) => isArray(x) ? x : [x];
+  var isEmpty = (x) => isNil(x) || isString(x) && !x || isArray3(x) && x.length === 0 || isObject2(x) && Object.keys(x).length === 0;
+  var ensureArray = (x) => isArray3(x) ? x : [x];
   var has = (obj, prop) => !!obj && Object.prototype.hasOwnProperty.call(obj, prop);
   var isTypedArray = (v) => typeof ArrayBuffer !== "undefined" && ArrayBuffer.isView(v);
   var cloneDeep = (v, refs) => {
@@ -9420,7 +9634,7 @@ var ContextEngineBridge = (() => {
     if (refs.has(v)) throw CYCLE_FOUND_ERROR;
     refs.add(v);
     try {
-      if (isArray(v)) {
+      if (isArray3(v)) {
         const arr = new Array(v.length);
         for (let i = 0; i < v.length; i++) arr[i] = cloneDeep(v[i], refs);
         return arr;
@@ -9440,7 +9654,7 @@ var ContextEngineBridge = (() => {
     if (isMissing(target) || isNil(target)) return input;
     if (isMissing(input) || isNil(input)) return target;
     if (isPrimitive(target) || isPrimitive(input)) return input;
-    if (isArray(target) && isArray(input)) {
+    if (isArray3(target) && isArray3(input)) {
       assert(
         target.length === input.length,
         "arrays must be of equal length to merge."
@@ -9471,7 +9685,7 @@ var ContextEngineBridge = (() => {
     const arr = new Array();
     function flatten2(ys, n) {
       for (let i = 0, len = ys.length; i < len; i++) {
-        if (isArray(ys[i]) && (n > 0 || n < 0)) {
+        if (isArray3(ys[i]) && (n > 0 || n < 0)) {
           flatten2(ys[i], Math.max(-1, n - 1));
         } else {
           arr.push(ys[i]);
@@ -9534,7 +9748,7 @@ var ContextEngineBridge = (() => {
     if (refs.has(v)) throw CYCLE_FOUND_ERROR;
     try {
       refs.add(v);
-      if (isArray(v)) return "[" + v.map((s2) => stringify(s2, refs)).join(",") + "]";
+      if (isArray3(v)) return "[" + v.map((s2) => stringify(s2, refs)).join(",") + "]";
       if (isObject2(v)) {
         const keys = Object.keys(v).sort();
         return "{" + keys.map((k) => `${k}:${stringify(v[k], refs)}`).join() + "}";
@@ -9595,7 +9809,7 @@ var ContextEngineBridge = (() => {
       for (let i = 0; i < path.length; i++) {
         const field = path[i];
         const isText = /^\d+$/.exec(field) === null;
-        if (isText && isArray(value)) {
+        if (isText && isArray3(value)) {
           if (i === 0 && depth > 0) break;
           depth += 1;
           const subpath = path.slice(i);
@@ -9613,14 +9827,14 @@ var ContextEngineBridge = (() => {
       return value;
     }
     const res = isScalar(obj) ? obj : resolve2(obj, selector.split("."));
-    return isArray(res) && options?.unwrapArray ? unwrap(res, depth) : res;
+    return isArray3(res) && options?.unwrapArray ? unwrap(res, depth) : res;
   }
   function resolveGraph(obj, selector, options) {
     const sep = selector.indexOf(".");
     const key = sep == -1 ? selector : selector.substring(0, sep);
     const next = selector.substring(sep + 1);
     const hasNext = sep != -1;
-    if (isArray(obj)) {
+    if (isArray3(obj)) {
       const isIndex = /^\d+$/.test(key);
       const arr = isIndex && options?.preserveIndex ? [...obj] : [];
       if (isIndex) {
@@ -9656,7 +9870,7 @@ var ContextEngineBridge = (() => {
     return res;
   }
   function filterMissing(obj) {
-    if (isArray(obj)) {
+    if (isArray3(obj)) {
       for (let i = obj.length - 1; i >= 0; i--) {
         if (obj[i] === MISSING) {
           obj.splice(i, 1);
@@ -9678,7 +9892,7 @@ var ContextEngineBridge = (() => {
     const key = names[0];
     const next = names.slice(1).join(".");
     if (names.length === 1) {
-      if (isObject2(obj) || isArray(obj) && NUMBER_RE.test(key)) {
+      if (isObject2(obj) || isArray3(obj) && NUMBER_RE.test(key)) {
         fn(obj, key);
       }
     } else {
@@ -9688,7 +9902,7 @@ var ContextEngineBridge = (() => {
       const item = obj[key];
       if (!item) return;
       const isNextArrayIndex = !!(names.length > 1 && NUMBER_RE.test(names[1]));
-      if (isArray(item) && options?.descendArray && !isNextArrayIndex) {
+      if (isArray3(item) && options?.descendArray && !isNextArrayIndex) {
         item.forEach((e) => walk(e, next, fn, options));
       } else {
         walk(item, next, fn, options);
@@ -9710,7 +9924,7 @@ var ContextEngineBridge = (() => {
       obj,
       selector,
       (item, key) => {
-        if (isArray(item)) {
+        if (isArray3(item)) {
           if (/^\d+$/.test(key)) {
             item.splice(parseInt(key), 1);
           } else if (options && options.descendArray) {
@@ -9995,7 +10209,7 @@ var ContextEngineBridge = (() => {
       }
       return expr === "" ? ctx : resolve(ctx, expr);
     }
-    if (isArray(expr)) {
+    if (isArray3(expr)) {
       return expr.map((item) => computeExpression(obj, item, options));
     }
     if (isObject2(expr)) {
@@ -10025,11 +10239,11 @@ var ContextEngineBridge = (() => {
       options
     );
     assert(!!callAccumulator, `accumulator '${operator}' is not registered.`);
-    if (!isArray(obj)) {
+    if (!isArray3(obj)) {
       obj = computeExpression(obj, expr, options);
       expr = null;
     }
-    assert(isArray(obj), `arguments must resolve to array for ${operator}.`);
+    assert(isArray3(obj), `arguments must resolve to array for ${operator}.`);
     return callAccumulator(obj, expr, options);
   }
   var REDACT_ACTIONS = ["$$KEEP", "$$PRUNE", "$$DESCEND"];
@@ -10132,7 +10346,7 @@ var ContextEngineBridge = (() => {
           if (o.done) throw DONE;
           return o.value;
         };
-      } else if (isArray(source)) {
+      } else if (isArray3(source)) {
         const data = source;
         const size = data.length;
         let index = 0;
@@ -10294,7 +10508,7 @@ var ContextEngineBridge = (() => {
         } else {
           excludedKeys.push(key);
         }
-      } else if (isArray(subExpr)) {
+      } else if (isArray3(subExpr)) {
         handlers[key] = (o) => subExpr.map((v) => computeValue(o, v, null, options.update(o)) ?? null);
       } else if (isObject2(subExpr)) {
         const subExprKeys = Object.keys(subExpr);
@@ -10320,7 +10534,7 @@ var ContextEngineBridge = (() => {
             if (isRoot) options.update(o);
             const target = resolve(o, key);
             const fn = createHandler(subExpr, options, false);
-            if (isArray(target)) return target.map(fn);
+            if (isArray3(target)) return target.map(fn);
             if (isObject2(target)) return fn(target);
             return fn(o);
           };
@@ -11269,7 +11483,7 @@ var ContextEngineBridge = (() => {
   function $eq(a, b, options) {
     if (isEqual(a, b)) return true;
     if (isNil(a) && isNil(b)) return true;
-    if (isArray(a)) {
+    if (isArray3(a)) {
       return a.some((v) => isEqual(v, b)) || flatten(a, options?.depth).some((v) => isEqual(v, b));
     }
     return false;
@@ -11307,7 +11521,7 @@ var ContextEngineBridge = (() => {
     return lhs.some(match) || flatten(lhs, 1).some(match);
   }
   function $all(values, queries, options) {
-    if (!isArray(values) || !isArray(queries) || !values.length || !queries.length) {
+    if (!isArray3(values) || !isArray3(queries) || !values.length || !queries.length) {
       return false;
     }
     let matched = true;
@@ -11330,7 +11544,7 @@ var ContextEngineBridge = (() => {
     return isOperator(name) && ["$and", "$or", "$nor"].indexOf(name) === -1;
   }
   function $elemMatch(a, b, options) {
-    if (isArray(a) && !isEmpty(a)) {
+    if (isArray3(a) && !isEmpty(a)) {
       let format = (x) => x;
       let criteria = b;
       if (Object.keys(b).every(isNonBooleanOperator)) {
@@ -11348,7 +11562,7 @@ var ContextEngineBridge = (() => {
   }
   var isNull = (a) => a === null;
   var compareFuncs = {
-    array: isArray,
+    array: isArray3,
     boolean: isBoolean,
     bool: isBoolean,
     date: isDate,
@@ -11373,7 +11587,7 @@ var ContextEngineBridge = (() => {
     //double
     2: isString,
     3: isObject2,
-    4: isArray,
+    4: isArray3,
     6: isNil,
     // deprecated
     8: isBoolean,
@@ -11392,7 +11606,7 @@ var ContextEngineBridge = (() => {
     return f ? f(a) : false;
   }
   function $type(a, b, options) {
-    return isArray(b) ? b.findIndex((t) => compareType(a, t, options)) >= 0 : compareType(a, b, options);
+    return isArray3(b) ? b.findIndex((t) => compareType(a, t, options)) >= 0 : compareType(a, b, options);
   }
   function compare2(a, b, f) {
     return ensureArray(a).some((x) => typeOf(x) === typeOf(b) && f(x, b));
@@ -11403,7 +11617,7 @@ var ContextEngineBridge = (() => {
 
   // node_modules/mingo/dist/esm/operators/expression/bitwise/_internal.js
   var bitwise = (op, compute) => (obj, expr, options) => {
-    assert(isArray(expr), `${op}: expression must be an array.`);
+    assert(isArray3(expr), `${op}: expression must be an array.`);
     const nums = computeValue(obj, expr, null, options);
     if (nums.some(isNil)) return null;
     assert(
@@ -11476,7 +11690,7 @@ var ContextEngineBridge = (() => {
   var $cmp = (obj, expr, options) => {
     const args = computeValue(obj, expr, null, options);
     assert(
-      isArray(args) && args.length == 2,
+      isArray3(args) && args.length == 2,
       "$cmp: expression must resolve to array of size 2."
     );
     return compare(args[0], args[1]);
@@ -11616,7 +11830,7 @@ var ContextEngineBridge = (() => {
   // node_modules/mingo/dist/esm/operators/query/logical/and.js
   var $and2 = (_, rhs, options) => {
     assert(
-      isArray(rhs),
+      isArray3(rhs),
       "Invalid expression: $and expects value to be an Array."
     );
     const queries = rhs.map((expr) => new Query(expr, options));
@@ -11625,7 +11839,7 @@ var ContextEngineBridge = (() => {
 
   // node_modules/mingo/dist/esm/operators/query/logical/or.js
   var $or2 = (_, rhs, options) => {
-    assert(isArray(rhs), "Invalid expression. $or expects value to be an Array");
+    assert(isArray3(rhs), "Invalid expression. $or expects value to be an Array");
     const queries = rhs.map((expr) => new Query(expr, options));
     return (obj) => queries.some((q) => q.test(obj));
   };
@@ -11633,7 +11847,7 @@ var ContextEngineBridge = (() => {
   // node_modules/mingo/dist/esm/operators/query/logical/nor.js
   var $nor = (_, rhs, options) => {
     assert(
-      isArray(rhs),
+      isArray3(rhs),
       "Invalid expression. $nor expects value to be an array."
     );
     const f = $or2("$or", rhs, options);
@@ -11724,7 +11938,7 @@ var ContextEngineBridge = (() => {
     return (o) => {
       const path = resolveGraph(o, selector, { preserveIndex: true });
       const val = resolve(path, selector.substring(0, selector.lastIndexOf(".")));
-      return isArray(val) ? val.some((v) => v !== void 0) === b : val !== void 0 === b;
+      return isArray3(val) ? val.some((v) => v !== void 0) === b : val !== void 0 === b;
     };
   };
 
@@ -11933,6 +12147,26 @@ var ContextEngineBridge = (() => {
     } else {
       return void 0;
     }
+  }
+  async function writeSingle(instance, writeRow, context2) {
+    var writeResult = await instance.bulkWrite([writeRow], context2);
+    if (writeResult.error.length > 0) {
+      var error = writeResult.error[0];
+      throw error;
+    } else {
+      var primaryPath = getPrimaryFieldOfPrimaryKey(instance.schema.primaryKey);
+      var success = getWrittenDocumentsFromBulkWriteResponse(primaryPath, [writeRow], writeResult);
+      var ret = success[0];
+      return ret;
+    }
+  }
+  function observeSingle(storageInstance, documentId) {
+    var firstFindPromise = getSingleDocument(storageInstance, documentId);
+    var ret = storageInstance.changeStream().pipe(map((evBulk) => evBulk.events.find((ev) => ev.documentId === documentId)), filter((ev) => !!ev), map((ev) => Promise.resolve(ensureNotFalsy(ev).documentData)), startWith(firstFindPromise), switchMap((v) => v), filter((v) => !!v));
+    return ret;
+  }
+  function stackCheckpoints(checkpoints) {
+    return Object.assign({}, ...checkpoints.filter((x) => !!x));
   }
   function throwIfIsStorageWriteError(collection, documentId, writeData, error) {
     if (error) {
@@ -12321,6 +12555,66 @@ var ContextEngineBridge = (() => {
     } else {
       return false;
     }
+  }
+  function getChangedDocumentsSinceQuery(storageInstance, limit, checkpoint) {
+    var primaryPath = getPrimaryFieldOfPrimaryKey(storageInstance.schema.primaryKey);
+    var sinceLwt = checkpoint ? checkpoint.lwt : RX_META_LWT_MINIMUM;
+    var sinceId = checkpoint ? checkpoint.id : "";
+    return normalizeMangoQuery(storageInstance.schema, {
+      selector: {
+        $or: [{
+          "_meta.lwt": {
+            $gt: sinceLwt
+          }
+        }, {
+          "_meta.lwt": {
+            $eq: sinceLwt
+          },
+          [primaryPath]: {
+            $gt: checkpoint ? sinceId : ""
+          }
+        }],
+        // add this hint for better index usage
+        "_meta.lwt": {
+          $gte: sinceLwt
+        }
+      },
+      sort: [{
+        "_meta.lwt": "asc"
+      }, {
+        [primaryPath]: "asc"
+      }],
+      skip: 0,
+      limit
+      /**
+       * DO NOT SET A SPECIFIC INDEX HERE!
+       * The query might be modified by some plugin
+       * before sending it to the storage.
+       * We can be sure that in the end the query planner
+       * will find the best index.
+       */
+      // index: ['_meta.lwt', primaryPath]
+    });
+  }
+  async function getChangedDocumentsSince(storageInstance, limit, checkpoint) {
+    if (storageInstance.getChangedDocumentsSince) {
+      return storageInstance.getChangedDocumentsSince(limit, checkpoint);
+    }
+    var primaryPath = getPrimaryFieldOfPrimaryKey(storageInstance.schema.primaryKey);
+    var query = prepareQuery(storageInstance.schema, getChangedDocumentsSinceQuery(storageInstance, limit, checkpoint));
+    var result = await storageInstance.query(query);
+    var documents = result.documents;
+    var lastDoc = lastOfArray(documents);
+    return {
+      documents,
+      checkpoint: lastDoc ? {
+        id: lastDoc[primaryPath],
+        lwt: lastDoc._meta.lwt
+      } : checkpoint ? checkpoint : {
+        id: "",
+        lwt: 0
+      }
+    };
   }
   var BULK_WRITE_ROWS_BY_RESPONSE = /* @__PURE__ */ new WeakMap();
   var BULK_WRITE_SUCCESS_MAP = /* @__PURE__ */ new WeakMap();
@@ -14257,6 +14551,43 @@ var ContextEngineBridge = (() => {
     }
     return true;
   }
+  async function addConnectedStorageToCollection(collection, storageCollectionName, schema) {
+    if (collection.schema.version !== schema.version) {
+      throw newRxError("SNH", {
+        schema,
+        version: collection.schema.version,
+        name: collection.name,
+        collection,
+        args: {
+          storageCollectionName
+        }
+      });
+    }
+    var collectionNameWithVersion = _collectionNamePrimary(collection.name, collection.schema.jsonSchema);
+    var collectionDocId = getPrimaryKeyOfInternalDocument(collectionNameWithVersion, INTERNAL_CONTEXT_COLLECTION);
+    while (true) {
+      var collectionDoc = await getSingleDocument(collection.database.internalStore, collectionDocId);
+      var saveData = clone(ensureNotFalsy(collectionDoc));
+      var alreadyThere = saveData.data.connectedStorages.find((row) => row.collectionName === storageCollectionName && row.schema.version === schema.version);
+      if (alreadyThere) {
+        return;
+      }
+      saveData.data.connectedStorages.push({
+        collectionName: storageCollectionName,
+        schema
+      });
+      try {
+        await writeSingle(collection.database.internalStore, {
+          previous: ensureNotFalsy(collectionDoc),
+          document: saveData
+        }, "add-connected-storage-to-collection");
+      } catch (err) {
+        if (!isBulkWriteConflictError(err)) {
+          throw err;
+        }
+      }
+    }
+  }
   function _collectionNamePrimary(name, schema) {
     return name + "-" + schema.version;
   }
@@ -15749,6 +16080,9 @@ var ContextEngineBridge = (() => {
     await dbInternalsStorageInstance.remove();
     return removedCollectionNames;
   }
+  function isRxDatabase(obj) {
+    return obj instanceof RxDatabaseBase;
+  }
   async function ensureNoStartupErrors(rxDatabase) {
     await rxDatabase.storageToken;
     if (rxDatabase.startupErrors[0]) {
@@ -15811,6 +16145,937 @@ var ContextEngineBridge = (() => {
     }
   }
 
+  // node_modules/rxdb/dist/esm/replication-protocol/checkpoint.js
+  async function getLastCheckpointDoc(state, direction) {
+    var checkpointDocId = getComposedPrimaryKeyOfDocumentData(state.input.metaInstance.schema, {
+      isCheckpoint: "1",
+      itemId: direction
+    });
+    var checkpointResult = await state.input.metaInstance.findDocumentsById([checkpointDocId], false);
+    var checkpointDoc = checkpointResult[0];
+    state.lastCheckpointDoc[direction] = checkpointDoc;
+    if (checkpointDoc) {
+      return checkpointDoc.checkpointData;
+    } else {
+      return void 0;
+    }
+  }
+  async function setCheckpoint(state, direction, checkpoint) {
+    state.checkpointQueue = state.checkpointQueue.then(async () => {
+      var previousCheckpointDoc = state.lastCheckpointDoc[direction];
+      if (checkpoint && /**
+       * If the replication is already canceled,
+       * we do not write a checkpoint
+       * because that could mean we write a checkpoint
+       * for data that has been fetched from the master
+       * but not been written to the child.
+       */
+      !state.events.canceled.getValue() && /**
+       * Only write checkpoint if it is different from before
+       * to have less writes to the storage.
+       */
+      (!previousCheckpointDoc || JSON.stringify(previousCheckpointDoc.checkpointData) !== JSON.stringify(checkpoint))) {
+        var newDoc = {
+          id: "",
+          isCheckpoint: "1",
+          itemId: direction,
+          _deleted: false,
+          _attachments: {},
+          checkpointData: checkpoint,
+          _meta: getDefaultRxDocumentMeta(),
+          _rev: getDefaultRevision()
+        };
+        newDoc.id = getComposedPrimaryKeyOfDocumentData(state.input.metaInstance.schema, newDoc);
+        while (!state.events.canceled.getValue()) {
+          if (previousCheckpointDoc) {
+            newDoc.checkpointData = stackCheckpoints([previousCheckpointDoc.checkpointData, newDoc.checkpointData]);
+          }
+          newDoc._meta.lwt = now();
+          newDoc._rev = createRevision(await state.checkpointKey, previousCheckpointDoc);
+          if (state.events.canceled.getValue()) {
+            return;
+          }
+          var writeRows = [{
+            previous: previousCheckpointDoc,
+            document: newDoc
+          }];
+          var result = await state.input.metaInstance.bulkWrite(writeRows, "replication-set-checkpoint");
+          var successDoc = getWrittenDocumentsFromBulkWriteResponse(state.primaryPath, writeRows, result)[0];
+          if (successDoc) {
+            state.lastCheckpointDoc[direction] = successDoc;
+            return;
+          } else {
+            var error = result.error[0];
+            if (error.status !== 409) {
+              throw error;
+            } else {
+              previousCheckpointDoc = ensureNotFalsy(error.documentInDb);
+              newDoc._rev = createRevision(await state.checkpointKey, previousCheckpointDoc);
+            }
+          }
+        }
+      }
+    });
+    await state.checkpointQueue;
+  }
+  async function getCheckpointKey(input) {
+    var hash = await input.hashFunction([input.identifier, input.forkInstance.databaseName, input.forkInstance.collectionName].join("||"));
+    return "rx_storage_replication_" + hash;
+  }
+
+  // node_modules/rxdb/dist/esm/replication-protocol/helper.js
+  function docStateToWriteDoc(databaseInstanceToken, hasAttachments, keepMeta, docState, previous) {
+    var docData = Object.assign({}, docState, {
+      _attachments: hasAttachments && docState._attachments ? docState._attachments : {},
+      _meta: keepMeta ? docState._meta : Object.assign({}, previous ? previous._meta : {}, {
+        lwt: now()
+      }),
+      _rev: keepMeta ? docState._rev : getDefaultRevision()
+    });
+    if (!docData._rev) {
+      docData._rev = createRevision(databaseInstanceToken, previous);
+    }
+    return docData;
+  }
+  function writeDocToDocState(writeDoc, keepAttachments, keepMeta) {
+    var ret = flatClone(writeDoc);
+    if (!keepAttachments) {
+      delete ret._attachments;
+    }
+    if (!keepMeta) {
+      delete ret._meta;
+      delete ret._rev;
+    }
+    return ret;
+  }
+  function stripAttachmentsDataFromMetaWriteRows(state, rows) {
+    if (!state.hasAttachments) {
+      return rows;
+    }
+    return rows.map((row) => {
+      var document2 = clone(row.document);
+      document2.docData = stripAttachmentsDataFromDocument(document2.docData);
+      return {
+        document: document2,
+        previous: row.previous
+      };
+    });
+  }
+  function getUnderlyingPersistentStorage(instance) {
+    while (true) {
+      if (instance.underlyingPersistentStorage) {
+        instance = instance.underlyingPersistentStorage;
+      } else {
+        return instance;
+      }
+    }
+  }
+
+  // node_modules/rxdb/dist/esm/replication-protocol/meta-instance.js
+  var META_INSTANCE_SCHEMA_TITLE = "RxReplicationProtocolMetaData";
+  function getRxReplicationMetaInstanceSchema(replicatedDocumentsSchema, encrypted) {
+    var parentPrimaryKeyLength = getLengthOfPrimaryKey(replicatedDocumentsSchema);
+    var baseSchema = {
+      title: META_INSTANCE_SCHEMA_TITLE,
+      primaryKey: {
+        key: "id",
+        fields: ["itemId", "isCheckpoint"],
+        separator: "|"
+      },
+      type: "object",
+      version: replicatedDocumentsSchema.version,
+      additionalProperties: false,
+      properties: {
+        id: {
+          type: "string",
+          minLength: 1,
+          // add +1 for the '|' and +1 for the 'isCheckpoint' flag
+          maxLength: parentPrimaryKeyLength + 2
+        },
+        isCheckpoint: {
+          type: "string",
+          enum: ["0", "1"],
+          minLength: 1,
+          maxLength: 1
+        },
+        itemId: {
+          type: "string",
+          /**
+           * ensure that all values of RxStorageReplicationDirection ('DOWN' has 4 chars) fit into it
+           * because checkpoints use the itemId field for that.
+           */
+          maxLength: parentPrimaryKeyLength > 4 ? parentPrimaryKeyLength : 4
+        },
+        checkpointData: {
+          type: "object",
+          additionalProperties: true
+        },
+        docData: {
+          type: "object",
+          properties: replicatedDocumentsSchema.properties
+        },
+        isResolvedConflict: {
+          type: "string"
+        }
+      },
+      keyCompression: replicatedDocumentsSchema.keyCompression,
+      required: ["id", "isCheckpoint", "itemId"]
+    };
+    if (encrypted) {
+      baseSchema.encrypted = ["docData"];
+    }
+    var metaInstanceSchema = fillWithDefaultSettings(baseSchema);
+    return metaInstanceSchema;
+  }
+  function getAssumedMasterState(state, docIds) {
+    return state.input.metaInstance.findDocumentsById(docIds.map((docId) => {
+      var useId = getComposedPrimaryKeyOfDocumentData(state.input.metaInstance.schema, {
+        itemId: docId,
+        isCheckpoint: "0"
+      });
+      return useId;
+    }), true).then((metaDocs) => {
+      var ret = {};
+      Object.values(metaDocs).forEach((metaDoc) => {
+        ret[metaDoc.itemId] = {
+          docData: metaDoc.docData,
+          metaDocument: metaDoc
+        };
+      });
+      return ret;
+    });
+  }
+  async function getMetaWriteRow(state, newMasterDocState, previous, isResolvedConflict) {
+    var docId = newMasterDocState[state.primaryPath];
+    var newMeta = previous ? flatCloneDocWithMeta(previous) : {
+      id: "",
+      isCheckpoint: "0",
+      itemId: docId,
+      docData: newMasterDocState,
+      _attachments: {},
+      _deleted: false,
+      _rev: getDefaultRevision(),
+      _meta: {
+        lwt: 0
+      }
+    };
+    newMeta.docData = newMasterDocState;
+    if (isResolvedConflict) {
+      newMeta.isResolvedConflict = isResolvedConflict;
+    }
+    newMeta._meta.lwt = now();
+    newMeta.id = getComposedPrimaryKeyOfDocumentData(state.input.metaInstance.schema, newMeta);
+    newMeta._rev = createRevision(await state.checkpointKey, previous);
+    var ret = {
+      previous,
+      document: newMeta
+    };
+    return ret;
+  }
+
+  // node_modules/rxdb/dist/esm/replication-protocol/downstream.js
+  async function startReplicationDownstream(state) {
+    if (state.input.initialCheckpoint && state.input.initialCheckpoint.downstream) {
+      var checkpointDoc = await getLastCheckpointDoc(state, "down");
+      if (!checkpointDoc) {
+        await setCheckpoint(state, "down", state.input.initialCheckpoint.downstream);
+      }
+    }
+    var identifierHash = await state.input.hashFunction(state.input.identifier);
+    var replicationHandler = state.input.replicationHandler;
+    var timer = 0;
+    var openTasks = [];
+    function addNewTask(task) {
+      state.stats.down.addNewTask = state.stats.down.addNewTask + 1;
+      var taskWithTime = {
+        time: timer++,
+        task
+      };
+      openTasks.push(taskWithTime);
+      state.streamQueue.down = state.streamQueue.down.then(() => {
+        var useTasks = [];
+        while (openTasks.length > 0) {
+          state.events.active.down.next(true);
+          var innerTaskWithTime = ensureNotFalsy(openTasks.shift());
+          if (innerTaskWithTime.time < lastTimeMasterChangesRequested) {
+            continue;
+          }
+          if (innerTaskWithTime.task === "RESYNC") {
+            if (useTasks.length === 0) {
+              useTasks.push(innerTaskWithTime.task);
+              break;
+            } else {
+              break;
+            }
+          }
+          useTasks.push(innerTaskWithTime.task);
+        }
+        if (useTasks.length === 0) {
+          return;
+        }
+        if (useTasks[0] === "RESYNC") {
+          return downstreamResyncOnce();
+        } else {
+          return downstreamProcessChanges(useTasks);
+        }
+      }).then(() => {
+        state.events.active.down.next(false);
+        if (!state.firstSyncDone.down.getValue() && !state.events.canceled.getValue()) {
+          state.firstSyncDone.down.next(true);
+        }
+      });
+    }
+    addNewTask("RESYNC");
+    if (!state.events.canceled.getValue()) {
+      var sub = replicationHandler.masterChangeStream$.pipe(mergeMap(async (ev) => {
+        await firstValueFrom(state.events.active.up.pipe(filter((s) => !s)));
+        return ev;
+      })).subscribe((task) => {
+        state.stats.down.masterChangeStreamEmit = state.stats.down.masterChangeStreamEmit + 1;
+        addNewTask(task);
+      });
+      firstValueFrom(state.events.canceled.pipe(filter((canceled) => !!canceled))).then(() => sub.unsubscribe());
+    }
+    var lastTimeMasterChangesRequested = -1;
+    async function downstreamResyncOnce() {
+      state.stats.down.downstreamResyncOnce = state.stats.down.downstreamResyncOnce + 1;
+      if (state.events.canceled.getValue()) {
+        return;
+      }
+      state.checkpointQueue = state.checkpointQueue.then(() => getLastCheckpointDoc(state, "down"));
+      var lastCheckpoint = await state.checkpointQueue;
+      var promises = [];
+      while (!state.events.canceled.getValue()) {
+        lastTimeMasterChangesRequested = timer++;
+        var downResult = await replicationHandler.masterChangesSince(lastCheckpoint, state.input.pullBatchSize);
+        if (downResult.documents.length === 0) {
+          break;
+        }
+        lastCheckpoint = stackCheckpoints([lastCheckpoint, downResult.checkpoint]);
+        promises.push(persistFromMaster(downResult.documents, lastCheckpoint));
+        if (downResult.documents.length < state.input.pullBatchSize) {
+          break;
+        }
+      }
+      await Promise.all(promises);
+    }
+    function downstreamProcessChanges(tasks) {
+      state.stats.down.downstreamProcessChanges = state.stats.down.downstreamProcessChanges + 1;
+      var docsOfAllTasks = [];
+      var lastCheckpoint = null;
+      tasks.forEach((task) => {
+        if (task === "RESYNC") {
+          throw new Error("SNH");
+        }
+        appendToArray(docsOfAllTasks, task.documents);
+        lastCheckpoint = stackCheckpoints([lastCheckpoint, task.checkpoint]);
+      });
+      return persistFromMaster(docsOfAllTasks, ensureNotFalsy(lastCheckpoint));
+    }
+    var persistenceQueue = PROMISE_RESOLVE_VOID;
+    var nonPersistedFromMaster = {
+      docs: {}
+    };
+    function persistFromMaster(docs, checkpoint) {
+      var primaryPath = state.primaryPath;
+      state.stats.down.persistFromMaster = state.stats.down.persistFromMaster + 1;
+      docs.forEach((docData) => {
+        var docId = docData[primaryPath];
+        nonPersistedFromMaster.docs[docId] = docData;
+      });
+      nonPersistedFromMaster.checkpoint = checkpoint;
+      persistenceQueue = persistenceQueue.then(() => {
+        var downDocsById = nonPersistedFromMaster.docs;
+        nonPersistedFromMaster.docs = {};
+        var useCheckpoint = nonPersistedFromMaster.checkpoint;
+        var docIds = Object.keys(downDocsById);
+        if (state.events.canceled.getValue() || docIds.length === 0) {
+          return PROMISE_RESOLVE_VOID;
+        }
+        var writeRowsToFork = [];
+        var writeRowsToForkById = {};
+        var writeRowsToMeta = {};
+        var useMetaWriteRows = [];
+        return Promise.all([state.input.forkInstance.findDocumentsById(docIds, true), getAssumedMasterState(state, docIds)]).then(([currentForkStateList, assumedMasterState]) => {
+          var currentForkState = /* @__PURE__ */ new Map();
+          currentForkStateList.forEach((doc) => currentForkState.set(doc[primaryPath], doc));
+          return Promise.all(docIds.map(async (docId) => {
+            var forkStateFullDoc = currentForkState.get(docId);
+            var forkStateDocData = forkStateFullDoc ? writeDocToDocState(forkStateFullDoc, state.hasAttachments, false) : void 0;
+            var masterState = downDocsById[docId];
+            var assumedMaster = assumedMasterState[docId];
+            if (assumedMaster && forkStateFullDoc && assumedMaster.metaDocument.isResolvedConflict === forkStateFullDoc._rev) {
+              await state.streamQueue.up;
+            }
+            var isAssumedMasterEqualToForkState = !assumedMaster || !forkStateDocData ? false : state.input.conflictHandler.isEqual(assumedMaster.docData, forkStateDocData, "downstream-check-if-equal-0");
+            if (!isAssumedMasterEqualToForkState && assumedMaster && assumedMaster.docData._rev && forkStateFullDoc && forkStateFullDoc._meta[state.input.identifier] && getHeightOfRevision(forkStateFullDoc._rev) === forkStateFullDoc._meta[state.input.identifier]) {
+              isAssumedMasterEqualToForkState = true;
+            }
+            if (forkStateFullDoc && assumedMaster && isAssumedMasterEqualToForkState === false || forkStateFullDoc && !assumedMaster) {
+              return PROMISE_RESOLVE_VOID;
+            }
+            var areStatesExactlyEqual = !forkStateDocData ? false : state.input.conflictHandler.isEqual(masterState, forkStateDocData, "downstream-check-if-equal-1");
+            if (forkStateDocData && areStatesExactlyEqual) {
+              if (!assumedMaster || isAssumedMasterEqualToForkState === false) {
+                useMetaWriteRows.push(await getMetaWriteRow(state, forkStateDocData, assumedMaster ? assumedMaster.metaDocument : void 0));
+              }
+              return PROMISE_RESOLVE_VOID;
+            }
+            var newForkState = Object.assign({}, masterState, forkStateFullDoc ? {
+              _meta: flatClone(forkStateFullDoc._meta),
+              _attachments: state.hasAttachments && masterState._attachments ? masterState._attachments : {},
+              _rev: getDefaultRevision()
+            } : {
+              _meta: {
+                lwt: now()
+              },
+              _rev: getDefaultRevision(),
+              _attachments: state.hasAttachments && masterState._attachments ? masterState._attachments : {}
+            });
+            if (masterState._rev) {
+              var nextRevisionHeight = !forkStateFullDoc ? 1 : getHeightOfRevision(forkStateFullDoc._rev) + 1;
+              newForkState._meta[state.input.identifier] = nextRevisionHeight;
+              if (state.input.keepMeta) {
+                newForkState._rev = masterState._rev;
+              }
+            }
+            if (state.input.keepMeta && masterState._meta) {
+              newForkState._meta = masterState._meta;
+            }
+            var forkWriteRow = {
+              previous: forkStateFullDoc,
+              document: newForkState
+            };
+            forkWriteRow.document._rev = forkWriteRow.document._rev ? forkWriteRow.document._rev : createRevision(identifierHash, forkWriteRow.previous);
+            writeRowsToFork.push(forkWriteRow);
+            writeRowsToForkById[docId] = forkWriteRow;
+            writeRowsToMeta[docId] = await getMetaWriteRow(state, masterState, assumedMaster ? assumedMaster.metaDocument : void 0);
+          }));
+        }).then(async () => {
+          if (writeRowsToFork.length > 0) {
+            return state.input.forkInstance.bulkWrite(writeRowsToFork, await state.downstreamBulkWriteFlag).then((forkWriteResult) => {
+              var success = getWrittenDocumentsFromBulkWriteResponse(state.primaryPath, writeRowsToFork, forkWriteResult);
+              success.forEach((doc) => {
+                var docId = doc[primaryPath];
+                state.events.processed.down.next(writeRowsToForkById[docId]);
+                useMetaWriteRows.push(writeRowsToMeta[docId]);
+              });
+              var mustThrow;
+              forkWriteResult.error.forEach((error) => {
+                if (error.status === 409) {
+                  return;
+                }
+                var throwMe = newRxError("RC_PULL", {
+                  writeError: error
+                });
+                state.events.error.next(throwMe);
+                mustThrow = throwMe;
+              });
+              if (mustThrow) {
+                throw mustThrow;
+              }
+            });
+          }
+        }).then(() => {
+          if (useMetaWriteRows.length > 0) {
+            return state.input.metaInstance.bulkWrite(stripAttachmentsDataFromMetaWriteRows(state, useMetaWriteRows), "replication-down-write-meta").then((metaWriteResult) => {
+              metaWriteResult.error.forEach((writeError) => {
+                state.events.error.next(newRxError("RC_PULL", {
+                  id: writeError.documentId,
+                  writeError
+                }));
+              });
+            });
+          }
+        }).then(() => {
+          setCheckpoint(state, "down", useCheckpoint);
+        });
+      }).catch((unhandledError) => state.events.error.next(unhandledError));
+      return persistenceQueue;
+    }
+  }
+
+  // node_modules/rxdb/dist/esm/replication-protocol/conflicts.js
+  async function resolveConflictError(state, input, forkState) {
+    var conflictHandler = state.input.conflictHandler;
+    var isEqual2 = conflictHandler.isEqual(input.realMasterState, input.newDocumentState, "replication-resolve-conflict");
+    if (isEqual2) {
+      return void 0;
+    } else {
+      var resolved = await conflictHandler.resolve(input, "replication-resolve-conflict");
+      var resolvedDoc = Object.assign({}, resolved, {
+        /**
+         * Because the resolved conflict is written to the fork,
+         * we have to keep/update the forks _meta data, not the masters.
+         */
+        _meta: flatClone(forkState._meta),
+        _rev: getDefaultRevision(),
+        _attachments: flatClone(forkState._attachments)
+      });
+      resolvedDoc._meta.lwt = now();
+      resolvedDoc._rev = createRevision(await state.checkpointKey, forkState);
+      return resolvedDoc;
+    }
+  }
+
+  // node_modules/rxdb/dist/esm/plugins/attachments/attachments-utils.js
+  async function fillWriteDataForAttachmentsChange(primaryPath, storageInstance, newDocument, originalDocument) {
+    if (!newDocument._attachments || originalDocument && !originalDocument._attachments) {
+      throw new Error("_attachments missing");
+    }
+    var docId = newDocument[primaryPath];
+    var originalAttachmentsIds = new Set(originalDocument && originalDocument._attachments ? Object.keys(originalDocument._attachments) : []);
+    await Promise.all(Object.entries(newDocument._attachments).map(async ([key, value]) => {
+      if ((!originalAttachmentsIds.has(key) || originalDocument && ensureNotFalsy(originalDocument._attachments)[key].digest !== value.digest) && !value.data) {
+        var attachmentDataString = await storageInstance.getAttachmentData(docId, key, value.digest);
+        value.data = attachmentDataString;
+      }
+    }));
+    return newDocument;
+  }
+
+  // node_modules/rxdb/dist/esm/replication-protocol/upstream.js
+  async function startReplicationUpstream(state) {
+    if (state.input.initialCheckpoint && state.input.initialCheckpoint.upstream) {
+      var checkpointDoc = await getLastCheckpointDoc(state, "up");
+      if (!checkpointDoc) {
+        await setCheckpoint(state, "up", state.input.initialCheckpoint.upstream);
+      }
+    }
+    var replicationHandler = state.input.replicationHandler;
+    state.streamQueue.up = state.streamQueue.up.then(() => {
+      return upstreamInitialSync().then(() => {
+        return processTasks();
+      });
+    });
+    var timer = 0;
+    var initialSyncStartTime = -1;
+    var openTasks = [];
+    var persistenceQueue = PROMISE_RESOLVE_FALSE;
+    var nonPersistedFromMaster = {
+      docs: {}
+    };
+    var sub = state.input.forkInstance.changeStream().subscribe((eventBulk) => {
+      if (state.events.paused.getValue()) {
+        return;
+      }
+      state.stats.up.forkChangeStreamEmit = state.stats.up.forkChangeStreamEmit + 1;
+      openTasks.push({
+        task: eventBulk,
+        time: timer++
+      });
+      if (!state.events.active.up.getValue()) {
+        state.events.active.up.next(true);
+      }
+      if (state.input.waitBeforePersist) {
+        return state.input.waitBeforePersist().then(() => processTasks());
+      } else {
+        return processTasks();
+      }
+    });
+    var subResync = replicationHandler.masterChangeStream$.pipe(filter((ev) => ev === "RESYNC")).subscribe(() => {
+      openTasks.push({
+        task: "RESYNC",
+        time: timer++
+      });
+      processTasks();
+    });
+    firstValueFrom(state.events.canceled.pipe(filter((canceled) => !!canceled))).then(() => {
+      sub.unsubscribe();
+      subResync.unsubscribe();
+    });
+    async function upstreamInitialSync() {
+      state.stats.up.upstreamInitialSync = state.stats.up.upstreamInitialSync + 1;
+      if (state.events.canceled.getValue()) {
+        return;
+      }
+      state.checkpointQueue = state.checkpointQueue.then(() => getLastCheckpointDoc(state, "up"));
+      var lastCheckpoint = await state.checkpointQueue;
+      var promises = /* @__PURE__ */ new Set();
+      var _loop = async function() {
+        initialSyncStartTime = timer++;
+        if (promises.size > 3) {
+          await Promise.race(Array.from(promises));
+        }
+        var upResult = await getChangedDocumentsSince(state.input.forkInstance, state.input.pushBatchSize, lastCheckpoint);
+        if (upResult.documents.length === 0) {
+          return 1;
+        }
+        lastCheckpoint = stackCheckpoints([lastCheckpoint, upResult.checkpoint]);
+        var promise = persistToMaster(upResult.documents, ensureNotFalsy(lastCheckpoint));
+        promises.add(promise);
+        promise.catch().then(() => promises.delete(promise));
+      };
+      while (!state.events.canceled.getValue()) {
+        if (await _loop()) break;
+      }
+      var resolvedPromises = await Promise.all(promises);
+      var hadConflicts = resolvedPromises.find((r) => !!r);
+      if (hadConflicts) {
+        await upstreamInitialSync();
+      } else if (!state.firstSyncDone.up.getValue() && !state.events.canceled.getValue()) {
+        state.firstSyncDone.up.next(true);
+      }
+    }
+    function processTasks() {
+      if (state.events.canceled.getValue() || openTasks.length === 0) {
+        state.events.active.up.next(false);
+        return;
+      }
+      state.stats.up.processTasks = state.stats.up.processTasks + 1;
+      state.events.active.up.next(true);
+      state.streamQueue.up = state.streamQueue.up.then(async () => {
+        var docs = [];
+        var checkpoint;
+        while (openTasks.length > 0) {
+          var taskWithTime = ensureNotFalsy(openTasks.shift());
+          if (taskWithTime.time < initialSyncStartTime) {
+            continue;
+          }
+          if (taskWithTime.task === "RESYNC") {
+            state.events.active.up.next(false);
+            await upstreamInitialSync();
+            return;
+          }
+          if (taskWithTime.task.context !== await state.downstreamBulkWriteFlag) {
+            appendToArray(docs, taskWithTime.task.events.map((r) => {
+              return r.documentData;
+            }));
+          }
+          checkpoint = stackCheckpoints([checkpoint, taskWithTime.task.checkpoint]);
+        }
+        await persistToMaster(docs, checkpoint);
+        if (openTasks.length === 0) {
+          state.events.active.up.next(false);
+        } else {
+          return processTasks();
+        }
+      });
+    }
+    function persistToMaster(docs, checkpoint) {
+      state.stats.up.persistToMaster = state.stats.up.persistToMaster + 1;
+      docs.forEach((docData) => {
+        var docId = docData[state.primaryPath];
+        nonPersistedFromMaster.docs[docId] = docData;
+      });
+      nonPersistedFromMaster.checkpoint = checkpoint;
+      persistenceQueue = persistenceQueue.then(async () => {
+        if (state.events.canceled.getValue()) {
+          return false;
+        }
+        var upDocsById = nonPersistedFromMaster.docs;
+        nonPersistedFromMaster.docs = {};
+        var useCheckpoint = nonPersistedFromMaster.checkpoint;
+        var docIds = Object.keys(upDocsById);
+        function rememberCheckpointBeforeReturn() {
+          return setCheckpoint(state, "up", useCheckpoint);
+        }
+        ;
+        if (docIds.length === 0) {
+          rememberCheckpointBeforeReturn();
+          return false;
+        }
+        var assumedMasterState = await getAssumedMasterState(state, docIds);
+        var writeRowsToMaster = {};
+        var writeRowsToMasterIds = [];
+        var writeRowsToMeta = {};
+        var forkStateById = {};
+        await Promise.all(docIds.map(async (docId) => {
+          var fullDocData = upDocsById[docId];
+          forkStateById[docId] = fullDocData;
+          var docData = writeDocToDocState(fullDocData, state.hasAttachments, !!state.input.keepMeta);
+          var assumedMasterDoc = assumedMasterState[docId];
+          if (assumedMasterDoc && // if the isResolvedConflict is correct, we do not have to compare the documents.
+          assumedMasterDoc.metaDocument.isResolvedConflict !== fullDocData._rev && state.input.conflictHandler.isEqual(assumedMasterDoc.docData, docData, "upstream-check-if-equal") || /**
+           * If the master works with _rev fields,
+           * we use that to check if our current doc state
+           * is different from the assumedMasterDoc.
+           */
+          assumedMasterDoc && assumedMasterDoc.docData._rev && getHeightOfRevision(fullDocData._rev) === fullDocData._meta[state.input.identifier]) {
+            return;
+          }
+          writeRowsToMasterIds.push(docId);
+          writeRowsToMaster[docId] = {
+            assumedMasterState: assumedMasterDoc ? assumedMasterDoc.docData : void 0,
+            newDocumentState: docData
+          };
+          writeRowsToMeta[docId] = await getMetaWriteRow(state, docData, assumedMasterDoc ? assumedMasterDoc.metaDocument : void 0);
+        }));
+        if (writeRowsToMasterIds.length === 0) {
+          rememberCheckpointBeforeReturn();
+          return false;
+        }
+        var writeRowsArray = Object.values(writeRowsToMaster);
+        var conflictIds = /* @__PURE__ */ new Set();
+        var conflictsById = {};
+        var writeBatches = batchArray(writeRowsArray, state.input.pushBatchSize);
+        await Promise.all(writeBatches.map(async (writeBatch) => {
+          if (state.hasAttachments) {
+            await Promise.all(writeBatch.map(async (row) => {
+              row.newDocumentState = await fillWriteDataForAttachmentsChange(state.primaryPath, state.input.forkInstance, clone(row.newDocumentState), row.assumedMasterState);
+            }));
+          }
+          var masterWriteResult = await replicationHandler.masterWrite(writeBatch);
+          masterWriteResult.forEach((conflictDoc) => {
+            var id = conflictDoc[state.primaryPath];
+            conflictIds.add(id);
+            conflictsById[id] = conflictDoc;
+          });
+        }));
+        var useWriteRowsToMeta = [];
+        writeRowsToMasterIds.forEach((docId) => {
+          if (!conflictIds.has(docId)) {
+            state.events.processed.up.next(writeRowsToMaster[docId]);
+            useWriteRowsToMeta.push(writeRowsToMeta[docId]);
+          }
+        });
+        if (state.events.canceled.getValue()) {
+          return false;
+        }
+        if (useWriteRowsToMeta.length > 0) {
+          await state.input.metaInstance.bulkWrite(stripAttachmentsDataFromMetaWriteRows(state, useWriteRowsToMeta), "replication-up-write-meta");
+        }
+        var hadConflictWrites = false;
+        if (conflictIds.size > 0) {
+          state.stats.up.persistToMasterHadConflicts = state.stats.up.persistToMasterHadConflicts + 1;
+          var conflictWriteFork = [];
+          var conflictWriteMeta = {};
+          await Promise.all(Object.entries(conflictsById).map(([docId, realMasterState]) => {
+            var writeToMasterRow = writeRowsToMaster[docId];
+            var input = {
+              newDocumentState: writeToMasterRow.newDocumentState,
+              assumedMasterState: writeToMasterRow.assumedMasterState,
+              realMasterState
+            };
+            return resolveConflictError(state, input, forkStateById[docId]).then(async (resolved) => {
+              if (resolved) {
+                state.events.resolvedConflicts.next({
+                  input,
+                  output: resolved
+                });
+                conflictWriteFork.push({
+                  previous: forkStateById[docId],
+                  document: resolved
+                });
+                var assumedMasterDoc = assumedMasterState[docId];
+                conflictWriteMeta[docId] = await getMetaWriteRow(state, ensureNotFalsy(realMasterState), assumedMasterDoc ? assumedMasterDoc.metaDocument : void 0, resolved._rev);
+              }
+            });
+          }));
+          if (conflictWriteFork.length > 0) {
+            hadConflictWrites = true;
+            state.stats.up.persistToMasterConflictWrites = state.stats.up.persistToMasterConflictWrites + 1;
+            var forkWriteResult = await state.input.forkInstance.bulkWrite(conflictWriteFork, "replication-up-write-conflict");
+            var mustThrow;
+            forkWriteResult.error.forEach((error) => {
+              if (error.status === 409) {
+                return;
+              }
+              var throwMe = newRxError("RC_PUSH", {
+                writeError: error
+              });
+              state.events.error.next(throwMe);
+              mustThrow = throwMe;
+            });
+            if (mustThrow) {
+              throw mustThrow;
+            }
+            var useMetaWrites = [];
+            var success = getWrittenDocumentsFromBulkWriteResponse(state.primaryPath, conflictWriteFork, forkWriteResult);
+            success.forEach((docData) => {
+              var docId = docData[state.primaryPath];
+              useMetaWrites.push(conflictWriteMeta[docId]);
+            });
+            if (useMetaWrites.length > 0) {
+              await state.input.metaInstance.bulkWrite(stripAttachmentsDataFromMetaWriteRows(state, useMetaWrites), "replication-up-write-conflict-meta");
+            }
+          }
+        }
+        rememberCheckpointBeforeReturn();
+        return hadConflictWrites;
+      }).catch((unhandledError) => {
+        state.events.error.next(unhandledError);
+        return false;
+      });
+      return persistenceQueue;
+    }
+  }
+
+  // node_modules/rxdb/dist/esm/replication-protocol/index.js
+  function replicateRxStorageInstance(input) {
+    input = flatClone(input);
+    input.forkInstance = getUnderlyingPersistentStorage(input.forkInstance);
+    input.metaInstance = getUnderlyingPersistentStorage(input.metaInstance);
+    var checkpointKeyPromise = getCheckpointKey(input);
+    var state = {
+      primaryPath: getPrimaryFieldOfPrimaryKey(input.forkInstance.schema.primaryKey),
+      hasAttachments: !!input.forkInstance.schema.attachments,
+      input,
+      checkpointKey: checkpointKeyPromise,
+      downstreamBulkWriteFlag: checkpointKeyPromise.then((checkpointKey) => "replication-downstream-" + checkpointKey),
+      events: {
+        canceled: new BehaviorSubject(false),
+        paused: new BehaviorSubject(false),
+        active: {
+          down: new BehaviorSubject(true),
+          up: new BehaviorSubject(true)
+        },
+        processed: {
+          down: new Subject(),
+          up: new Subject()
+        },
+        resolvedConflicts: new Subject(),
+        error: new Subject()
+      },
+      stats: {
+        down: {
+          addNewTask: 0,
+          downstreamProcessChanges: 0,
+          downstreamResyncOnce: 0,
+          masterChangeStreamEmit: 0,
+          persistFromMaster: 0
+        },
+        up: {
+          forkChangeStreamEmit: 0,
+          persistToMaster: 0,
+          persistToMasterConflictWrites: 0,
+          persistToMasterHadConflicts: 0,
+          processTasks: 0,
+          upstreamInitialSync: 0
+        }
+      },
+      firstSyncDone: {
+        down: new BehaviorSubject(false),
+        up: new BehaviorSubject(false)
+      },
+      streamQueue: {
+        down: PROMISE_RESOLVE_VOID,
+        up: PROMISE_RESOLVE_VOID
+      },
+      checkpointQueue: PROMISE_RESOLVE_VOID,
+      lastCheckpointDoc: {}
+    };
+    startReplicationDownstream(state);
+    startReplicationUpstream(state);
+    return state;
+  }
+  function awaitRxStorageReplicationFirstInSync(state) {
+    return firstValueFrom(combineLatest([state.firstSyncDone.down.pipe(filter((v) => !!v)), state.firstSyncDone.up.pipe(filter((v) => !!v))])).then(() => {
+    });
+  }
+  function awaitRxStorageReplicationInSync(replicationState) {
+    return Promise.all([replicationState.streamQueue.up, replicationState.streamQueue.down, replicationState.checkpointQueue]);
+  }
+  function rxStorageInstanceToReplicationHandler(instance, conflictHandler, databaseInstanceToken, keepMeta = false) {
+    instance = getUnderlyingPersistentStorage(instance);
+    var hasAttachments = !!instance.schema.attachments;
+    var primaryPath = getPrimaryFieldOfPrimaryKey(instance.schema.primaryKey);
+    var replicationHandler = {
+      masterChangeStream$: instance.changeStream().pipe(mergeMap(async (eventBulk) => {
+        var ret = {
+          checkpoint: eventBulk.checkpoint,
+          documents: await Promise.all(eventBulk.events.map(async (event) => {
+            var docData = writeDocToDocState(event.documentData, hasAttachments, keepMeta);
+            if (hasAttachments) {
+              docData = await fillWriteDataForAttachmentsChange(
+                primaryPath,
+                instance,
+                clone(docData),
+                /**
+                 * Notice that the master never knows
+                 * the client state of the document.
+                 * Therefore we always send all attachments data.
+                 */
+                void 0
+              );
+            }
+            return docData;
+          }))
+        };
+        return ret;
+      })),
+      masterChangesSince(checkpoint, batchSize) {
+        return getChangedDocumentsSince(instance, batchSize, checkpoint).then(async (result) => {
+          return {
+            checkpoint: result.documents.length > 0 ? result.checkpoint : checkpoint,
+            documents: await Promise.all(result.documents.map(async (plainDocumentData) => {
+              var docData = writeDocToDocState(plainDocumentData, hasAttachments, keepMeta);
+              if (hasAttachments) {
+                docData = await fillWriteDataForAttachmentsChange(
+                  primaryPath,
+                  instance,
+                  clone(docData),
+                  /**
+                   * Notice the the master never knows
+                   * the client state of the document.
+                   * Therefore we always send all attachments data.
+                   */
+                  void 0
+                );
+              }
+              return docData;
+            }))
+          };
+        });
+      },
+      async masterWrite(rows) {
+        var rowById = {};
+        rows.forEach((row) => {
+          var docId = row.newDocumentState[primaryPath];
+          rowById[docId] = row;
+        });
+        var ids = Object.keys(rowById);
+        var masterDocsStateList = await instance.findDocumentsById(ids, true);
+        var masterDocsState = /* @__PURE__ */ new Map();
+        masterDocsStateList.forEach((doc) => masterDocsState.set(doc[primaryPath], doc));
+        var conflicts = [];
+        var writeRows = [];
+        await Promise.all(Object.entries(rowById).map(([id, row]) => {
+          var masterState = masterDocsState.get(id);
+          if (!masterState) {
+            writeRows.push({
+              document: docStateToWriteDoc(databaseInstanceToken, hasAttachments, keepMeta, row.newDocumentState)
+            });
+          } else if (masterState && !row.assumedMasterState) {
+            conflicts.push(writeDocToDocState(masterState, hasAttachments, keepMeta));
+          } else if (conflictHandler.isEqual(writeDocToDocState(masterState, hasAttachments, keepMeta), ensureNotFalsy(row.assumedMasterState), "rxStorageInstanceToReplicationHandler-masterWrite") === true) {
+            writeRows.push({
+              previous: masterState,
+              document: docStateToWriteDoc(databaseInstanceToken, hasAttachments, keepMeta, row.newDocumentState, masterState)
+            });
+          } else {
+            conflicts.push(writeDocToDocState(masterState, hasAttachments, keepMeta));
+          }
+        }));
+        if (writeRows.length > 0) {
+          var result = await instance.bulkWrite(writeRows, "replication-master-write");
+          result.error.forEach((err) => {
+            if (err.status !== 409) {
+              throw newRxError("SNH", {
+                name: "non conflict error",
+                error: err
+              });
+            } else {
+              conflicts.push(writeDocToDocState(ensureNotFalsy(err.documentInDb), hasAttachments, keepMeta));
+            }
+          });
+        }
+        return conflicts;
+      }
+    };
+    return replicationHandler;
+  }
+  async function cancelRxStorageReplication(replicationState) {
+    replicationState.events.canceled.next(true);
+    replicationState.events.active.up.complete();
+    replicationState.events.active.down.complete();
+    replicationState.events.processed.up.complete();
+    replicationState.events.processed.down.complete();
+    replicationState.events.resolvedConflicts.complete();
+    replicationState.events.canceled.complete();
+    await replicationState.checkpointQueue;
+  }
+
   // node_modules/broadcast-channel/dist/esbrowser/util.js
   function isPromise2(obj) {
     return obj && typeof obj.then === "function";
@@ -15840,6 +17105,13 @@ var ContextEngineBridge = (() => {
     }
     lastMs = ret;
     return ret;
+  }
+  function supportsWebLockAPI() {
+    if (typeof navigator !== "undefined" && typeof navigator.locks !== "undefined" && typeof navigator.locks.request === "function") {
+      return true;
+    } else {
+      return false;
+    }
   }
 
   // node_modules/broadcast-channel/dist/esbrowser/methods/native.js
@@ -16545,6 +17817,414 @@ var ContextEngineBridge = (() => {
     }
   }
 
+  // node_modules/unload/dist/es/browser.js
+  function addBrowser(fn) {
+    if (typeof WorkerGlobalScope === "function" && self instanceof WorkerGlobalScope) {
+      var oldClose = self.close.bind(self);
+      self.close = function() {
+        fn();
+        return oldClose();
+      };
+    } else {
+      if (typeof window.addEventListener !== "function") {
+        return;
+      }
+      window.addEventListener("beforeunload", function() {
+        fn();
+      }, true);
+      window.addEventListener("unload", function() {
+        fn();
+      }, true);
+    }
+  }
+
+  // node_modules/unload/dist/es/node.js
+  function addNode(fn) {
+    process.on("exit", function() {
+      return fn();
+    });
+    process.on("beforeExit", function() {
+      return fn().then(function() {
+        return process.exit();
+      });
+    });
+    process.on("SIGINT", function() {
+      return fn().then(function() {
+        return process.exit();
+      });
+    });
+    process.on("uncaughtException", function(err) {
+      return fn().then(function() {
+        console.trace(err);
+        process.exit(101);
+      });
+    });
+  }
+
+  // node_modules/unload/dist/es/index.js
+  var isNode = Object.prototype.toString.call(typeof process !== "undefined" ? process : 0) === "[object process]";
+  var USE_METHOD = isNode ? addNode : addBrowser;
+  var LISTENERS = /* @__PURE__ */ new Set();
+  var startedListening = false;
+  function startListening() {
+    if (startedListening) {
+      return;
+    }
+    startedListening = true;
+    USE_METHOD(runAll);
+  }
+  function add(fn) {
+    startListening();
+    if (typeof fn !== "function") {
+      throw new Error("Listener is no function");
+    }
+    LISTENERS.add(fn);
+    var addReturn = {
+      remove: function remove2() {
+        return LISTENERS["delete"](fn);
+      },
+      run: function run() {
+        LISTENERS["delete"](fn);
+        return fn();
+      }
+    };
+    return addReturn;
+  }
+  function runAll() {
+    var promises = [];
+    LISTENERS.forEach(function(fn) {
+      promises.push(fn());
+      LISTENERS["delete"](fn);
+    });
+    return Promise.all(promises);
+  }
+
+  // node_modules/broadcast-channel/dist/esbrowser/leader-election-util.js
+  function sendLeaderMessage(leaderElector, action) {
+    var msgJson = {
+      context: "leader",
+      action,
+      token: leaderElector.token
+    };
+    return leaderElector.broadcastChannel.postInternal(msgJson);
+  }
+  function beLeader(leaderElector) {
+    leaderElector.isLeader = true;
+    leaderElector._hasLeader = true;
+    var unloadFn = add(function() {
+      return leaderElector.die();
+    });
+    leaderElector._unl.push(unloadFn);
+    var isLeaderListener = function isLeaderListener2(msg) {
+      if (msg.context === "leader" && msg.action === "apply") {
+        sendLeaderMessage(leaderElector, "tell");
+      }
+      if (msg.context === "leader" && msg.action === "tell" && !leaderElector._dpLC) {
+        leaderElector._dpLC = true;
+        leaderElector._dpL();
+        sendLeaderMessage(leaderElector, "tell");
+      }
+    };
+    leaderElector.broadcastChannel.addEventListener("internal", isLeaderListener);
+    leaderElector._lstns.push(isLeaderListener);
+    return sendLeaderMessage(leaderElector, "tell");
+  }
+
+  // node_modules/broadcast-channel/dist/esbrowser/leader-election-web-lock.js
+  var LeaderElectionWebLock = function LeaderElectionWebLock2(broadcastChannel, options) {
+    var _this = this;
+    this.broadcastChannel = broadcastChannel;
+    broadcastChannel._befC.push(function() {
+      return _this.die();
+    });
+    this._options = options;
+    this.isLeader = false;
+    this.isDead = false;
+    this.token = randomToken2();
+    this._lstns = [];
+    this._unl = [];
+    this._dpL = function() {
+    };
+    this._dpLC = false;
+    this._wKMC = {};
+    this.lN = "pubkey-bc||" + broadcastChannel.method.type + "||" + broadcastChannel.name;
+  };
+  LeaderElectionWebLock.prototype = {
+    hasLeader: function hasLeader() {
+      var _this2 = this;
+      return navigator.locks.query().then(function(locks) {
+        var relevantLocks = locks.held ? locks.held.filter(function(lock2) {
+          return lock2.name === _this2.lN;
+        }) : [];
+        if (relevantLocks && relevantLocks.length > 0) {
+          return true;
+        } else {
+          return false;
+        }
+      });
+    },
+    awaitLeadership: function awaitLeadership() {
+      var _this3 = this;
+      if (!this._wLMP) {
+        this._wKMC.c = new AbortController();
+        var returnPromise = new Promise(function(res, rej) {
+          _this3._wKMC.res = res;
+          _this3._wKMC.rej = rej;
+        });
+        this._wLMP = new Promise(function(res) {
+          navigator.locks.request(_this3.lN, {
+            signal: _this3._wKMC.c.signal
+          }, function() {
+            _this3._wKMC.c = void 0;
+            beLeader(_this3);
+            res();
+            return returnPromise;
+          })["catch"](function() {
+          });
+        });
+      }
+      return this._wLMP;
+    },
+    set onduplicate(_fn) {
+    },
+    die: function die() {
+      var _this4 = this;
+      this._lstns.forEach(function(listener) {
+        return _this4.broadcastChannel.removeEventListener("internal", listener);
+      });
+      this._lstns = [];
+      this._unl.forEach(function(uFn) {
+        return uFn.remove();
+      });
+      this._unl = [];
+      if (this.isLeader) {
+        this.isLeader = false;
+      }
+      this.isDead = true;
+      if (this._wKMC.res) {
+        this._wKMC.res();
+      }
+      if (this._wKMC.c) {
+        this._wKMC.c.abort("LeaderElectionWebLock.die() called");
+      }
+      return sendLeaderMessage(this, "death");
+    }
+  };
+
+  // node_modules/broadcast-channel/dist/esbrowser/leader-election.js
+  var LeaderElection = function LeaderElection2(broadcastChannel, options) {
+    var _this = this;
+    this.broadcastChannel = broadcastChannel;
+    this._options = options;
+    this.isLeader = false;
+    this._hasLeader = false;
+    this.isDead = false;
+    this.token = randomToken2();
+    this._aplQ = PROMISE_RESOLVED_VOID;
+    this._aplQC = 0;
+    this._unl = [];
+    this._lstns = [];
+    this._dpL = function() {
+    };
+    this._dpLC = false;
+    var hasLeaderListener = function hasLeaderListener2(msg) {
+      if (msg.context === "leader") {
+        if (msg.action === "death") {
+          _this._hasLeader = false;
+        }
+        if (msg.action === "tell") {
+          _this._hasLeader = true;
+        }
+      }
+    };
+    this.broadcastChannel.addEventListener("internal", hasLeaderListener);
+    this._lstns.push(hasLeaderListener);
+  };
+  LeaderElection.prototype = {
+    hasLeader: function hasLeader2() {
+      return Promise.resolve(this._hasLeader);
+    },
+    /**
+     * Returns true if the instance is leader,
+     * false if not.
+     * @async
+     */
+    applyOnce: function applyOnce(isFromFallbackInterval) {
+      var _this2 = this;
+      if (this.isLeader) {
+        return sleep(0, true);
+      }
+      if (this.isDead) {
+        return sleep(0, false);
+      }
+      if (this._aplQC > 1) {
+        return this._aplQ;
+      }
+      var applyRun = function applyRun2() {
+        if (_this2.isLeader) {
+          return PROMISE_RESOLVED_TRUE;
+        }
+        var stopCriteria = false;
+        var stopCriteriaPromiseResolve;
+        var stopCriteriaPromise = new Promise(function(res) {
+          stopCriteriaPromiseResolve = function stopCriteriaPromiseResolve2() {
+            stopCriteria = true;
+            res();
+          };
+        });
+        var handleMessage = function handleMessage2(msg) {
+          if (msg.context === "leader" && msg.token != _this2.token) {
+            if (msg.action === "apply") {
+              if (msg.token > _this2.token) {
+                stopCriteriaPromiseResolve();
+              }
+            }
+            if (msg.action === "tell") {
+              stopCriteriaPromiseResolve();
+              _this2._hasLeader = true;
+            }
+          }
+        };
+        _this2.broadcastChannel.addEventListener("internal", handleMessage);
+        var waitForAnswerTime = isFromFallbackInterval ? _this2._options.responseTime * 4 : _this2._options.responseTime;
+        return sendLeaderMessage(_this2, "apply").then(function() {
+          return Promise.race([sleep(waitForAnswerTime), stopCriteriaPromise.then(function() {
+            return Promise.reject(new Error());
+          })]);
+        }).then(function() {
+          return sendLeaderMessage(_this2, "apply");
+        }).then(function() {
+          return Promise.race([sleep(waitForAnswerTime), stopCriteriaPromise.then(function() {
+            return Promise.reject(new Error());
+          })]);
+        })["catch"](function() {
+        }).then(function() {
+          _this2.broadcastChannel.removeEventListener("internal", handleMessage);
+          if (!stopCriteria) {
+            return beLeader(_this2).then(function() {
+              return true;
+            });
+          } else {
+            return false;
+          }
+        });
+      };
+      this._aplQC = this._aplQC + 1;
+      this._aplQ = this._aplQ.then(function() {
+        return applyRun();
+      }).then(function() {
+        _this2._aplQC = _this2._aplQC - 1;
+      });
+      return this._aplQ.then(function() {
+        return _this2.isLeader;
+      });
+    },
+    awaitLeadership: function awaitLeadership2() {
+      if (
+        /* _awaitLeadershipPromise */
+        !this._aLP
+      ) {
+        this._aLP = _awaitLeadershipOnce(this);
+      }
+      return this._aLP;
+    },
+    set onduplicate(fn) {
+      this._dpL = fn;
+    },
+    die: function die2() {
+      var _this3 = this;
+      this._lstns.forEach(function(listener) {
+        return _this3.broadcastChannel.removeEventListener("internal", listener);
+      });
+      this._lstns = [];
+      this._unl.forEach(function(uFn) {
+        return uFn.remove();
+      });
+      this._unl = [];
+      if (this.isLeader) {
+        this._hasLeader = false;
+        this.isLeader = false;
+      }
+      this.isDead = true;
+      return sendLeaderMessage(this, "death");
+    }
+  };
+  function _awaitLeadershipOnce(leaderElector) {
+    if (leaderElector.isLeader) {
+      return PROMISE_RESOLVED_VOID;
+    }
+    return new Promise(function(res) {
+      var resolved = false;
+      function finish() {
+        if (resolved) {
+          return;
+        }
+        resolved = true;
+        leaderElector.broadcastChannel.removeEventListener("internal", whenDeathListener);
+        res(true);
+      }
+      leaderElector.applyOnce().then(function() {
+        if (leaderElector.isLeader) {
+          finish();
+        }
+      });
+      var _tryOnFallBack = function tryOnFallBack() {
+        return sleep(leaderElector._options.fallbackInterval).then(function() {
+          if (leaderElector.isDead || resolved) {
+            return;
+          }
+          if (leaderElector.isLeader) {
+            finish();
+          } else {
+            return leaderElector.applyOnce(true).then(function() {
+              if (leaderElector.isLeader) {
+                finish();
+              } else {
+                _tryOnFallBack();
+              }
+            });
+          }
+        });
+      };
+      _tryOnFallBack();
+      var whenDeathListener = function whenDeathListener2(msg) {
+        if (msg.context === "leader" && msg.action === "death") {
+          leaderElector._hasLeader = false;
+          leaderElector.applyOnce().then(function() {
+            if (leaderElector.isLeader) {
+              finish();
+            }
+          });
+        }
+      };
+      leaderElector.broadcastChannel.addEventListener("internal", whenDeathListener);
+      leaderElector._lstns.push(whenDeathListener);
+    });
+  }
+  function fillOptionsWithDefaults2(options, channel) {
+    if (!options) options = {};
+    options = JSON.parse(JSON.stringify(options));
+    if (!options.fallbackInterval) {
+      options.fallbackInterval = 3e3;
+    }
+    if (!options.responseTime) {
+      options.responseTime = channel.method.averageResponseTime(channel.options);
+    }
+    return options;
+  }
+  function createLeaderElection(channel, options) {
+    if (channel._leaderElector) {
+      throw new Error("BroadcastChannel already has a leader-elector");
+    }
+    options = fillOptionsWithDefaults2(options, channel);
+    var elector = supportsWebLockAPI() ? new LeaderElectionWebLock(channel, options) : new LeaderElection(channel, options);
+    channel._befC.push(function() {
+      return elector.die();
+    });
+    channel._leaderElector = elector;
+    return elector;
+  }
+
   // node_modules/rxdb/dist/esm/rx-storage-multiinstance.js
   var BROADCAST_CHANNEL_BY_TOKEN = /* @__PURE__ */ new Map();
   function getBroadcastChannelReference(storageName, databaseInstanceToken, databaseName, refObject) {
@@ -16643,7 +18323,7 @@ var ContextEngineBridge = (() => {
     PropModSymbol,
     PropModification,
     replacePrefix,
-    add,
+    add: add2,
     remove
   } = Dexie;
 
@@ -17618,7 +19298,7 @@ var ContextEngineBridge = (() => {
     return createQueryOperator(
       (value, mask, _options4) => {
         let b = 0;
-        if (isArray(mask)) {
+        if (isArray3(mask)) {
           for (const n of mask) b = b | 1 << n;
         } else {
           b = mask;
@@ -17657,7 +19337,7 @@ var ContextEngineBridge = (() => {
         return cloneDeep(val);
       case "copy": {
         if (isDate(val)) return new Date(val);
-        if (isArray(val)) return [...val];
+        if (isArray3(val)) return [...val];
         if (isObject2(val)) return { ...val };
         if (isRegExp(val)) return new RegExp(val);
         return val;
@@ -17695,7 +19375,7 @@ var ContextEngineBridge = (() => {
       return b;
     }
     const t = resolve(o, parent);
-    if (!isArray(t)) return false;
+    if (!isArray3(t)) return false;
     return t.map((e, i) => {
       if (q[c] && !q[c].test({ [c]: e })) return false;
       return next ? applyUpdate(e, next, q, f, opts) : f(t, i);
@@ -17885,7 +19565,7 @@ var ContextEngineBridge = (() => {
       return applyUpdate(obj, node, queries, (o, k) => {
         const arr = o[k];
         assert(
-          isArray(arr),
+          isArray3(arr),
           `path '${node.selector}' contains an element of non-array type.`
         );
         if (!arr.length) return false;
@@ -18010,7 +19690,7 @@ var ContextEngineBridge = (() => {
     return walkExpression(expr, arrayFilters, options, (_, node, queries) => {
       return applyUpdate(obj, node, queries, (o, k) => {
         if (!has(o, k)) return false;
-        if (isArray(o)) {
+        if (isArray3(o)) {
           o[k] = null;
         } else {
           delete o[k];
@@ -18089,15 +19769,869 @@ var ContextEngineBridge = (() => {
     }
   };
 
-  // engine/database.js
-  addRxPlugin(RxDBQueryBuilderPlugin);
-  addRxPlugin(RxDBUpdatePlugin);
-  var gemSchema = {
+  // node_modules/rxdb/dist/esm/plugins/migration-schema/migration-helpers.js
+  async function getOldCollectionMeta(migrationState) {
+    var collectionDocKeys = getPreviousVersions(migrationState.collection.schema.jsonSchema).map((version) => migrationState.collection.name + "-" + version);
+    var found = await migrationState.database.internalStore.findDocumentsById(collectionDocKeys.map((key) => getPrimaryKeyOfInternalDocument(key, INTERNAL_CONTEXT_COLLECTION)), false);
+    var foundById = {};
+    found.forEach((f) => foundById[f.key] = f);
+    var oldest = collectionDocKeys.find((key) => foundById[key]);
+    return oldest ? foundById[oldest] : void 0;
+  }
+  function migrateDocumentData(collection, docSchemaVersion, docData) {
+    var attachmentsBefore = flatClone(docData._attachments);
+    var mutateableDocData = clone(docData);
+    var meta = mutateableDocData._meta;
+    delete mutateableDocData._meta;
+    mutateableDocData._attachments = attachmentsBefore;
+    var nextVersion = docSchemaVersion + 1;
+    var currentPromise = Promise.resolve(mutateableDocData);
+    var _loop = function() {
+      var version = nextVersion;
+      currentPromise = currentPromise.then((docOrNull) => runStrategyIfNotNull(collection, version, docOrNull));
+      nextVersion++;
+    };
+    while (nextVersion <= collection.schema.version) {
+      _loop();
+    }
+    return currentPromise.then((doc) => {
+      if (doc === null) {
+        return PROMISE_RESOLVE_NULL;
+      }
+      if (meta) {
+        doc._meta = meta;
+      }
+      return doc;
+    });
+  }
+  function runStrategyIfNotNull(collection, version, docOrNull) {
+    if (docOrNull === null) {
+      return PROMISE_RESOLVE_NULL;
+    } else {
+      var ret = collection.migrationStrategies[version](docOrNull, collection);
+      var retPromise = toPromise(ret);
+      return retPromise;
+    }
+  }
+  async function mustMigrate(migrationState) {
+    if (migrationState.collection.schema.version === 0) {
+      return PROMISE_RESOLVE_FALSE;
+    }
+    var oldColDoc = await getOldCollectionMeta(migrationState);
+    return !!oldColDoc;
+  }
+  var MIGRATION_DEFAULT_BATCH_SIZE = 200;
+  var DATA_MIGRATION_STATE_SUBJECT_BY_DATABASE = /* @__PURE__ */ new WeakMap();
+  function addMigrationStateToDatabase(migrationState) {
+    var allSubject = getMigrationStateByDatabase(migrationState.database);
+    var allList = allSubject.getValue().slice(0);
+    allList.push(migrationState);
+    allSubject.next(allList);
+  }
+  function getMigrationStateByDatabase(database) {
+    return getFromMapOrCreate(DATA_MIGRATION_STATE_SUBJECT_BY_DATABASE, database, () => new BehaviorSubject([]));
+  }
+  function onDatabaseClose(database) {
+    var subject = DATA_MIGRATION_STATE_SUBJECT_BY_DATABASE.get(database);
+    if (subject) {
+      subject.complete();
+    }
+  }
+
+  // node_modules/rxdb/dist/esm/plugins/migration-schema/rx-migration-state.js
+  var RxMigrationState = /* @__PURE__ */ (function() {
+    function RxMigrationState2(collection, migrationStrategies, statusDocKey = [collection.name, "v", collection.schema.version].join("-")) {
+      this.started = false;
+      this.canceled = false;
+      this.updateStatusHandlers = [];
+      this.updateStatusQueue = PROMISE_RESOLVE_TRUE;
+      this.collection = collection;
+      this.migrationStrategies = migrationStrategies;
+      this.statusDocKey = statusDocKey;
+      this.database = collection.database;
+      this.oldCollectionMeta = getOldCollectionMeta(this);
+      this.mustMigrate = mustMigrate(this);
+      this.statusDocId = getPrimaryKeyOfInternalDocument(this.statusDocKey, INTERNAL_CONTEXT_MIGRATION_STATUS);
+      addMigrationStateToDatabase(this);
+      this.$ = observeSingle(this.database.internalStore, this.statusDocId).pipe(filter((d) => !!d), map((d) => ensureNotFalsy(d).data), shareReplay(RXJS_SHARE_REPLAY_DEFAULTS));
+    }
+    var _proto = RxMigrationState2.prototype;
+    _proto.getStatus = function getStatus() {
+      return firstValueFrom(this.$);
+    };
+    _proto.startMigration = async function startMigration(batchSize = MIGRATION_DEFAULT_BATCH_SIZE) {
+      var must = await this.mustMigrate;
+      if (!must) {
+        return;
+      }
+      if (this.started) {
+        throw newRxError("DM1");
+      }
+      this.started = true;
+      if (this.database.multiInstance) {
+        this.broadcastChannel = new BroadcastChannel2(["rx-migration-state", this.database.name, this.collection.name, this.collection.schema.version].join("|"));
+        var leaderElector = createLeaderElection(this.broadcastChannel);
+        await leaderElector.awaitLeadership();
+      }
+      var oldCollectionMeta = await this.oldCollectionMeta;
+      var oldStorageInstance = await this.database.storage.createStorageInstance({
+        databaseName: this.database.name,
+        collectionName: this.collection.name,
+        databaseInstanceToken: this.database.token,
+        multiInstance: this.database.multiInstance,
+        options: {},
+        schema: ensureNotFalsy(oldCollectionMeta).data.schema,
+        password: this.database.password,
+        devMode: overwritable.isDevMode()
+      });
+      var connectedInstances = await this.getConnectedStorageInstances();
+      var totalCount = await this.countAllDocuments([oldStorageInstance].concat(connectedInstances.map((r) => r.oldStorage)));
+      await this.updateStatus((s) => {
+        s.count.total = totalCount;
+        return s;
+      });
+      try {
+        await Promise.all(connectedInstances.map(async (connectedInstance) => {
+          await addConnectedStorageToCollection(this.collection, connectedInstance.newStorage.collectionName, connectedInstance.newStorage.schema);
+          await this.migrateStorage(connectedInstance.oldStorage, connectedInstance.newStorage, batchSize);
+          await connectedInstance.newStorage.close();
+        }));
+        await this.migrateStorage(
+          oldStorageInstance,
+          /**
+           * Use the originalStorageInstance here
+           * so that the _meta.lwt time keeps the same
+           * and our replication checkpoints still point to the
+           * correct checkpoint.
+          */
+          this.collection.storageInstance.originalStorageInstance,
+          batchSize
+        );
+      } catch (err) {
+        await oldStorageInstance.close();
+        await this.updateStatus((s) => {
+          s.status = "ERROR";
+          s.error = errorToPlainJson(err);
+          return s;
+        });
+        return;
+      }
+      try {
+        await writeSingle(this.database.internalStore, {
+          previous: oldCollectionMeta,
+          document: Object.assign({}, oldCollectionMeta, {
+            _deleted: true
+          })
+        }, "rx-migration-remove-collection-meta");
+      } catch (error) {
+        var isConflict = isBulkWriteConflictError(error);
+        if (isConflict && !!isConflict.documentInDb._deleted) {
+        } else {
+          throw error;
+        }
+      }
+      await this.updateStatus((s) => {
+        s.status = "DONE";
+        return s;
+      });
+      if (this.broadcastChannel) {
+        await this.broadcastChannel.close();
+      }
+    };
+    _proto.updateStatus = function updateStatus(handler) {
+      this.updateStatusHandlers.push(handler);
+      this.updateStatusQueue = this.updateStatusQueue.then(async () => {
+        if (this.updateStatusHandlers.length === 0) {
+          return;
+        }
+        var useHandlers = this.updateStatusHandlers;
+        this.updateStatusHandlers = [];
+        while (true) {
+          var previous = await getSingleDocument(this.database.internalStore, this.statusDocId);
+          var newDoc = clone(previous);
+          if (!previous) {
+            newDoc = {
+              id: this.statusDocId,
+              key: this.statusDocKey,
+              context: INTERNAL_CONTEXT_MIGRATION_STATUS,
+              data: {
+                collectionName: this.collection.name,
+                status: "RUNNING",
+                count: {
+                  total: 0,
+                  handled: 0,
+                  percent: 0
+                }
+              },
+              _deleted: false,
+              _meta: getDefaultRxDocumentMeta(),
+              _rev: getDefaultRevision(),
+              _attachments: {}
+            };
+          }
+          var status = ensureNotFalsy(newDoc).data;
+          for (var oneHandler of useHandlers) {
+            status = oneHandler(status);
+          }
+          status.count.percent = Math.round(status.count.handled / status.count.total * 100);
+          if (newDoc && previous && deepEqual(newDoc.data, previous.data)) {
+            break;
+          }
+          try {
+            await writeSingle(this.database.internalStore, {
+              previous,
+              document: ensureNotFalsy(newDoc)
+            }, INTERNAL_CONTEXT_MIGRATION_STATUS);
+            break;
+          } catch (err) {
+            if (!isBulkWriteConflictError(err)) {
+              throw err;
+            }
+          }
+        }
+      });
+      return this.updateStatusQueue;
+    };
+    _proto.migrateStorage = async function migrateStorage(oldStorage, newStorage, batchSize) {
+      this.collection.onClose.push(() => this.cancel());
+      this.database.onClose.push(() => this.cancel());
+      var replicationMetaStorageInstance = await this.database.storage.createStorageInstance({
+        databaseName: this.database.name,
+        collectionName: "rx-migration-state-meta-" + oldStorage.collectionName + "-" + oldStorage.schema.version,
+        databaseInstanceToken: this.database.token,
+        multiInstance: this.database.multiInstance,
+        options: {},
+        schema: getRxReplicationMetaInstanceSchema(oldStorage.schema, hasEncryption(oldStorage.schema)),
+        password: this.database.password,
+        devMode: overwritable.isDevMode()
+      });
+      var replicationHandlerBase = rxStorageInstanceToReplicationHandler(
+        newStorage,
+        /**
+         * Ignore push-conflicts.
+         * If this happens we drop the 'old' document state.
+         */
+        defaultConflictHandler,
+        this.database.token,
+        true
+      );
+      var replicationState = replicateRxStorageInstance({
+        keepMeta: true,
+        identifier: ["rx-migration-state", oldStorage.collectionName, oldStorage.schema.version, this.collection.schema.version].join("-"),
+        replicationHandler: {
+          masterChangesSince() {
+            return Promise.resolve({
+              checkpoint: null,
+              documents: []
+            });
+          },
+          masterWrite: async (rows) => {
+            var migratedRows = await Promise.all(rows.map(async (row) => {
+              var newDocData = row.newDocumentState;
+              if (newStorage.schema.title === META_INSTANCE_SCHEMA_TITLE) {
+                newDocData = row.newDocumentState.docData;
+                if (row.newDocumentState.isCheckpoint === "1") {
+                  return {
+                    assumedMasterState: void 0,
+                    newDocumentState: row.newDocumentState
+                  };
+                }
+              }
+              var migratedDocData = await migrateDocumentData(this.collection, oldStorage.schema.version, newDocData);
+              if (migratedDocData === null) {
+                return null;
+              }
+              var newRow = {
+                // drop the assumed master state, we do not have to care about conflicts here.
+                assumedMasterState: void 0,
+                newDocumentState: newStorage.schema.title === META_INSTANCE_SCHEMA_TITLE ? Object.assign({}, row.newDocumentState, {
+                  docData: migratedDocData
+                }) : migratedDocData
+              };
+              return newRow;
+            }));
+            migratedRows = migratedRows.filter((row) => !!row && !!row.newDocumentState);
+            var result = await replicationHandlerBase.masterWrite(migratedRows);
+            return result;
+          },
+          masterChangeStream$: new Subject().asObservable()
+        },
+        forkInstance: oldStorage,
+        metaInstance: replicationMetaStorageInstance,
+        pushBatchSize: batchSize,
+        pullBatchSize: 0,
+        conflictHandler: defaultConflictHandler,
+        hashFunction: this.database.hashFunction
+      });
+      var hasError = false;
+      replicationState.events.error.subscribe((err) => hasError = err);
+      replicationState.events.processed.up.subscribe(() => {
+        this.updateStatus((status) => {
+          status.count.handled = status.count.handled + 1;
+          return status;
+        });
+      });
+      await awaitRxStorageReplicationFirstInSync(replicationState);
+      await awaitRxStorageReplicationInSync(replicationState);
+      await this.updateStatusQueue;
+      if (hasError) {
+        await replicationMetaStorageInstance.close();
+        throw hasError;
+      }
+      await Promise.all([oldStorage.remove(), replicationMetaStorageInstance.remove()]);
+      await this.cancel();
+    };
+    _proto.cancel = async function cancel() {
+      this.canceled = true;
+      if (this.replicationState) {
+        await cancelRxStorageReplication(this.replicationState);
+      }
+      if (this.broadcastChannel) {
+        await this.broadcastChannel.close();
+      }
+    };
+    _proto.countAllDocuments = async function countAllDocuments(storageInstances) {
+      var ret = 0;
+      await Promise.all(storageInstances.map(async (instance) => {
+        var preparedQuery = prepareQuery(instance.schema, normalizeMangoQuery(instance.schema, {
+          selector: {}
+        }));
+        var countResult = await instance.count(preparedQuery);
+        ret += countResult.count;
+      }));
+      return ret;
+    };
+    _proto.getConnectedStorageInstances = async function getConnectedStorageInstances() {
+      var oldCollectionMeta = ensureNotFalsy(await this.oldCollectionMeta);
+      var ret = [];
+      await Promise.all(await Promise.all(oldCollectionMeta.data.connectedStorages.map(async (connectedStorage) => {
+        if (connectedStorage.schema.title !== META_INSTANCE_SCHEMA_TITLE) {
+          throw new Error("unknown migration handling for schema");
+        }
+        var newSchema = getRxReplicationMetaInstanceSchema(clone(this.collection.schema.jsonSchema), hasEncryption(connectedStorage.schema));
+        newSchema.version = this.collection.schema.version;
+        var [oldStorage, newStorage] = await Promise.all([this.database.storage.createStorageInstance({
+          databaseInstanceToken: this.database.token,
+          databaseName: this.database.name,
+          devMode: overwritable.isDevMode(),
+          multiInstance: this.database.multiInstance,
+          options: {},
+          schema: connectedStorage.schema,
+          password: this.database.password,
+          collectionName: connectedStorage.collectionName
+        }), this.database.storage.createStorageInstance({
+          databaseInstanceToken: this.database.token,
+          databaseName: this.database.name,
+          devMode: overwritable.isDevMode(),
+          multiInstance: this.database.multiInstance,
+          options: {},
+          schema: newSchema,
+          password: this.database.password,
+          collectionName: connectedStorage.collectionName
+        })]);
+        ret.push({
+          oldStorage,
+          newStorage
+        });
+      })));
+      return ret;
+    };
+    _proto.migratePromise = async function migratePromise(batchSize) {
+      this.startMigration(batchSize);
+      var must = await this.mustMigrate;
+      if (!must) {
+        return {
+          status: "DONE",
+          collectionName: this.collection.name,
+          count: {
+            handled: 0,
+            percent: 0,
+            total: 0
+          }
+        };
+      }
+      var result = await Promise.race([firstValueFrom(this.$.pipe(filter((d) => d.status === "DONE"))), firstValueFrom(this.$.pipe(filter((d) => d.status === "ERROR")))]);
+      if (result.status === "ERROR") {
+        throw newRxError("DM4", {
+          collection: this.collection.name,
+          error: result.error
+        });
+      } else {
+        return result;
+      }
+    };
+    return RxMigrationState2;
+  })();
+
+  // node_modules/rxdb/dist/esm/plugins/local-documents/local-documents-helper.js
+  var LOCAL_DOC_STATE_BY_PARENT = /* @__PURE__ */ new WeakMap();
+  var LOCAL_DOC_STATE_BY_PARENT_RESOLVED = /* @__PURE__ */ new WeakMap();
+  function getLocalDocStateByParent(parent) {
+    var statePromise = LOCAL_DOC_STATE_BY_PARENT.get(parent);
+    if (!statePromise) {
+      var database = parent.database ? parent.database : parent;
+      var collectionName = parent.database ? parent.name : "";
+      throw newRxError("LD8", {
+        database: database.name,
+        collection: collectionName
+      });
+    }
+    return statePromise;
+  }
+  function createLocalDocumentStorageInstance(databaseInstanceToken, storage, databaseName, collectionName, instanceCreationOptions, multiInstance) {
+    return storage.createStorageInstance({
+      databaseInstanceToken,
+      databaseName,
+      /**
+       * Use a different collection name for the local documents instance
+       * so that the local docs can be kept while deleting the normal instance
+       * after migration.
+       */
+      collectionName: getCollectionLocalInstanceName(collectionName),
+      schema: RX_LOCAL_DOCUMENT_SCHEMA,
+      options: instanceCreationOptions,
+      multiInstance,
+      devMode: overwritable.isDevMode()
+    });
+  }
+  function closeStateByParent(parent) {
+    var statePromise = LOCAL_DOC_STATE_BY_PARENT.get(parent);
+    if (statePromise) {
+      LOCAL_DOC_STATE_BY_PARENT.delete(parent);
+      return statePromise.then((state) => state.storageInstance.close());
+    }
+  }
+  async function removeLocalDocumentsStorageInstance(storage, databaseName, collectionName) {
+    var databaseInstanceToken = randomToken(10);
+    var storageInstance = await createLocalDocumentStorageInstance(databaseInstanceToken, storage, databaseName, collectionName, {}, false);
+    await storageInstance.remove();
+  }
+  function getCollectionLocalInstanceName(collectionName) {
+    return "plugin-local-documents-" + collectionName;
+  }
+  var RX_LOCAL_DOCUMENT_SCHEMA = fillWithDefaultSettings({
+    title: "RxLocalDocument",
     version: 0,
     primaryKey: "id",
     type: "object",
     properties: {
-      // EXISTING FIELDS
+      id: {
+        type: "string",
+        maxLength: 128
+      },
+      data: {
+        type: "object",
+        additionalProperties: true
+      }
+    },
+    required: ["id", "data"]
+  });
+
+  // node_modules/rxdb/dist/esm/plugins/local-documents/local-documents.js
+  async function insertLocal(id, data) {
+    var state = await getLocalDocStateByParent(this);
+    var docData = {
+      id,
+      data,
+      _deleted: false,
+      _meta: getDefaultRxDocumentMeta(),
+      _rev: getDefaultRevision(),
+      _attachments: {}
+    };
+    return writeSingle(state.storageInstance, {
+      document: docData
+    }, "local-document-insert").then((newDocData) => state.docCache.getCachedRxDocument(newDocData));
+  }
+  function upsertLocal(id, data) {
+    return this.getLocal(id).then((existing) => {
+      if (!existing) {
+        var docPromise = this.insertLocal(id, data);
+        return docPromise;
+      } else {
+        return existing.incrementalModify(() => {
+          return data;
+        });
+      }
+    });
+  }
+  async function getLocal(id) {
+    var state = await getLocalDocStateByParent(this);
+    var docCache = state.docCache;
+    var found = docCache.getLatestDocumentDataIfExists(id);
+    if (found) {
+      return Promise.resolve(docCache.getCachedRxDocument(found));
+    }
+    return getSingleDocument(state.storageInstance, id).then((docData) => {
+      if (!docData) {
+        return null;
+      }
+      return state.docCache.getCachedRxDocument(docData);
+    });
+  }
+  function getLocal$(id) {
+    return this.$.pipe(startWith(null), mergeMap(async (cE) => {
+      if (cE) {
+        return {
+          changeEvent: cE
+        };
+      } else {
+        var doc = await this.getLocal(id);
+        return {
+          doc
+        };
+      }
+    }), mergeMap(async (changeEventOrDoc) => {
+      if (changeEventOrDoc.changeEvent) {
+        var cE = changeEventOrDoc.changeEvent;
+        if (!cE.isLocal || cE.documentId !== id) {
+          return {
+            use: false
+          };
+        } else {
+          var doc = await this.getLocal(id);
+          return {
+            use: true,
+            doc
+          };
+        }
+      } else {
+        return {
+          use: true,
+          doc: changeEventOrDoc.doc
+        };
+      }
+    }), filter((filterFlagged) => filterFlagged.use), map((filterFlagged) => {
+      return filterFlagged.doc;
+    }));
+  }
+
+  // node_modules/rxdb/dist/esm/plugins/local-documents/rx-local-document.js
+  var RxDocumentParent = createRxDocumentConstructor();
+  var RxLocalDocumentClass = /* @__PURE__ */ (function(_RxDocumentParent) {
+    function RxLocalDocumentClass2(id, jsonData, parent) {
+      var _this2;
+      _this2 = _RxDocumentParent.call(this, null, jsonData) || this;
+      _this2.id = id;
+      _this2.parent = parent;
+      return _this2;
+    }
+    _inheritsLoose(RxLocalDocumentClass2, _RxDocumentParent);
+    return RxLocalDocumentClass2;
+  })(RxDocumentParent);
+  var RxLocalDocumentPrototype = {
+    get isLocal() {
+      return true;
+    },
+    //
+    // overwrites
+    //
+    get allAttachments$() {
+      throw newRxError("LD1", {
+        document: this
+      });
+    },
+    get primaryPath() {
+      return "id";
+    },
+    get primary() {
+      return this.id;
+    },
+    get $() {
+      var _this = this;
+      var state = getFromMapOrThrow(LOCAL_DOC_STATE_BY_PARENT_RESOLVED, this.parent);
+      var id = this.primary;
+      return _this.parent.eventBulks$.pipe(filter((bulk) => !!bulk.isLocal), map((bulk) => bulk.events.find((ev) => ev.documentId === id)), filter((event) => !!event), map((changeEvent) => getDocumentDataOfRxChangeEvent(ensureNotFalsy(changeEvent))), startWith(state.docCache.getLatestDocumentData(this.primary)), distinctUntilChanged((prev, curr) => prev._rev === curr._rev), map((docData) => state.docCache.getCachedRxDocument(docData)), shareReplay(RXJS_SHARE_REPLAY_DEFAULTS));
+      ;
+    },
+    get $$() {
+      var _this = this;
+      var db = getRxDatabaseFromLocalDocument(_this);
+      var reactivity = db.getReactivityFactory();
+      return reactivity.fromObservable(_this.$, _this.getLatest()._data, db);
+    },
+    get deleted$$() {
+      var _this = this;
+      var db = getRxDatabaseFromLocalDocument(_this);
+      var reactivity = db.getReactivityFactory();
+      return reactivity.fromObservable(_this.deleted$, _this.getLatest().deleted, db);
+    },
+    getLatest() {
+      var state = getFromMapOrThrow(LOCAL_DOC_STATE_BY_PARENT_RESOLVED, this.parent);
+      var latestDocData = state.docCache.getLatestDocumentData(this.primary);
+      return state.docCache.getCachedRxDocument(latestDocData);
+    },
+    get(objPath) {
+      objPath = "data." + objPath;
+      if (!this._data) {
+        return void 0;
+      }
+      if (typeof objPath !== "string") {
+        throw newRxTypeError("LD2", {
+          objPath
+        });
+      }
+      var valueObj = getProperty(this._data, objPath);
+      valueObj = overwritable.deepFreezeWhenDevMode(valueObj);
+      return valueObj;
+    },
+    get$(objPath) {
+      objPath = "data." + objPath;
+      if (overwritable.isDevMode()) {
+        if (objPath.includes(".item.")) {
+          throw newRxError("LD3", {
+            objPath
+          });
+        }
+        if (objPath === this.primaryPath) {
+          throw newRxError("LD4");
+        }
+      }
+      return this.$.pipe(map((localDocument) => localDocument._data), map((data) => getProperty(data, objPath)), distinctUntilChanged());
+    },
+    get$$(objPath) {
+      var db = getRxDatabaseFromLocalDocument(this);
+      var reactivity = db.getReactivityFactory();
+      return reactivity.fromObservable(this.get$(objPath), this.getLatest().get(objPath), db);
+    },
+    async incrementalModify(mutationFunction) {
+      var state = await getLocalDocStateByParent(this.parent);
+      return state.incrementalWriteQueue.addWrite(this._data, async (docData) => {
+        docData.data = await mutationFunction(docData.data, this);
+        return docData;
+      }).then((result) => state.docCache.getCachedRxDocument(result));
+    },
+    incrementalPatch(patch) {
+      return this.incrementalModify((docData) => {
+        Object.entries(patch).forEach(([k, v]) => {
+          docData[k] = v;
+        });
+        return docData;
+      });
+    },
+    async _saveData(newData) {
+      var state = await getLocalDocStateByParent(this.parent);
+      var oldData = this._data;
+      newData.id = this.id;
+      var writeRows = [{
+        previous: oldData,
+        document: newData
+      }];
+      return state.storageInstance.bulkWrite(writeRows, "local-document-save-data").then((res) => {
+        if (res.error[0]) {
+          throw res.error[0];
+        }
+        var success = getWrittenDocumentsFromBulkWriteResponse(this.collection.schema.primaryPath, writeRows, res)[0];
+        newData = flatClone(newData);
+        newData._rev = success._rev;
+      });
+    },
+    async remove() {
+      var state = await getLocalDocStateByParent(this.parent);
+      var writeData = flatClone(this._data);
+      writeData._deleted = true;
+      return writeSingle(state.storageInstance, {
+        previous: this._data,
+        document: writeData
+      }, "local-document-remove").then((writeResult) => state.docCache.getCachedRxDocument(writeResult));
+    }
+  };
+  var INIT_DONE = false;
+  var _init = () => {
+    if (INIT_DONE) return;
+    else INIT_DONE = true;
+    var docBaseProto = basePrototype;
+    var props = Object.getOwnPropertyNames(docBaseProto);
+    props.forEach((key) => {
+      var exists = Object.getOwnPropertyDescriptor(RxLocalDocumentPrototype, key);
+      if (exists) return;
+      var desc = Object.getOwnPropertyDescriptor(docBaseProto, key);
+      Object.defineProperty(RxLocalDocumentPrototype, key, desc);
+    });
+    var getThrowingFun = (k) => () => {
+      throw newRxError("LD6", {
+        functionName: k
+      });
+    };
+    ["populate", "update", "putAttachment", "putAttachmentBase64", "getAttachment", "allAttachments"].forEach((k) => RxLocalDocumentPrototype[k] = getThrowingFun(k));
+  };
+  function createRxLocalDocument(data, parent) {
+    _init();
+    var newDoc = new RxLocalDocumentClass(data.id, data, parent);
+    Object.setPrototypeOf(newDoc, RxLocalDocumentPrototype);
+    newDoc.prototype = RxLocalDocumentPrototype;
+    return newDoc;
+  }
+  function getRxDatabaseFromLocalDocument(doc) {
+    var parent = doc.parent;
+    if (isRxDatabase(parent)) {
+      return parent;
+    } else {
+      return parent.database;
+    }
+  }
+  function createLocalDocStateByParent(parent) {
+    var database = parent.database ? parent.database : parent;
+    var collectionName = parent.database ? parent.name : "";
+    var statePromise = (async () => {
+      var storageInstance = await createLocalDocumentStorageInstance(database.token, database.storage, database.name, collectionName, database.instanceCreationOptions, database.multiInstance);
+      storageInstance = getWrappedStorageInstance(database, storageInstance, RX_LOCAL_DOCUMENT_SCHEMA);
+      var docCache = new DocumentCache("id", database.eventBulks$.pipe(filter((changeEventBulk) => {
+        var ret = false;
+        if (
+          // parent is database
+          collectionName === "" && !changeEventBulk.collectionName || // parent is collection
+          collectionName !== "" && changeEventBulk.collectionName === collectionName
+        ) {
+          ret = true;
+        }
+        return ret && changeEventBulk.isLocal;
+      }), map((b) => b.events)), (docData) => createRxLocalDocument(docData, parent));
+      var incrementalWriteQueue = new IncrementalWriteQueue(storageInstance, "id", () => {
+      }, () => {
+      });
+      var databaseStorageToken = await database.storageToken;
+      var subLocalDocs = storageInstance.changeStream().subscribe((eventBulk) => {
+        var events = new Array(eventBulk.events.length);
+        var rawEvents = eventBulk.events;
+        var collectionName2 = parent.database ? parent.name : void 0;
+        for (var index = 0; index < rawEvents.length; index++) {
+          var event = rawEvents[index];
+          events[index] = {
+            documentId: event.documentId,
+            collectionName: collectionName2,
+            isLocal: true,
+            operation: event.operation,
+            documentData: overwritable.deepFreezeWhenDevMode(event.documentData),
+            previousDocumentData: overwritable.deepFreezeWhenDevMode(event.previousDocumentData)
+          };
+        }
+        var changeEventBulk = {
+          id: eventBulk.id,
+          isLocal: true,
+          internal: false,
+          collectionName: parent.database ? parent.name : void 0,
+          storageToken: databaseStorageToken,
+          events,
+          databaseToken: database.token,
+          checkpoint: eventBulk.checkpoint,
+          context: eventBulk.context
+        };
+        database.$emit(changeEventBulk);
+      });
+      parent._subs.push(subLocalDocs);
+      var state = {
+        database,
+        parent,
+        storageInstance,
+        docCache,
+        incrementalWriteQueue
+      };
+      LOCAL_DOC_STATE_BY_PARENT_RESOLVED.set(parent, state);
+      return state;
+    })();
+    LOCAL_DOC_STATE_BY_PARENT.set(parent, statePromise);
+  }
+
+  // node_modules/rxdb/dist/esm/plugins/local-documents/index.js
+  var RxDBLocalDocumentsPlugin = {
+    name: "local-documents",
+    rxdb: true,
+    prototypes: {
+      RxCollection: (proto) => {
+        proto.insertLocal = insertLocal;
+        proto.upsertLocal = upsertLocal;
+        proto.getLocal = getLocal;
+        proto.getLocal$ = getLocal$;
+      },
+      RxDatabase: (proto) => {
+        proto.insertLocal = insertLocal;
+        proto.upsertLocal = upsertLocal;
+        proto.getLocal = getLocal;
+        proto.getLocal$ = getLocal$;
+      }
+    },
+    hooks: {
+      createRxDatabase: {
+        before: (args) => {
+          if (args.creator.localDocuments) {
+            createLocalDocStateByParent(args.database);
+          }
+        }
+      },
+      createRxCollection: {
+        before: (args) => {
+          if (args.creator.localDocuments) {
+            createLocalDocStateByParent(args.collection);
+          }
+        }
+      },
+      preCloseRxDatabase: {
+        after: (db) => {
+          return closeStateByParent(db);
+        }
+      },
+      postCloseRxCollection: {
+        after: (collection) => closeStateByParent(collection)
+      },
+      postRemoveRxDatabase: {
+        after: (args) => {
+          return removeLocalDocumentsStorageInstance(args.storage, args.databaseName, "");
+        }
+      },
+      postRemoveRxCollection: {
+        after: (args) => {
+          return removeLocalDocumentsStorageInstance(args.storage, args.databaseName, args.collectionName);
+        }
+      }
+    },
+    overwritable: {}
+  };
+
+  // node_modules/rxdb/dist/esm/plugins/migration-schema/index.js
+  var DATA_MIGRATOR_BY_COLLECTION = /* @__PURE__ */ new WeakMap();
+  var RxDBMigrationPlugin = {
+    name: "migration-schema",
+    rxdb: true,
+    init() {
+      addRxPlugin(RxDBLocalDocumentsPlugin);
+    },
+    hooks: {
+      preCloseRxDatabase: {
+        after: onDatabaseClose
+      }
+    },
+    prototypes: {
+      RxDatabase: (proto) => {
+        proto.migrationStates = function() {
+          return getMigrationStateByDatabase(this).pipe(shareReplay(RXJS_SHARE_REPLAY_DEFAULTS));
+        };
+      },
+      RxCollection: (proto) => {
+        proto.getMigrationState = function() {
+          return getFromMapOrCreate(DATA_MIGRATOR_BY_COLLECTION, this, () => new RxMigrationState(this.asRxCollection, this.migrationStrategies));
+        };
+        proto.migrationNeeded = function() {
+          if (this.schema.version === 0) {
+            return PROMISE_RESOLVE_FALSE;
+          }
+          return mustMigrate(this.getMigrationState());
+        };
+      }
+    }
+  };
+  var RxDBMigrationSchemaPlugin = RxDBMigrationPlugin;
+
+  // engine/database.js
+  addRxPlugin(RxDBQueryBuilderPlugin);
+  addRxPlugin(RxDBUpdatePlugin);
+  addRxPlugin(RxDBMigrationSchemaPlugin);
+  var gemSchema = {
+    version: 2,
+    // UPDATED: v1 -> v2 for HSP fields (state, assurance, reliability, source_url, mergedFrom, created_at, updated_at)
+    primaryKey: "id",
+    type: "object",
+    properties: {
+      // CORE FIELDS
       id: {
         type: "string",
         maxLength: 100
@@ -18124,7 +20658,50 @@ var ContextEngineBridge = (() => {
         multipleOf: 1
         // Required for indexed number fields
       },
-      // NEW: Semantic Metadata
+      // HSP PROTOCOL FIELDS
+      state: {
+        type: "string",
+        enum: ["default", "favorited", "hidden"],
+        default: "default"
+      },
+      assurance: {
+        type: "string",
+        enum: ["self_declared", "third_party", "derived"],
+        default: "self_declared"
+      },
+      reliability: {
+        type: "string",
+        enum: ["authoritative", "high", "medium", "low"],
+        default: "authoritative"
+      },
+      source_url: {
+        type: "string",
+        maxLength: 2e3
+      },
+      mergedFrom: {
+        type: "array",
+        items: {
+          type: "object"
+        }
+      },
+      created_at: {
+        type: "string",
+        format: "date-time"
+      },
+      updated_at: {
+        type: "string",
+        format: "date-time"
+      },
+      // Topic/Sub-Topic Hierarchy
+      topic: {
+        type: "string",
+        maxLength: 500
+      },
+      subTopic: {
+        type: "string",
+        maxLength: 500
+      },
+      // Semantic Metadata (AI Enrichment)
       semanticType: {
         type: "string",
         enum: ["constraint", "preference", "activity", "characteristic", "goal"]
@@ -18141,7 +20718,7 @@ var ContextEngineBridge = (() => {
         type: "string",
         maxLength: 50
       },
-      // NEW: Vector Embeddings (384-dim from Gemini Nano)
+      // Vector Embeddings (384-dim from Gemini Nano)
       vector: {
         type: "array",
         items: {
@@ -18150,7 +20727,7 @@ var ContextEngineBridge = (() => {
         minItems: 384,
         maxItems: 384
       },
-      // NEW: Keywords for BM25 sparse search
+      // Keywords for BM25 sparse search
       keywords: {
         type: "object",
         additionalProperties: {
@@ -18158,7 +20735,7 @@ var ContextEngineBridge = (() => {
           // word: frequency
         }
       },
-      // NEW: Quality Metadata
+      // Quality Metadata
       enrichmentVersion: {
         type: "string",
         maxLength: 20
@@ -18171,15 +20748,52 @@ var ContextEngineBridge = (() => {
       },
       userVerified: {
         type: "boolean"
+      },
+      // Primary/Child Gem Relationship
+      isPrimary: {
+        type: "boolean"
+      },
+      parentGem: {
+        type: "string",
+        maxLength: 100
+      },
+      childGems: {
+        type: "array",
+        items: {
+          type: "string"
+        }
+      },
+      isVirtual: {
+        type: "boolean"
       }
     },
-    required: ["id", "value", "timestamp", "collections", "subCollections"],
-    // Indexed fields must be required for Dexie
+    required: [
+      "id",
+      "value",
+      "timestamp",
+      "collections",
+      "subCollections",
+      "state",
+      "assurance",
+      "reliability",
+      "created_at",
+      "updated_at",
+      "isPrimary",
+      "parentGem"
+    ],
     indexes: [
       "timestamp",
+      "state",
+      // NEW: Index for filtering by state
       ["collections"],
       // Multi-entry index for array
-      ["subCollections"]
+      ["subCollections"],
+      "isPrimary",
+      // Index for filtering primary vs child gems
+      "parentGem",
+      // Index for finding children of a parent
+      "created_at"
+      // NEW: Index for sorting by creation date
     ]
   };
   var dbInstance = null;
@@ -18207,7 +20821,41 @@ var ContextEngineBridge = (() => {
         console.log("[Database] RxDB created successfully");
         await db.addCollections({
           gems: {
-            schema: gemSchema
+            schema: gemSchema,
+            migrationStrategies: {
+              // Migration from v0 to v1: Add new required fields with defaults
+              1: function(oldDoc) {
+                console.log("[Database] Migrating gem from v0 to v1:", oldDoc.id);
+                return {
+                  ...oldDoc,
+                  // Set defaults for new required fields
+                  isPrimary: oldDoc.isPrimary !== void 0 ? oldDoc.isPrimary : false,
+                  parentGem: oldDoc.parentGem || "",
+                  // Set defaults for new optional fields
+                  topic: oldDoc.topic || "",
+                  subTopic: oldDoc.subTopic || "",
+                  childGems: oldDoc.childGems || [],
+                  isVirtual: oldDoc.isVirtual !== void 0 ? oldDoc.isVirtual : false
+                };
+              },
+              // Migration from v1 to v2: Add HSP protocol fields
+              2: function(oldDoc) {
+                console.log("[Database] Migrating gem from v1 to v2 (adding HSP fields):", oldDoc.id);
+                const now3 = (/* @__PURE__ */ new Date()).toISOString();
+                return {
+                  ...oldDoc,
+                  // HSP required fields with defaults
+                  state: oldDoc.state || "default",
+                  assurance: oldDoc.assurance || "self_declared",
+                  reliability: oldDoc.reliability || "authoritative",
+                  created_at: oldDoc.created_at || oldDoc.timestamp ? new Date(oldDoc.timestamp).toISOString() : now3,
+                  updated_at: oldDoc.updated_at || now3,
+                  // Optional HSP fields
+                  source_url: oldDoc.source_url || void 0,
+                  mergedFrom: oldDoc.mergedFrom || void 0
+                };
+              }
+            }
             // Note: Vector search plugin will be added separately
             // to avoid circular dependency issues
           }
@@ -18290,16 +20938,20 @@ var ContextEngineBridge = (() => {
       return this;
     }
     /**
-     * Insert a gem with vector
-     * @param {Object} gem - Gem object with vector field
+     * Insert a gem (vector field is optional)
+     * @param {Object} gem - Gem object (vector field optional)
      */
     async insert(gem) {
-      if (!gem.vector || gem.vector.length !== 384) {
-        throw new Error("[VectorStore] Gem must have 384-dim vector");
+      if (gem.vector && gem.vector.length !== 384) {
+        console.warn(`[VectorStore] Gem ${gem.id} has invalid vector (length: ${gem.vector.length}), removing it`);
+        delete gem.vector;
+      }
+      if (!gem.vector) {
+        console.log(`[VectorStore] Inserting gem without vector: ${gem.id}`);
       }
       try {
         await this.collection.insert(gem);
-        console.log(`[VectorStore] Inserted gem: ${gem.id}`);
+        console.log(`[VectorStore] Inserted gem: ${gem.id}${gem.vector ? " (with vector)" : " (no vector)"}`);
       } catch (error) {
         if (error.code === "CONFLICT") {
           console.warn(`[VectorStore] Gem ${gem.id} already exists, updating...`);
@@ -18351,7 +21003,7 @@ var ContextEngineBridge = (() => {
       return results;
     }
     /**
-     * Dense vector search (cosine similarity)
+     * Dense vector search (cosine similarity) with deduplication
      * @param {number[]} queryVector - Query embedding (384-dim)
      * @param {Object} filters - Filter criteria
      * @param {number} limit - Max results
@@ -18366,7 +21018,7 @@ var ContextEngineBridge = (() => {
       let query = this.collection.find({
         selector: {
           vector: { $exists: true }
-          // Only gems with vectors
+          // Only gems with vectors (both primary and child)
         }
       });
       if (filters.collections && filters.collections.length > 0) {
@@ -18382,7 +21034,7 @@ var ContextEngineBridge = (() => {
         }
       }
       const docs = await query.exec();
-      console.log(`[VectorStore] Found ${docs.length} candidates with vectors`);
+      console.log(`[VectorStore] Found ${docs.length} candidates (primary + child gems)`);
       const results = docs.map((doc) => {
         const gem = doc.toJSON();
         const score = cosineSimilarity(queryVector, gem.vector);
@@ -18390,16 +21042,117 @@ var ContextEngineBridge = (() => {
           id: gem.id,
           score,
           gem,
+          isPrimary: gem.isPrimary || false,
+          isVirtual: gem.isVirtual || false,
+          parentGem: gem.parentGem || null,
           source: "dense"
         };
       });
-      const sorted = results.sort((a, b) => b.score - a.score).slice(0, limit);
+      const sorted = results.sort((a, b) => b.score - a.score);
+      console.log("[VectorStore] Top 5 raw matches before deduplication:");
+      sorted.slice(0, 5).forEach((r, i) => {
+        const type5 = r.isPrimary ? "PRIMARY" : r.isVirtual ? "CHILD" : "SINGLE";
+        console.log(`  ${i + 1}. ${r.gem.value.substring(0, 40)}... (${r.score.toFixed(3)}, ${type5})`);
+      });
+      const deduplicated = await this.deduplicateGemResults(sorted);
       console.log(`[VectorStore] Dense search complete:`, {
         candidates: docs.length,
-        returned: sorted.length,
-        topScore: sorted[0]?.score.toFixed(3)
+        afterDeduplication: deduplicated.length,
+        returned: Math.min(deduplicated.length, limit),
+        topScore: deduplicated[0]?.score.toFixed(3)
       });
-      return sorted;
+      return deduplicated.slice(0, limit);
+    }
+    /**
+     * Deduplicate search results: Merge primary and child gems
+     * Returns only primary gems, using child's score if better
+     * @param {Array} results - Search results with score, gem, isPrimary, isVirtual, parentGem
+     * @returns {Promise<Array>} Deduplicated results
+     */
+    async deduplicateGemResults(results) {
+      const gemMap = /* @__PURE__ */ new Map();
+      for (const result of results) {
+        if (result.isPrimary) {
+          const primaryId = result.id;
+          if (!gemMap.has(primaryId)) {
+            gemMap.set(primaryId, {
+              gem: result.gem,
+              score: result.score,
+              matchSource: "primary",
+              // Matched via primary gem
+              matchedAttribute: null,
+              matchedSubTopic: null,
+              source: result.source
+            });
+          } else {
+            const existing = gemMap.get(primaryId);
+            if (result.score > existing.score) {
+              existing.score = result.score;
+              existing.matchSource = "primary";
+              existing.matchedAttribute = null;
+              existing.matchedSubTopic = null;
+            }
+          }
+        } else if (result.isVirtual) {
+          const parentId = result.parentGem;
+          if (!parentId) {
+            console.warn("[VectorStore] Child gem has no parentGem:", result.id);
+            continue;
+          }
+          if (!gemMap.has(parentId)) {
+            const parentGem = await this.getGem(parentId);
+            if (!parentGem) {
+              console.warn("[VectorStore] Parent gem not found:", parentId);
+              continue;
+            }
+            gemMap.set(parentId, {
+              gem: parentGem,
+              score: result.score,
+              // ✅ Use Child's Score!
+              matchSource: "child",
+              matchedAttribute: result.gem.attribute || null,
+              matchedSubTopic: result.gem.subTopic || null,
+              source: result.source
+            });
+          } else {
+            const existing = gemMap.get(parentId);
+            if (result.score > existing.score) {
+              existing.score = result.score;
+              existing.matchSource = "child";
+              existing.matchedAttribute = result.gem.attribute || null;
+              existing.matchedSubTopic = result.gem.subTopic || null;
+            }
+          }
+        } else {
+          const gemId = result.id;
+          if (!gemMap.has(gemId)) {
+            gemMap.set(gemId, {
+              gem: result.gem,
+              score: result.score,
+              matchSource: "single",
+              matchedAttribute: null,
+              matchedSubTopic: null,
+              source: result.source
+            });
+          }
+        }
+      }
+      const deduplicated = Array.from(gemMap.values()).sort((a, b) => b.score - a.score).map((item) => ({
+        id: item.gem.id,
+        score: item.score,
+        gem: item.gem,
+        source: item.source,
+        matchSource: item.matchSource,
+        // 'primary', 'child', or 'single'
+        matchedAttribute: item.matchedAttribute,
+        matchedSubTopic: item.matchedSubTopic
+      }));
+      console.log("[VectorStore] Deduplication summary:");
+      deduplicated.slice(0, 3).forEach((r, i) => {
+        console.log(`  ${i + 1}. ${r.gem.value.substring(0, 40)}... (${r.score.toFixed(3)})`);
+        console.log(`     Source: ${r.matchSource}${r.matchedSubTopic ? `, matched "${r.matchedSubTopic}"` : ""}`);
+      });
+      return deduplicated;
     }
     /**
      * Get all gems
@@ -19172,7 +21925,117 @@ Semantic type:`;
       return keywords;
     }
     /**
-     * Enrich a gem with all metadata
+     * Extract topic and attributes from text using AI
+     * @param {string} text - Text to analyze
+     * @param {Array<string>} existingCategories - List of existing categories to choose from
+     * @returns {Promise<Object>} { topic: string|null, attributes: Array }
+     */
+    async extractTopicAndAttributes(text, existingCategories = []) {
+      if (!this.languageSession) {
+        console.warn("[Enrichment] LanguageModel not available, using fallback extraction");
+        return this.fallbackExtraction(text, existingCategories);
+      }
+      try {
+        const categoriesHint = existingCategories.length > 0 ? `
+Available categories: ${existingCategories.join(", ")}` : "";
+        const prompt = `Analyze this text and extract structured information:
+
+Text: "${text}"${categoriesHint}
+
+Return JSON with:
+1. "topic": Main topic/question (e.g., "Wie ist deine Morning-Routine?") or null if not a question-based preference
+2. "attributes": Array of extracted attributes
+
+Each attribute should have:
+- "subTopic": Human-readable sub-topic (e.g., "Kaffeeart, die ich gerne trinke")
+- "attribute": Machine-readable key (e.g., "coffee_type")
+- "value": Extracted value (e.g., "Espresso")
+- "unit": Unit if applicable (e.g., "cm", "kg") or null
+- "category": Category from available list or suggest new one
+- "semanticType": one of: constraint, preference, activity, characteristic, goal
+
+Example output:
+{
+  "topic": "Morning Routine",
+  "attributes": [
+    {
+      "subTopic": "Kaffeeart, die ich trinke",
+      "attribute": "coffee_type",
+      "value": "Espresso",
+      "unit": null,
+      "category": "Nutrition",
+      "semanticType": "preference"
+    }
+  ]
+}
+
+IMPORTANT:
+- If text contains only ONE simple fact, return attributes array with ONE item
+- If text is complex with multiple facts, extract ALL attributes
+- Return ONLY valid JSON, no explanation`;
+        const response = await this.languageSession.prompt(prompt);
+        const parsed = JSON.parse(response.trim());
+        console.log("[Enrichment] AI extraction successful:", {
+          topic: parsed.topic,
+          attributeCount: parsed.attributes?.length || 0
+        });
+        return parsed;
+      } catch (error) {
+        console.error("[Enrichment] AI extraction failed:", error);
+        return this.fallbackExtraction(text, existingCategories);
+      }
+    }
+    /**
+     * Fallback extraction using pattern matching
+     * @param {string} text - Text to analyze
+     * @param {Array<string>} existingCategories - Existing categories
+     * @returns {Object} { topic: null, attributes: Array }
+     */
+    fallbackExtraction(text, existingCategories = []) {
+      console.log("[Enrichment] Using fallback extraction");
+      const attributes = [];
+      const lower = text.toLowerCase();
+      const heightMatch = text.match(/(\d+)\s*(cm|m|ft|'|")/i);
+      if (heightMatch) {
+        attributes.push({
+          subTopic: "Body height",
+          attribute: "height",
+          value: heightMatch[1],
+          unit: heightMatch[2],
+          category: existingCategories.includes("Health") ? "Health" : "Physical Attributes",
+          semanticType: "characteristic"
+        });
+      }
+      const ageMatch = text.match(/(\d+)\s*years?\s*old|age\s*[:=]\s*(\d+)/i);
+      if (ageMatch) {
+        attributes.push({
+          subTopic: "Age",
+          attribute: "age",
+          value: ageMatch[1] || ageMatch[2],
+          unit: "years",
+          category: existingCategories.includes("Identity") ? "Identity" : "Personal Info",
+          semanticType: "characteristic"
+        });
+      }
+      if (attributes.length === 0) {
+        const semanticType = this.fallbackClassification(text);
+        attributes.push({
+          subTopic: text.substring(0, 50) + (text.length > 50 ? "..." : ""),
+          attribute: "general",
+          value: text,
+          unit: null,
+          category: existingCategories[0] || "General",
+          semanticType
+        });
+      }
+      return {
+        topic: null,
+        // No topic detection in fallback
+        attributes
+      };
+    }
+    /**
+     * Enrich a gem with all metadata (including child gem creation)
      * @param {Object} gem - Gem object (must have 'value' field)
      * @param {Object} options - Enrichment options
      * @returns {Promise<Object>} Enriched gem with metadata
@@ -19181,9 +22044,31 @@ Semantic type:`;
       console.log(`[Enrichment] Enriching gem: ${gem.id}`);
       const enriched = { ...gem };
       const { value } = gem;
+      if (enriched.isPrimary === void 0) {
+        enriched.isPrimary = false;
+      }
+      if (!enriched.parentGem) {
+        enriched.parentGem = "";
+      }
+      if (!enriched.childGems) {
+        enriched.childGems = [];
+      }
+      if (enriched.isVirtual === void 0) {
+        enriched.isVirtual = false;
+      }
       if (!value || typeof value !== "string") {
         console.warn("[Enrichment] Gem has no valid text value, skipping enrichment");
         return enriched;
+      }
+      const existingCategories = Array.isArray(gem.collections) ? gem.collections : [];
+      let extraction = null;
+      if (options.createChildGems !== false) {
+        extraction = await this.extractTopicAndAttributes(value, existingCategories);
+        if (gem.topic) {
+          enriched.topic = gem.topic;
+        } else if (extraction.topic) {
+          enriched.topic = extraction.topic;
+        }
       }
       if (this.isAvailable.embedder && options.generateEmbedding !== false) {
         const vector = await this.generateEmbedding(value);
@@ -19206,12 +22091,66 @@ Semantic type:`;
         enriched.keywords = this.extractKeywords(value);
         console.log(`[Enrichment] Extracted ${Object.keys(enriched.keywords).length} keywords for: ${gem.id}`);
       }
-      enriched.enrichmentVersion = "v2.0";
+      if (extraction && extraction.attributes && extraction.attributes.length > 1 && options.createChildGems !== false) {
+        enriched.isPrimary = true;
+        enriched.childGems = [];
+        console.log(`[Enrichment] Creating ${extraction.attributes.length} child gems for: ${gem.id}`);
+        for (const attr of extraction.attributes) {
+          const childValue = attr.unit ? `${attr.value} ${attr.unit}` : attr.value;
+          const childGem = {
+            id: `${gem.id}_${attr.attribute}`,
+            value: childValue,
+            // Collections (can differ from parent!)
+            collections: attr.category ? [attr.category] : enriched.collections || [],
+            subCollections: enriched.subCollections || [],
+            // Topic hierarchy
+            topic: enriched.topic || null,
+            // Inherit from parent
+            subTopic: attr.subTopic,
+            // Specific sub-topic
+            // Attribute details
+            attribute: attr.attribute,
+            attributeValue: attr.value,
+            attributeUnit: attr.unit,
+            // Relationship
+            parentGem: gem.id,
+            isVirtual: true,
+            // Don't show in UI
+            isPrimary: false,
+            // Semantic
+            semanticType: attr.semanticType,
+            // Timestamp
+            timestamp: gem.timestamp || Date.now(),
+            // Generate precise vector for child (specific attribute)
+            vector: null,
+            // Will be generated below
+            keywords: {}
+          };
+          if (this.isAvailable.embedder) {
+            const childEmbeddingText = attr.subTopic ? `${attr.subTopic}: ${childValue}` : childValue;
+            childGem.vector = await this.generateEmbedding(childEmbeddingText);
+          }
+          childGem.keywords = this.extractKeywords(`${attr.subTopic || ""} ${childValue}`);
+          enriched.childGems.push(childGem.id);
+          if (!enriched._childGemsToInsert) {
+            enriched._childGemsToInsert = [];
+          }
+          enriched._childGemsToInsert.push(childGem);
+          console.log(`[Enrichment] Created child gem: ${childGem.id}`, {
+            subTopic: childGem.subTopic,
+            value: childGem.value,
+            category: childGem.collections[0]
+          });
+        }
+      }
+      enriched.enrichmentVersion = "v2.1";
       enriched.enrichmentTimestamp = Date.now();
       console.log(`[Enrichment] Enrichment complete for: ${gem.id}`, {
         hasVector: !!enriched.vector,
         hasSemanticType: !!enriched.semanticType,
-        keywordCount: enriched.keywords ? Object.keys(enriched.keywords).length : 0
+        keywordCount: enriched.keywords ? Object.keys(enriched.keywords).length : 0,
+        hasTopic: !!enriched.topic,
+        childGemCount: enriched.childGems?.length || 0
       });
       return enriched;
     }
@@ -19347,11 +22286,24 @@ Semantic type:`;
       if (autoEnrich) {
         enrichedGem = await this.enrichment.enrichGem(gem);
       }
+      const childGems = enrichedGem._childGemsToInsert || [];
+      delete enrichedGem._childGemsToInsert;
       await this.vectorStore.insert(enrichedGem);
+      if (childGems.length > 0) {
+        console.log(`[ContextEngine] Inserting ${childGems.length} child gems for: ${gem.id}`);
+        for (const childGem of childGems) {
+          await this.vectorStore.insert(childGem);
+          if (childGem.keywords) {
+            await this.bm25.updateIndex(childGem);
+          }
+        }
+      }
       if (enrichedGem.keywords) {
         await this.bm25.updateIndex(enrichedGem);
       }
-      console.log(`[ContextEngine] Gem added successfully: ${gem.id}`);
+      console.log(`[ContextEngine] Gem added successfully: ${gem.id}`, {
+        childGems: childGems.length
+      });
       return enrichedGem;
     }
     /**

@@ -20,6 +20,7 @@ class DataCard {
     this.mergedFrom = options.mergedFrom || null; // NEW: Track if card is merged from others
     this.onMergedInfoClick = options.onMergedInfoClick || null; // NEW: Callback for merged info click
     this.selected = false; // NEW: Selection state
+    this.topic = options.topic || null; // NEW: Topic/question for the preference
 
     this.init();
   }
@@ -354,6 +355,22 @@ class DataCard {
    */
   getMergedFrom() {
     return this.mergedFrom;
+  }
+
+  /**
+   * Get topic
+   * @returns {string|null} Topic/question for the preference
+   */
+  getTopic() {
+    return this.topic;
+  }
+
+  /**
+   * Set topic
+   * @param {string} topic - Topic/question for the preference
+   */
+  setTopic(topic) {
+    this.topic = topic;
   }
 
   /**

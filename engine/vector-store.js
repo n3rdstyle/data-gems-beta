@@ -62,17 +62,24 @@ export class VectorStore {
   }
 
   /**
-   * Insert a gem with vector
-   * @param {Object} gem - Gem object with vector field
+   * Insert a gem (vector field is optional)
+   * @param {Object} gem - Gem object (vector field optional)
    */
   async insert(gem) {
-    if (!gem.vector || gem.vector.length !== 384) {
-      throw new Error('[VectorStore] Gem must have 384-dim vector');
+    // Validate vector if present
+    if (gem.vector && gem.vector.length !== 384) {
+      console.warn(`[VectorStore] Gem ${gem.id} has invalid vector (length: ${gem.vector.length}), removing it`);
+      delete gem.vector;
+    }
+
+    // Vector is optional - gems without vectors won't be searchable via dense search
+    if (!gem.vector) {
+      console.log(`[VectorStore] Inserting gem without vector: ${gem.id}`);
     }
 
     try {
       await this.collection.insert(gem);
-      console.log(`[VectorStore] Inserted gem: ${gem.id}`);
+      console.log(`[VectorStore] Inserted gem: ${gem.id}${gem.vector ? ' (with vector)' : ' (no vector)'}`);
     } catch (error) {
       if (error.code === 'CONFLICT') {
         console.warn(`[VectorStore] Gem ${gem.id} already exists, updating...`);
@@ -136,7 +143,7 @@ export class VectorStore {
   }
 
   /**
-   * Dense vector search (cosine similarity)
+   * Dense vector search (cosine similarity) with deduplication
    * @param {number[]} queryVector - Query embedding (384-dim)
    * @param {Object} filters - Filter criteria
    * @param {number} limit - Max results
@@ -152,7 +159,7 @@ export class VectorStore {
     // Build query with filters
     let query = this.collection.find({
       selector: {
-        vector: { $exists: true }  // Only gems with vectors
+        vector: { $exists: true }  // Only gems with vectors (both primary and child)
       }
     });
 
@@ -177,9 +184,9 @@ export class VectorStore {
     // Execute query
     const docs = await query.exec();
 
-    console.log(`[VectorStore] Found ${docs.length} candidates with vectors`);
+    console.log(`[VectorStore] Found ${docs.length} candidates (primary + child gems)`);
 
-    // Calculate similarity scores
+    // Calculate similarity scores for ALL gems (primary and child)
     const results = docs.map(doc => {
       const gem = doc.toJSON();
       const score = cosineSimilarity(queryVector, gem.vector);
@@ -188,22 +195,149 @@ export class VectorStore {
         id: gem.id,
         score,
         gem,
+        isPrimary: gem.isPrimary || false,
+        isVirtual: gem.isVirtual || false,
+        parentGem: gem.parentGem || null,
         source: 'dense'
       };
     });
 
-    // Sort by score (descending) and limit
-    const sorted = results
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit);
+    // Sort by score (descending)
+    const sorted = results.sort((a, b) => b.score - a.score);
+
+    console.log('[VectorStore] Top 5 raw matches before deduplication:');
+    sorted.slice(0, 5).forEach((r, i) => {
+      const type = r.isPrimary ? 'PRIMARY' : (r.isVirtual ? 'CHILD' : 'SINGLE');
+      console.log(`  ${i + 1}. ${r.gem.value.substring(0, 40)}... (${r.score.toFixed(3)}, ${type})`);
+    });
+
+    // Deduplicate: Merge primary and child gems
+    const deduplicated = await this.deduplicateGemResults(sorted);
 
     console.log(`[VectorStore] Dense search complete:`, {
       candidates: docs.length,
-      returned: sorted.length,
-      topScore: sorted[0]?.score.toFixed(3)
+      afterDeduplication: deduplicated.length,
+      returned: Math.min(deduplicated.length, limit),
+      topScore: deduplicated[0]?.score.toFixed(3)
     });
 
-    return sorted;
+    return deduplicated.slice(0, limit);
+  }
+
+  /**
+   * Deduplicate search results: Merge primary and child gems
+   * Returns only primary gems, using child's score if better
+   * @param {Array} results - Search results with score, gem, isPrimary, isVirtual, parentGem
+   * @returns {Promise<Array>} Deduplicated results
+   */
+  async deduplicateGemResults(results) {
+    const gemMap = new Map();  // primaryGemId -> best result
+
+    for (const result of results) {
+      if (result.isPrimary) {
+        // ═══════════════════════════════════════════════
+        // PRIMARY GEM
+        // ═══════════════════════════════════════════════
+        const primaryId = result.id;
+
+        if (!gemMap.has(primaryId)) {
+          gemMap.set(primaryId, {
+            gem: result.gem,
+            score: result.score,
+            matchSource: 'primary',  // Matched via primary gem
+            matchedAttribute: null,
+            matchedSubTopic: null,
+            source: result.source
+          });
+        } else {
+          // Primary already in map (via child) → update if primary scores better
+          const existing = gemMap.get(primaryId);
+          if (result.score > existing.score) {
+            existing.score = result.score;
+            existing.matchSource = 'primary';
+            existing.matchedAttribute = null;
+            existing.matchedSubTopic = null;
+          }
+        }
+
+      } else if (result.isVirtual) {
+        // ═══════════════════════════════════════════════
+        // CHILD GEM (Virtual)
+        // ═══════════════════════════════════════════════
+        const parentId = result.parentGem;
+
+        if (!parentId) {
+          console.warn('[VectorStore] Child gem has no parentGem:', result.id);
+          continue;
+        }
+
+        if (!gemMap.has(parentId)) {
+          // Parent not seen yet → fetch parent and add with child's score
+          const parentGem = await this.getGem(parentId);
+
+          if (!parentGem) {
+            console.warn('[VectorStore] Parent gem not found:', parentId);
+            continue;
+          }
+
+          gemMap.set(parentId, {
+            gem: parentGem,
+            score: result.score,  // ✅ Use Child's Score!
+            matchSource: 'child',
+            matchedAttribute: result.gem.attribute || null,
+            matchedSubTopic: result.gem.subTopic || null,
+            source: result.source
+          });
+        } else {
+          // Parent already in map → update if child scores better
+          const existing = gemMap.get(parentId);
+          if (result.score > existing.score) {
+            existing.score = result.score;
+            existing.matchSource = 'child';
+            existing.matchedAttribute = result.gem.attribute || null;
+            existing.matchedSubTopic = result.gem.subTopic || null;
+          }
+        }
+
+      } else {
+        // ═══════════════════════════════════════════════
+        // REGULAR GEM (neither primary nor child)
+        // ═══════════════════════════════════════════════
+        const gemId = result.id;
+
+        if (!gemMap.has(gemId)) {
+          gemMap.set(gemId, {
+            gem: result.gem,
+            score: result.score,
+            matchSource: 'single',
+            matchedAttribute: null,
+            matchedSubTopic: null,
+            source: result.source
+          });
+        }
+      }
+    }
+
+    // Convert map to array and sort by score
+    const deduplicated = Array.from(gemMap.values())
+      .sort((a, b) => b.score - a.score)
+      .map(item => ({
+        id: item.gem.id,
+        score: item.score,
+        gem: item.gem,
+        source: item.source,
+        matchSource: item.matchSource,  // 'primary', 'child', or 'single'
+        matchedAttribute: item.matchedAttribute,
+        matchedSubTopic: item.matchedSubTopic
+      }));
+
+    console.log('[VectorStore] Deduplication summary:');
+    deduplicated.slice(0, 3).forEach((r, i) => {
+      console.log(`  ${i + 1}. ${r.gem.value.substring(0, 40)}... (${r.score.toFixed(3)})`);
+      console.log(`     Source: ${r.matchSource}${r.matchedSubTopic ? `, matched "${r.matchedSubTopic}"` : ''}`);
+    });
+
+    return deduplicated;
   }
 
   /**

@@ -49,9 +49,12 @@ function createField(value, assurance = 'self_declared', reliability = 'high', s
  * @param {Array<string>} collections - Collection IDs
  * @param {Array<string>} subCollections - SubCategory names (optional, AI-generated)
  * @param {string} sourceUrl - Optional source URL (e.g., Google Sheets URL)
+ * @param {string} topic - Optional topic/question for the preference
  * @returns {object} Preference object
  */
-function createPreference(value, state = 'default', collections = [], subCollections = [], sourceUrl = null, mergedFrom = null) {
+function createPreference(value, state = 'default', collections = [], subCollections = [], sourceUrl = null, mergedFrom = null, topic = null) {
+  console.log('[HSP] createPreference called with topic:', topic);
+
   const pref = {
     id: generateId('pref'),
     value,
@@ -63,6 +66,14 @@ function createPreference(value, state = 'default', collections = [], subCollect
     created_at: getTimestamp(),
     updated_at: getTimestamp()
   };
+
+  // Only add topic if provided
+  if (topic && topic.trim() !== '') {
+    console.log('[HSP] Setting topic on preference:', topic);
+    pref.topic = topic;
+  } else {
+    console.log('[HSP] Topic not set (empty or null)');
+  }
 
   // Only add source_url if provided
   if (sourceUrl) {
@@ -329,9 +340,10 @@ function registerCollections(profile, collectionLabels) {
  * @param {Array<string>} collections - Collection labels (e.g., ['Nutrition', 'Sports'])
  * @param {Array<string>} subCollections - SubCategory keys (e.g., ['nutrition_preferences'])
  * @param {string} sourceUrl - Optional source URL (e.g., Google Sheets URL)
+ * @param {string} topic - Optional topic/question for the preference
  * @returns {object} Updated profile
  */
-function addPreference(profile, value, state = 'default', collections = [], subCollections = [], sourceUrl = null) {
+function addPreference(profile, value, state = 'default', collections = [], subCollections = [], sourceUrl = null, mergedFrom = null, topic = null) {
   // Deep clone to avoid mutating the original profile
   let updatedProfile = JSON.parse(JSON.stringify(profile));
 
@@ -340,7 +352,7 @@ function addPreference(profile, value, state = 'default', collections = [], subC
     updatedProfile = registerCollections(updatedProfile, collections);
   }
 
-  const newPref = createPreference(value, state, collections, subCollections, sourceUrl);
+  const newPref = createPreference(value, state, collections, subCollections, sourceUrl, mergedFrom, topic);
 
   updatedProfile.content.preferences.items.push(newPref);
   updatedProfile.metadata.total_preferences = updatedProfile.content.preferences.items.length;

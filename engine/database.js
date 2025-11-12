@@ -9,23 +9,26 @@ import { createRxDatabase, addRxPlugin } from '../node_modules/rxdb/dist/esm/ind
 import { getRxStorageDexie } from '../node_modules/rxdb/dist/esm/plugins/storage-dexie/index.js';
 import { RxDBQueryBuilderPlugin } from '../node_modules/rxdb/dist/esm/plugins/query-builder/index.js';
 import { RxDBUpdatePlugin } from '../node_modules/rxdb/dist/esm/plugins/update/index.js';
+import { RxDBMigrationSchemaPlugin } from '../node_modules/rxdb/dist/esm/plugins/migration-schema/index.js';
 
 // Add plugins
 addRxPlugin(RxDBQueryBuilderPlugin);
 addRxPlugin(RxDBUpdatePlugin);
+addRxPlugin(RxDBMigrationSchemaPlugin);
 
 // Note: Dev-mode plugin disabled for Chrome Extension (CSP blocks AJV validator)
 
 /**
  * Gem Schema for RxDB
- * Enhanced with semantic metadata and vector embeddings
+ * Enhanced with semantic metadata, vector embeddings, AND HSP fields
+ * This is now the single source of truth for preference data
  */
 const gemSchema = {
-  version: 0,
+  version: 2,  // UPDATED: v1 -> v2 for HSP fields (state, assurance, reliability, source_url, mergedFrom, created_at, updated_at)
   primaryKey: 'id',
   type: 'object',
   properties: {
-    // EXISTING FIELDS
+    // CORE FIELDS
     id: {
       type: 'string',
       maxLength: 100
@@ -52,7 +55,52 @@ const gemSchema = {
       multipleOf: 1  // Required for indexed number fields
     },
 
-    // NEW: Semantic Metadata
+    // HSP PROTOCOL FIELDS
+    state: {
+      type: 'string',
+      enum: ['default', 'favorited', 'hidden'],
+      default: 'default'
+    },
+    assurance: {
+      type: 'string',
+      enum: ['self_declared', 'third_party', 'derived'],
+      default: 'self_declared'
+    },
+    reliability: {
+      type: 'string',
+      enum: ['authoritative', 'high', 'medium', 'low'],
+      default: 'authoritative'
+    },
+    source_url: {
+      type: 'string',
+      maxLength: 2000
+    },
+    mergedFrom: {
+      type: 'array',
+      items: {
+        type: 'object'
+      }
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time'
+    },
+    updated_at: {
+      type: 'string',
+      format: 'date-time'
+    },
+
+    // Topic/Sub-Topic Hierarchy
+    topic: {
+      type: 'string',
+      maxLength: 500
+    },
+    subTopic: {
+      type: 'string',
+      maxLength: 500
+    },
+
+    // Semantic Metadata (AI Enrichment)
     semanticType: {
       type: 'string',
       enum: ['constraint', 'preference', 'activity', 'characteristic', 'goal']
@@ -70,7 +118,7 @@ const gemSchema = {
       maxLength: 50
     },
 
-    // NEW: Vector Embeddings (384-dim from Gemini Nano)
+    // Vector Embeddings (384-dim from Gemini Nano)
     vector: {
       type: 'array',
       items: {
@@ -80,7 +128,7 @@ const gemSchema = {
       maxItems: 384
     },
 
-    // NEW: Keywords for BM25 sparse search
+    // Keywords for BM25 sparse search
     keywords: {
       type: 'object',
       additionalProperties: {
@@ -88,7 +136,7 @@ const gemSchema = {
       }
     },
 
-    // NEW: Quality Metadata
+    // Quality Metadata
     enrichmentVersion: {
       type: 'string',
       maxLength: 20
@@ -100,13 +148,48 @@ const gemSchema = {
     },
     userVerified: {
       type: 'boolean'
+    },
+
+    // Primary/Child Gem Relationship
+    isPrimary: {
+      type: 'boolean'
+    },
+    parentGem: {
+      type: 'string',
+      maxLength: 100
+    },
+    childGems: {
+      type: 'array',
+      items: {
+        type: 'string'
+      }
+    },
+    isVirtual: {
+      type: 'boolean'
     }
   },
-  required: ['id', 'value', 'timestamp', 'collections', 'subCollections'],  // Indexed fields must be required for Dexie
+  required: [
+    'id',
+    'value',
+    'timestamp',
+    'collections',
+    'subCollections',
+    'state',
+    'assurance',
+    'reliability',
+    'created_at',
+    'updated_at',
+    'isPrimary',
+    'parentGem'
+  ],
   indexes: [
     'timestamp',
+    'state',  // NEW: Index for filtering by state
     ['collections'],  // Multi-entry index for array
-    ['subCollections']
+    ['subCollections'],
+    'isPrimary',  // Index for filtering primary vs child gems
+    'parentGem',   // Index for finding children of a parent
+    'created_at'  // NEW: Index for sorting by creation date
   ]
 };
 
@@ -152,6 +235,40 @@ export async function initDatabase() {
     await db.addCollections({
       gems: {
         schema: gemSchema,
+        migrationStrategies: {
+          // Migration from v0 to v1: Add new required fields with defaults
+          1: function(oldDoc) {
+            console.log('[Database] Migrating gem from v0 to v1:', oldDoc.id);
+            return {
+              ...oldDoc,
+              // Set defaults for new required fields
+              isPrimary: oldDoc.isPrimary !== undefined ? oldDoc.isPrimary : false,
+              parentGem: oldDoc.parentGem || '',
+              // Set defaults for new optional fields
+              topic: oldDoc.topic || '',
+              subTopic: oldDoc.subTopic || '',
+              childGems: oldDoc.childGems || [],
+              isVirtual: oldDoc.isVirtual !== undefined ? oldDoc.isVirtual : false
+            };
+          },
+          // Migration from v1 to v2: Add HSP protocol fields
+          2: function(oldDoc) {
+            console.log('[Database] Migrating gem from v1 to v2 (adding HSP fields):', oldDoc.id);
+            const now = new Date().toISOString();
+            return {
+              ...oldDoc,
+              // HSP required fields with defaults
+              state: oldDoc.state || 'default',
+              assurance: oldDoc.assurance || 'self_declared',
+              reliability: oldDoc.reliability || 'authoritative',
+              created_at: oldDoc.created_at || oldDoc.timestamp ? new Date(oldDoc.timestamp).toISOString() : now,
+              updated_at: oldDoc.updated_at || now,
+              // Optional HSP fields
+              source_url: oldDoc.source_url || undefined,
+              mergedFrom: oldDoc.mergedFrom || undefined
+            };
+          }
+        }
         // Note: Vector search plugin will be added separately
         // to avoid circular dependency issues
       }

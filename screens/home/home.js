@@ -360,6 +360,7 @@ function createHome(options = {}) {
         title: 'Edit Preference',
         preferenceTitle: 'Preference',
         preferenceText: card.getData(),
+        preferenceTopic: card.getTopic() || '', // Pass existing topic
         preferenceHidden: card.getState() === 'hidden',
         preferenceFavorited: card.getState() === 'favorited',
         collections: card.getCollections(),
@@ -381,7 +382,8 @@ function createHome(options = {}) {
             onPreferenceUpdate(cardId, {
               value: data.text,
               state: newState,
-              collections: data.collections
+              collections: data.collections,
+              topic: data.topic  // Include topic in update
             });
             // Close modal after save
             modal.hide();
@@ -579,8 +581,9 @@ function createHome(options = {}) {
                 }
 
                 // Save to HSP protocol storage
+                console.log('[Home] Calling onPreferenceAdd with topic:', data.topic);
                 if (onPreferenceAdd) {
-                  onPreferenceAdd(data.text, state, data.collections);
+                  onPreferenceAdd(data.text, state, data.collections, data.topic);
                   // Note: renderCurrentScreen() in app.js will rebuild the UI
                 } else {
                   // Fallback: Add to UI only (not persistent)
@@ -674,7 +677,7 @@ function createHome(options = {}) {
             // Save all answers
             batchedAnswers.forEach(answer => {
               if (onPreferenceAdd) {
-                onPreferenceAdd(answer.text, answer.state, answer.collections);
+                onPreferenceAdd(answer.text, answer.state, answer.collections, answer.topic);
               }
             });
             // Note: renderCurrentScreen() will be called by the last onPreferenceAdd

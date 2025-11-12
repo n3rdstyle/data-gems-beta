@@ -27,6 +27,138 @@ let BackupState = {
   lastBackupCount: 0
 };
 
+// ============================================================================
+// RXDB HELPERS - Context Engine Integration
+// ============================================================================
+
+/**
+ * Initialize Context Engine if not already ready
+ */
+async function ensureContextEngine() {
+  if (!self.ContextEngineAPI) {
+    throw new Error('[App] ContextEngineAPI not available');
+  }
+
+  if (!self.ContextEngineAPI.isReady) {
+    console.log('[App] Initializing Context Engine...');
+    await self.ContextEngineAPI.initialize();
+  }
+
+  return self.ContextEngineAPI;
+}
+
+/**
+ * Get all primary preferences from RxDB
+ * @returns {Promise<Array>} Array of preferences
+ */
+async function getPreferencesFromRxDB() {
+  try {
+    const engine = await ensureContextEngine();
+
+    // Access the RxDB collection directly from the engine
+    const collection = engine.collection;
+
+    if (!collection) {
+      console.error('[App] RxDB collection not available');
+      return [];
+    }
+
+    // Query all primary gems (not child gems)
+    const docs = await collection
+      .find({
+        selector: {
+          isPrimary: true
+        },
+        sort: [{ created_at: 'desc' }]  // Newest first
+      })
+      .exec();
+
+    return docs.map(doc => doc.toJSON());
+  } catch (error) {
+    console.error('[App] Failed to get preferences from RxDB:', error);
+    return [];
+  }
+}
+
+/**
+ * Add a new preference to RxDB
+ * @param {Object} preference - Preference data
+ * @param {boolean} autoEnrich - Auto-enrich with AI (default: true)
+ * @returns {Promise<Object>} Created gem
+ */
+async function addPreferenceToRxDB(preference, autoEnrich = true) {
+  try {
+    const engine = await ensureContextEngine();
+
+    const gem = {
+      id: preference.id || generateId('pref'),
+      value: preference.value,
+      collections: preference.collections || [],
+      subCollections: preference.subCollections || [],
+      timestamp: Date.now(),
+
+      // HSP fields
+      state: preference.state || 'default',
+      assurance: preference.assurance || 'self_declared',
+      reliability: preference.reliability || 'authoritative',
+      source_url: preference.source_url,
+      mergedFrom: preference.mergedFrom,
+      created_at: preference.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      topic: preference.topic || '',
+
+      // Primary gem fields
+      isPrimary: true,
+      parentGem: '',
+      childGems: [],
+      isVirtual: false
+    };
+
+    await engine.addGem(gem, autoEnrich);
+    return gem;
+  } catch (error) {
+    console.error('[App] Failed to add preference to RxDB:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update a preference in RxDB
+ * @param {string} id - Preference ID
+ * @param {Object} updates - Fields to update
+ * @param {boolean} reEnrich - Re-enrich if value changed (default: true)
+ */
+async function updatePreferenceInRxDB(id, updates, reEnrich = true) {
+  try {
+    const engine = await ensureContextEngine();
+
+    // Add updated_at timestamp
+    const finalUpdates = {
+      ...updates,
+      updated_at: new Date().toISOString()
+    };
+
+    await engine.updateGem(id, finalUpdates, reEnrich);
+  } catch (error) {
+    console.error('[App] Failed to update preference in RxDB:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a preference from RxDB
+ * @param {string} id - Preference ID
+ */
+async function deletePreferenceFromRxDB(id) {
+  try {
+    const engine = await ensureContextEngine();
+    await engine.deleteGem(id);
+  } catch (error) {
+    console.error('[App] Failed to delete preference from RxDB:', error);
+    throw error;
+  }
+}
+
 // Selection tracking state for merge feature
 let SelectedCards = new Set();
 let mergeFAB = null;
@@ -367,12 +499,14 @@ async function saveMergedCard(data, mergedFrom, selectedItems) {
       AppState,
       data.text,
       newState,
-      data.collections
+      data.collections,
+      [],  // subCollections
+      null,  // sourceUrl
+      mergedFrom,  // mergedFrom
+      data.topic || null  // topic (NEW)
     );
 
-    // Add mergedFrom metadata to the newly created item
-    const newItem = AppState.content.preferences.items[AppState.content.preferences.items.length - 1];
-    newItem.mergedFrom = mergedFrom;
+    // Note: mergedFrom is now passed directly to addPreference
 
     // Delete original selected items
     selectedItems.forEach(item => {
@@ -397,12 +531,15 @@ async function saveMergedCard(data, mergedFrom, selectedItems) {
   }
 }
 
-// Load data from Chrome storage
+// Load data from Chrome storage AND RxDB
 async function loadData() {
   try {
-    const result = await chrome.storage.local.get(['hspProfile', 'userData', 'preferences']);
+    const result = await chrome.storage.local.get(['hspProfile', 'userData', 'preferences', 'migrationCompleted']);
 
-    // Check if we have new HSP format
+    // Check if migration to RxDB is completed
+    const usesRxDB = result.migrationCompleted === true;
+
+    // Load profile identity from Chrome Storage
     if (result.hspProfile) {
       AppState = result.hspProfile;
 
@@ -410,13 +547,6 @@ async function loadData() {
       if (AppState.has && !AppState.hsp) {
         AppState.hsp = AppState.has;
         delete AppState.has;
-        await saveData();
-      }
-
-      // Migrate third-party assurance if needed
-      const migratedProfile = migrateThirdPartyAssurance(AppState);
-      if (migratedProfile !== AppState) {
-        AppState = migratedProfile;
         await saveData();
       }
 
@@ -446,16 +576,40 @@ async function loadData() {
       AppState = initializeDefaultProfile();
       await saveData();
     }
+
+    // Load preferences from RxDB if migration is completed
+    if (usesRxDB) {
+      console.log('[App] Loading preferences from RxDB...');
+      try {
+        const preferencesFromRxDB = await getPreferencesFromRxDB();
+        console.log(`[App] Loaded ${preferencesFromRxDB.length} preferences from RxDB`);
+
+        // Update AppState cache with RxDB data
+        AppState.content.preferences.items = preferencesFromRxDB;
+        AppState.metadata.total_preferences = preferencesFromRxDB.length;
+      } catch (error) {
+        console.error('[App] Failed to load preferences from RxDB:', error);
+        console.log('[App] Using Chrome Storage fallback');
+        // If RxDB fails, keep Chrome Storage data as fallback
+      }
+    } else {
+      console.log('[App] Using Chrome Storage for preferences (migration not completed)');
+      console.log('[App] Run migrate-to-rxdb.js script to enable RxDB storage');
+    }
   } catch (error) {
+    console.error('[App] Failed to load data:', error);
     AppState = initializeDefaultProfile();
   }
 }
 
-// Save data to Chrome storage
+// Save data to Chrome storage (profile identity only)
+// Note: Preferences are saved to RxDB, not Chrome Storage
 async function saveData() {
   try {
     AppState.updated_at = getTimestamp();
 
+    // Save profile identity to Chrome Storage
+    // Preferences are stored in RxDB after migration
     await chrome.storage.local.set({
       hspProfile: AppState
     });
@@ -494,6 +648,11 @@ function getPreferences() {
       pref.mergedFrom = item.mergedFrom;
     }
 
+    // Add topic if it exists
+    if (item.topic) {
+      pref.topic = item.topic;
+    }
+
     return pref;
   });
   // Reverse to show newest first (newest at top)
@@ -501,16 +660,37 @@ function getPreferences() {
 }
 
 // Export data (HSP v0.1 format) - defined before renderCurrentScreen
+// Now includes data from RxDB (child gems, enrichments, etc.)
 async function exportData() {
   // Get beta user data
-  const betaUserData = await chrome.storage.local.get(['betaUser']);
+  const betaUserData = await chrome.storage.local.get(['betaUser', 'migrationCompleted']);
   const betaUser = betaUserData.betaUser || {};
+  const usesRxDB = betaUserData.migrationCompleted === true;
+
+  // Get preferences (from RxDB if migrated, otherwise from AppState)
+  let preferences;
+  if (usesRxDB) {
+    console.log('[Export] Reading preferences from RxDB...');
+    try {
+      const allGems = await getPreferencesFromRxDB();
+      console.log(`[Export] Retrieved ${allGems.length} preferences from RxDB`);
+      preferences = {
+        items: allGems
+      };
+    } catch (error) {
+      console.error('[Export] Failed to read from RxDB, using AppState:', error);
+      preferences = AppState.content.preferences;
+    }
+  } else {
+    console.log('[Export] Reading preferences from Chrome Storage');
+    preferences = AppState.content.preferences;
+  }
 
   // Clean metadata - remove internal fields
   const cleanMetadata = {
     schema_version: AppState.metadata.schema_version,
     extension_version: AppState.metadata.extension_version,
-    total_preferences: AppState.metadata.total_preferences,
+    total_preferences: preferences.items.length,
     last_backup: AppState.metadata.last_backup
   };
 
@@ -541,7 +721,7 @@ async function exportData() {
       basic: {
         identity: identity
       },
-      preferences: AppState.content.preferences
+      preferences: preferences  // Now includes data from RxDB!
     },
 
     // Collections
@@ -565,7 +745,8 @@ async function exportData() {
 
     // Export metadata (at the end)
     exportDate: getTimestamp(),
-    exportVersion: '0.1'
+    exportVersion: '0.1',
+    dataSource: usesRxDB ? 'RxDB' : 'ChromeStorage'  // Track data source
   };
 
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -578,8 +759,10 @@ async function exportData() {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 
+  console.log(`[Export] Exported ${preferences.items.length} preferences (source: ${usesRxDB ? 'RxDB' : 'Chrome Storage'})`);
+
   // Update last backup count after successful export
-  const currentCount = AppState?.metadata?.total_preferences || 0;
+  const currentCount = preferences.items.length;
   BackupState.lastBackupCount = currentCount;
   await saveBackupState();
 }
@@ -819,27 +1002,154 @@ function importData() {
         }
       }
 
-      // Merge imported data with existing data (with conflict detection)
-      const mergeResult = await mergeImportedData(importedData);
+      // Check if we're using RxDB
+      const storageCheck = await chrome.storage.local.get(['migrationCompleted']);
+      const usesRxDB = storageCheck.migrationCompleted === true;
 
-      if (mergeResult === 'merged') {
-        // Data was merged - AppState already updated in mergeImportedData
-        AppState.metadata.currentScreen = 'home';
+      if (usesRxDB) {
+        // Import to RxDB
+        console.log('[Import] Importing to RxDB...');
+        console.log('[Import] usesRxDB:', usesRxDB);
+        console.log('[Import] migrationCompleted:', storageCheck.migrationCompleted);
 
-        // AUTO-FIX: Ensure SubCategory Registry is valid after import
-        AppState = ensureValidRegistry(AppState);
-      } else if (mergeResult === 'no-changes') {
-        alert('No new data to import.');
-        return;
+        // Update profile identity in Chrome Storage
+        AppState.content.basic.identity = importedData.content.basic.identity;
+        AppState.collections = importedData.collections || [];
+        AppState.subCategoryRegistry = importedData.subCategoryRegistry || {};
+        AppState.settings = importedData.settings || {};
+        await saveData();
+
+        // Import preferences to RxDB
+        const preferences = importedData.content.preferences.items || [];
+        console.log(`[Import] Found ${preferences.length} preferences in import file`);
+        console.log('[Import] Sample preference:', preferences[0]);
+        console.log('[Import] Checking Context Engine...');
+
+        let engine;
+        try {
+          engine = await ensureContextEngine();
+          console.log('[Import] Context Engine ready:', !!engine);
+        } catch (error) {
+          console.error('[Import] Context Engine initialization failed:', error);
+          alert(`❌ Context Engine failed to initialize:\n${error.message}\n\nPlease reload the extension and try again.`);
+          return;
+        }
+
+        // Get RxDB collection from Context Engine
+        console.log('[Import] Accessing RxDB collection...');
+
+        const gemsCollection = engine.collection;
+
+        if (!gemsCollection) {
+          console.error('[Import] RxDB collection not available');
+          alert('❌ RxDB collection not available. Please reload the extension and try again.');
+          return;
+        }
+        console.log('[Import] RxDB collection ready');
+
+        let importedCount = 0;
+        let errorCount = 0;
+        for (let i = 0; i < preferences.length; i++) {
+          const pref = preferences[i];
+
+          if (i === 0) {
+            console.log('[Import] First preference to import:', {
+              id: pref.id,
+              value: pref.value,
+              collections: pref.collections,
+              hasAllFields: !!(pref.id && pref.value)
+            });
+          }
+
+          try {
+            // Prepare gem for RxDB (with all required fields)
+            const gem = {
+              id: pref.id,
+              value: pref.value,
+              collections: pref.collections || [],
+              subCollections: pref.subCollections || [],
+              timestamp: pref.created_at ? new Date(pref.created_at).getTime() : Date.now(),
+
+              // HSP fields
+              state: pref.state || 'default',
+              assurance: pref.assurance || 'self_declared',
+              reliability: pref.reliability || 'authoritative',
+              source_url: pref.source_url,
+              mergedFrom: pref.mergedFrom,
+              created_at: pref.created_at || new Date().toISOString(),
+              updated_at: pref.updated_at || new Date().toISOString(),
+              topic: pref.topic || '',
+
+              // Primary gem fields
+              isPrimary: true,
+              parentGem: '',
+              childGems: pref.childGems || [],
+              isVirtual: false
+
+              // NOTE: No vector/semantic fields - will be added by enrichment later
+            };
+
+            // Insert directly into RxDB
+            await gemsCollection.insert(gem);
+            importedCount++;
+
+            // Log progress every 10 items
+            if (importedCount % 10 === 0 || importedCount === preferences.length) {
+              console.log(`[Import] Progress: ${importedCount}/${preferences.length}`);
+            }
+          } catch (error) {
+            errorCount++;
+            console.error(`[Import] Failed to import preference ${i + 1}/${preferences.length} (ID: ${pref.id}):`, error);
+            if (errorCount === 1) {
+              // Log full error details for first failure
+              console.error('[Import] Full error details:', error.stack || error);
+            }
+          }
+        }
+
+        console.log(`[Import] Import complete: ${importedCount} succeeded, ${errorCount} failed`);
+
+        console.log(`[Import] ✅ Imported ${importedCount} preferences to RxDB`);
+
+        if (importedCount > 0) {
+          console.log('[Import] Note: Preferences imported without AI enrichment.');
+          console.log('[Import] Run enrichment script later to add vectors and child gems.');
+        }
+
+        // Reload data from RxDB
+        await loadData();
+        renderCurrentScreen();
+        await checkBetaCheckinModal();
+        await checkBackupReminder();
+
+        if (importedCount === preferences.length) {
+          alert(`✅ Data imported successfully!\n\n${importedCount} preferences imported to RxDB.\n\nNote: AI enrichment not yet run. Child gems and vectors will be added when you run enrichment.`);
+        } else if (importedCount > 0) {
+          alert(`⚠️ Partial import:\n${importedCount} of ${preferences.length} preferences imported.\n\nCheck console for errors.`);
+        } else {
+          alert(`❌ Import failed!\n0 of ${preferences.length} preferences imported.\n\nCheck console for errors.`);
+        }
+      } else {
+        // Fallback: Use Chrome Storage (old behavior)
+        const mergeResult = await mergeImportedData(importedData);
+
+        if (mergeResult === 'merged') {
+          // Data was merged - AppState already updated in mergeImportedData
+          AppState.metadata.currentScreen = 'home';
+
+          // AUTO-FIX: Ensure SubCategory Registry is valid after import
+          AppState = ensureValidRegistry(AppState);
+        } else if (mergeResult === 'no-changes') {
+          alert('No new data to import.');
+          return;
+        }
+
+        await saveData();
+        renderCurrentScreen();
+        await checkBetaCheckinModal();
+        await checkBackupReminder();
+        alert('✅ Data imported successfully!');
       }
-
-      await saveData();
-      renderCurrentScreen();
-      // Check if beta check-in modal should be shown
-      await checkBetaCheckinModal();
-      // Check if backup reminder should be shown
-      await checkBackupReminder();
-      alert('✅ Data imported successfully!');
     } catch (error) {
       alert('❌ Error importing data: ' + error.message);
     }
@@ -889,7 +1199,10 @@ async function handleGoogleSheetsImport(url) {
         preferenceData.value,
         preferenceData.state,
         preferenceData.collections,
-        preferenceData.sourceUrl
+        [],  // subCollections
+        preferenceData.sourceUrl,
+        null,  // mergedFrom
+        null  // topic (imported data has no topic)
       );
     }
 
@@ -1012,32 +1325,116 @@ async function renderCurrentScreen() {
               renderCurrentScreen();
             }
           },
-          onPreferenceAdd: async (value, state, collections) => {
-            // TEMPORARY: Duplicate detection disabled - was checking too many gems
-            // TODO: Re-enable with optimization (limit to recent 50 gems, add timeout)
+          onPreferenceAdd: async (value, state, collections, topic = null) => {
+            console.log('[App] onPreferenceAdd called with topic:', topic);
 
-            // No duplicate found, proceed normally
-            AppState = addPreference(AppState, value, state, collections);
-            await saveData();
-            renderCurrentScreen();
-            // Check if beta check-in modal should be shown
-            await checkBetaCheckinModal();
-            // Check if backup reminder should be shown
-            await checkBackupReminder();
+            // Check if we're using RxDB
+            const result = await chrome.storage.local.get(['migrationCompleted']);
+            const usesRxDB = result.migrationCompleted === true;
+
+            if (usesRxDB) {
+              // Add to RxDB
+              try {
+                const newPref = await addPreferenceToRxDB({
+                  value,
+                  state,
+                  collections,
+                  topic
+                });
+
+                console.log('[App] Preference added to RxDB:', newPref.id);
+
+                // Update AppState cache
+                AppState.content.preferences.items.unshift(newPref);
+                AppState.metadata.total_preferences = AppState.content.preferences.items.length;
+
+                renderCurrentScreen();
+                await checkBetaCheckinModal();
+                await checkBackupReminder();
+              } catch (error) {
+                console.error('[App] Failed to add preference to RxDB:', error);
+                alert('Failed to save preference. Please try again.');
+              }
+            } else {
+              // Fallback: Use Chrome Storage
+              AppState = addPreference(
+                AppState,
+                value,
+                state,
+                collections,
+                [],  // subCollections
+                null,  // sourceUrl
+                null,  // mergedFrom
+                topic
+              );
+
+              await saveData();
+              renderCurrentScreen();
+              await checkBetaCheckinModal();
+              await checkBackupReminder();
+            }
           },
           onPreferenceUpdate: async (prefId, updates) => {
-            // TEMPORARY: Duplicate detection disabled - was checking too many gems
-            // TODO: Re-enable with optimization (limit to recent 50 gems, add timeout)
+            // Check if we're using RxDB
+            const result = await chrome.storage.local.get(['migrationCompleted']);
+            const usesRxDB = result.migrationCompleted === true;
 
-            // No duplicate found, proceed normally
-            AppState = updatePreference(AppState, prefId, updates);
-            await saveData();
-            renderCurrentScreen();
+            if (usesRxDB) {
+              // Update in RxDB
+              try {
+                await updatePreferenceInRxDB(prefId, updates);
+                console.log('[App] Preference updated in RxDB:', prefId);
+
+                // Update AppState cache
+                const prefIndex = AppState.content.preferences.items.findIndex(p => p.id === prefId);
+                if (prefIndex !== -1) {
+                  AppState.content.preferences.items[prefIndex] = {
+                    ...AppState.content.preferences.items[prefIndex],
+                    ...updates,
+                    updated_at: new Date().toISOString()
+                  };
+                }
+
+                renderCurrentScreen();
+              } catch (error) {
+                console.error('[App] Failed to update preference in RxDB:', error);
+                alert('Failed to update preference. Please try again.');
+              }
+            } else {
+              // Fallback: Use Chrome Storage
+              AppState = updatePreference(AppState, prefId, updates);
+              await saveData();
+              renderCurrentScreen();
+            }
           },
           onPreferenceDelete: async (prefId) => {
-            AppState = deletePreference(AppState, prefId);
-            await saveData();
-            renderCurrentScreen();
+            // Check if we're using RxDB
+            const result = await chrome.storage.local.get(['migrationCompleted']);
+            const usesRxDB = result.migrationCompleted === true;
+
+            if (usesRxDB) {
+              // Delete from RxDB
+              try {
+                await deletePreferenceFromRxDB(prefId);
+                console.log('[App] Preference deleted from RxDB:', prefId);
+
+                // Update AppState cache
+                AppState.content.preferences.items = AppState.content.preferences.items.filter(
+                  p => p.id !== prefId
+                );
+                AppState.metadata.total_preferences = AppState.content.preferences.items.length;
+
+                renderCurrentScreen();
+              } catch (error) {
+                console.error('[App] Failed to delete preference from RxDB:', error);
+                alert('Failed to delete preference. Please try again.');
+              }
+            } else {
+              // Fallback: Use Chrome Storage
+              AppState = deletePreference(AppState, prefId);
+              await saveData();
+              renderCurrentScreen();
+            }
           },
           onRandomQuestionUsed: async (questionText) => {
             // Add to used questions array
