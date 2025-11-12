@@ -53,27 +53,19 @@ async function ensureContextEngine() {
  */
 async function getPreferencesFromRxDB() {
   try {
-    const engine = await ensureContextEngine();
+    const api = await ensureContextEngine();
 
-    // Access the RxDB collection directly from the engine
-    const collection = engine.collection;
+    // Use the proper API method to get all primary gems
+    const gems = await api.getAllGems({ isPrimary: true });
 
-    if (!collection) {
-      console.error('[App] RxDB collection not available');
-      return [];
-    }
+    // Sort by created_at descending (newest first)
+    const sorted = gems.sort((a, b) => {
+      const dateA = new Date(a.created_at || 0);
+      const dateB = new Date(b.created_at || 0);
+      return dateB - dateA;
+    });
 
-    // Query all primary gems (not child gems)
-    const docs = await collection
-      .find({
-        selector: {
-          isPrimary: true
-        },
-        sort: [{ created_at: 'desc' }]  // Newest first
-      })
-      .exec();
-
-    return docs.map(doc => doc.toJSON());
+    return sorted;
   } catch (error) {
     console.error('[App] Failed to get preferences from RxDB:', error);
     return [];
@@ -1052,17 +1044,8 @@ function importData() {
           return;
         }
 
-        // Get RxDB collection from Context Engine
-        console.log('[Import] Accessing RxDB collection...');
-
-        const gemsCollection = engine.collection;
-
-        if (!gemsCollection) {
-          console.error('[Import] RxDB collection not available');
-          alert('❌ RxDB collection not available. Please reload the extension and try again.');
-          return;
-        }
-        console.log('[Import] RxDB collection ready');
+        // Use Context Engine API for importing
+        console.log('[Import] Ready to import preferences via Context Engine...');
 
         let importedCount = 0;
         let errorCount = 0;
@@ -1079,7 +1062,7 @@ function importData() {
           }
 
           try {
-            // Prepare gem for RxDB (with all required fields)
+            // Prepare gem for import (without enrichment to avoid vector requirement)
             const gem = {
               id: pref.id,
               value: pref.value,
@@ -1095,19 +1078,11 @@ function importData() {
               mergedFrom: pref.mergedFrom,
               created_at: pref.created_at || new Date().toISOString(),
               updated_at: pref.updated_at || new Date().toISOString(),
-              topic: pref.topic || '',
-
-              // Primary gem fields
-              isPrimary: true,
-              parentGem: '',
-              childGems: pref.childGems || [],
-              isVirtual: false
-
-              // NOTE: No vector/semantic fields - will be added by enrichment later
+              topic: pref.topic || ''
             };
 
-            // Insert directly into RxDB
-            await gemsCollection.insert(gem);
+            // Use Context Engine API to add gem (without auto-enrichment)
+            await engine.addGem(gem, false);  // false = don't enrich
             importedCount++;
 
             // Log progress every 10 items

@@ -346,15 +346,25 @@ export class VectorStore {
    * @returns {Promise<Array>}
    */
   async getAllGems(filters = {}) {
-    let query = this.collection.find();
+    // Build selector
+    const selector = {};
+
+    if (filters.isPrimary !== undefined) {
+      selector.isPrimary = filters.isPrimary;
+    }
 
     if (filters.collections && filters.collections.length > 0) {
-      query = query.where('collections').in(filters.collections);
+      selector.collections = { $in: filters.collections };
     }
 
     if (filters.semanticTypes && filters.semanticTypes.length > 0) {
-      query = query.where('semanticType').in(filters.semanticTypes);
+      selector.semanticType = { $in: filters.semanticTypes };
     }
+
+    // Build query
+    let query = this.collection.find({
+      selector: Object.keys(selector).length > 0 ? selector : {}
+    });
 
     const docs = await query.exec();
     return docs.map(doc => doc.toJSON());

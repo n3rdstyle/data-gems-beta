@@ -21160,13 +21160,19 @@ var ContextEngineBridge = (() => {
      * @returns {Promise<Array>}
      */
     async getAllGems(filters = {}) {
-      let query = this.collection.find();
+      const selector = {};
+      if (filters.isPrimary !== void 0) {
+        selector.isPrimary = filters.isPrimary;
+      }
       if (filters.collections && filters.collections.length > 0) {
-        query = query.where("collections").in(filters.collections);
+        selector.collections = { $in: filters.collections };
       }
       if (filters.semanticTypes && filters.semanticTypes.length > 0) {
-        query = query.where("semanticType").in(filters.semanticTypes);
+        selector.semanticType = { $in: filters.semanticTypes };
       }
+      let query = this.collection.find({
+        selector: Object.keys(selector).length > 0 ? selector : {}
+      });
       const docs = await query.exec();
       return docs.map((doc) => doc.toJSON());
     }
