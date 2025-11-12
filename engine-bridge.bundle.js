@@ -21877,12 +21877,14 @@ DO NOT include any explanation, punctuation, or extra text.`;
 
 Semantic type:`;
         const response = await this.languageSession.prompt(prompt);
-        const type5 = response.trim().toLowerCase();
+        let cleanedResponse = response.trim().toLowerCase();
+        cleanedResponse = cleanedResponse.replace(/^semantic\s*type\s*:\s*/i, "").replace(/^type\s*:\s*/i, "").replace(/^classification\s*:\s*/i, "").trim();
+        const type5 = cleanedResponse.split(/\s+/)[0];
         const validTypes = ["constraint", "preference", "activity", "characteristic", "goal"];
         if (validTypes.includes(type5)) {
           return type5;
         } else {
-          console.warn("[Enrichment] Invalid semantic type from AI:", response);
+          console.warn("[Enrichment] Invalid semantic type from AI:", response, "\u2192 cleaned:", type5);
           return this.fallbackClassification(text);
         }
       } catch (error) {
@@ -21942,6 +21944,8 @@ Available categories: ${existingCategories.join(", ")}` : "";
 
 Text: "${text}"${categoriesHint}
 
+IMPORTANT: Return ONLY valid JSON, without markdown code blocks or backticks.
+
 Return JSON with:
 1. "topic": Main topic/question (e.g., "Wie ist deine Morning-Routine?") or null if not a question-based preference
 2. "attributes": Array of extracted attributes
@@ -21974,7 +21978,11 @@ IMPORTANT:
 - If text is complex with multiple facts, extract ALL attributes
 - Return ONLY valid JSON, no explanation`;
         const response = await this.languageSession.prompt(prompt);
-        const parsed = JSON.parse(response.trim());
+        let cleanedResponse = response.trim();
+        if (cleanedResponse.startsWith("```")) {
+          cleanedResponse = cleanedResponse.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "");
+        }
+        const parsed = JSON.parse(cleanedResponse);
         console.log("[Enrichment] AI extraction successful:", {
           topic: parsed.topic,
           attributeCount: parsed.attributes?.length || 0

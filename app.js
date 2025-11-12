@@ -581,7 +581,24 @@ async function loadData() {
     if (usesRxDB) {
       console.log('[App] Loading preferences from RxDB...');
       try {
-        const preferencesFromRxDB = await getPreferencesFromRxDB();
+        // Wait for Context Engine to be ready before loading preferences
+        const maxRetries = 10;
+        let retries = 0;
+        let preferencesFromRxDB = [];
+
+        while (retries < maxRetries) {
+          preferencesFromRxDB = await getPreferencesFromRxDB();
+
+          if (preferencesFromRxDB.length > 0 || retries === maxRetries - 1) {
+            break;
+          }
+
+          // Context Engine might not be ready yet, wait a bit
+          console.log(`[App] Waiting for Context Engine to be ready... (attempt ${retries + 1}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, 200));
+          retries++;
+        }
+
         console.log(`[App] Loaded ${preferencesFromRxDB.length} preferences from RxDB`);
 
         // Update AppState cache with RxDB data

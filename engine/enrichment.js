@@ -189,15 +189,26 @@ export class Enrichment {
 
       const response = await this.languageSession.prompt(prompt);
 
-      // Parse response (should be just the type name)
-      const type = response.trim().toLowerCase();
+      // Parse response - extract just the type name
+      // Handle formats like "preference", "semanticType: preference", or "Semantic type: preference"
+      let cleanedResponse = response.trim().toLowerCase();
+
+      // Remove common prefixes
+      cleanedResponse = cleanedResponse
+        .replace(/^semantic\s*type\s*:\s*/i, '')
+        .replace(/^type\s*:\s*/i, '')
+        .replace(/^classification\s*:\s*/i, '')
+        .trim();
+
+      // Get just the first word (in case there's extra text)
+      const type = cleanedResponse.split(/\s+/)[0];
 
       // Validate type
       const validTypes = ['constraint', 'preference', 'activity', 'characteristic', 'goal'];
       if (validTypes.includes(type)) {
         return type;
       } else {
-        console.warn('[Enrichment] Invalid semantic type from AI:', response);
+        console.warn('[Enrichment] Invalid semantic type from AI:', response, '→ cleaned:', type);
         return this.fallbackClassification(text);
       }
     } catch (error) {
@@ -275,6 +286,8 @@ export class Enrichment {
 
 Text: "${text}"${categoriesHint}
 
+IMPORTANT: Return ONLY valid JSON, without markdown code blocks or backticks.
+
 Return JSON with:
 1. "topic": Main topic/question (e.g., "Wie ist deine Morning-Routine?") or null if not a question-based preference
 2. "attributes": Array of extracted attributes
@@ -308,7 +321,15 @@ IMPORTANT:
 - Return ONLY valid JSON, no explanation`;
 
       const response = await this.languageSession.prompt(prompt);
-      const parsed = JSON.parse(response.trim());
+
+      // Clean response: remove markdown code blocks if present
+      let cleanedResponse = response.trim();
+      if (cleanedResponse.startsWith('```')) {
+        // Remove markdown code blocks (```json ... ``` or ``` ... ```)
+        cleanedResponse = cleanedResponse.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '');
+      }
+
+      const parsed = JSON.parse(cleanedResponse);
 
       console.log('[Enrichment] AI extraction successful:', {
         topic: parsed.topic,
