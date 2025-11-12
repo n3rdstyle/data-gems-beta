@@ -10,6 +10,7 @@ function createCollectionEditField(options = {}) {
     title = 'Collections',
     collections = [],
     onAddCollection = null,
+    onRemoveCollection = null,  // NEW: Callback when collection removed
     onTagClick = null,
     onRemoveTag = null
   } = options;
@@ -45,6 +46,11 @@ function createCollectionEditField(options = {}) {
     onTagClick: (tag) => {
       // Remove tag when clicked
       tagList.removeTag(tag);
+
+      // Notify that a collection was removed
+      if (onRemoveCollection) {
+        onRemoveCollection(tag.getLabel());
+      }
 
       // Call external callback if provided
       if (onTagClick) {

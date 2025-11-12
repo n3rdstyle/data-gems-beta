@@ -31,9 +31,10 @@ function createDataEditorModal(options = {}) {
   // Check if we're in merge mode
   const isMergeMode = mergedFrom && Array.isArray(mergedFrom) && mergedFrom.length > 0;
 
-  // Track AI-suggested collections
+  // Track AI-suggested collections and user edits
   let aiSuggestedCollections = [];
   let debounceTimer = null;
+  let userHasEditedCollections = false;  // NEW: Track if user manually edited collections
 
   // Create modal overlay using overlay component
   const overlay = createOverlay({
@@ -146,12 +147,9 @@ function createDataEditorModal(options = {}) {
         // Debounce AI call by 500ms
         debounceTimer = setTimeout(async () => {
           try {
-            // Only suggest if no collections manually added yet
-            const currentCollections = collectionEditField.getCollections();
-            const manualCollections = currentCollections.filter(c => !aiSuggestedCollections.includes(c));
-
-            // If user has manually added collections, don't override with AI
-            if (manualCollections.length > 0) {
+            // If user has manually edited collections, STOP all AI suggestions
+            if (userHasEditedCollections) {
+              console.log('[Data Editor Modal] User has manually edited collections, skipping AI suggestions');
               return;
             }
 
@@ -204,6 +202,10 @@ function createDataEditorModal(options = {}) {
     title: 'Collections',
     collections: collections,
     onAddCollection: () => {
+      // Mark that user has manually edited collections
+      userHasEditedCollections = true;
+      console.log('[Data Editor Modal] User manually adding collection, disabling AI suggestions');
+
       // Open Tag Add Modal
       const tagAddModal = createTagAddModal({
         title: 'Add Collection',
@@ -226,6 +228,11 @@ function createDataEditorModal(options = {}) {
 
       // Show the modal in the same container as data editor modal
       tagAddModal.show(overlay.element.parentNode || document.body);
+    },
+    onRemoveCollection: () => {
+      // Mark that user has manually edited collections
+      userHasEditedCollections = true;
+      console.log('[Data Editor Modal] User manually removed collection, disabling AI suggestions');
     }
   });
 
