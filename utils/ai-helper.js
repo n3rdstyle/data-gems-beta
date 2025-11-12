@@ -173,7 +173,7 @@ DO NOT add any explanation, markdown, or extra text. ONLY the JSON array.`
         prompt += `Choose from existing categories OR create new ones if none fit well.\n\n`;
       }
 
-      prompt += `Respond with ONLY a JSON array of 1-2 HIGHLY RELEVANT category names. Prefer quality over quantity.`;
+      prompt += `Respond with ONLY a JSON array containing exactly 1 MOST RELEVANT category name. Pick the single best fit.`;
 
       // Create timeout promise
       const timeoutPromise = new Promise((_, reject) => {
