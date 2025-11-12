@@ -678,14 +678,24 @@ async function exportData() {
 
   // Get preferences (from RxDB if migrated, otherwise from AppState)
   let preferences;
+  let childGems = [];
+
   if (usesRxDB) {
     console.log('[Export] Reading preferences from RxDB...');
     try {
-      const allGems = await getPreferencesFromRxDB();
-      console.log(`[Export] Retrieved ${allGems.length} preferences from RxDB`);
+      // Get primary gems
+      const primaryGems = await getPreferencesFromRxDB();
+      console.log(`[Export] Retrieved ${primaryGems.length} primary gems from RxDB`);
+
+      // Get child gems (for complete backup)
+      const api = await ensureContextEngine();
+      const allChildGems = await api.getAllGems({ isVirtual: true });
+      console.log(`[Export] Retrieved ${allChildGems.length} child gems from RxDB`);
+
       preferences = {
-        items: allGems
+        items: primaryGems
       };
+      childGems = allChildGems;
     } catch (error) {
       console.error('[Export] Failed to read from RxDB, using AppState:', error);
       preferences = AppState.content.preferences;
@@ -700,6 +710,7 @@ async function exportData() {
     schema_version: AppState.metadata.schema_version,
     extension_version: AppState.metadata.extension_version,
     total_preferences: preferences.items.length,
+    total_child_gems: childGems.length,  // NEW: Track child gems count
     last_backup: AppState.metadata.last_backup
   };
 
@@ -730,7 +741,8 @@ async function exportData() {
       basic: {
         identity: identity
       },
-      preferences: preferences  // Now includes data from RxDB!
+      preferences: preferences,  // Primary gems from RxDB
+      childGems: childGems  // NEW: Child gems for semantic search
     },
 
     // Collections
@@ -1030,7 +1042,9 @@ function importData() {
 
         // Import preferences to RxDB
         const preferences = importedData.content.preferences.items || [];
+        const childGems = importedData.content.childGems || [];
         console.log(`[Import] Found ${preferences.length} preferences in import file`);
+        console.log(`[Import] Found ${childGems.length} child gems in import file`);
         console.log('[Import] Sample preference:', preferences[0]);
         console.log('[Import] Checking Context Engine...');
 
@@ -1099,14 +1113,36 @@ function importData() {
           }
         }
 
-        console.log(`[Import] Import complete: ${importedCount} succeeded, ${errorCount} failed`);
+        console.log(`[Import] Primary gems import complete: ${importedCount} succeeded, ${errorCount} failed`);
 
-        console.log(`[Import] ✅ Imported ${importedCount} preferences to RxDB`);
+        // Import child gems (if any)
+        let childImportedCount = 0;
+        let childErrorCount = 0;
 
-        if (importedCount > 0) {
-          console.log('[Import] Note: Preferences imported without AI enrichment.');
-          console.log('[Import] Run enrichment script later to add vectors and child gems.');
+        if (childGems.length > 0) {
+          console.log(`[Import] Importing ${childGems.length} child gems...`);
+
+          for (let i = 0; i < childGems.length; i++) {
+            const child = childGems[i];
+
+            try {
+              // Import child gem (preserving all fields)
+              await engine.addGem(child, false);  // false = don't enrich
+              childImportedCount++;
+
+              if (childImportedCount % 10 === 0 || childImportedCount === childGems.length) {
+                console.log(`[Import] Child gems progress: ${childImportedCount}/${childGems.length}`);
+              }
+            } catch (error) {
+              childErrorCount++;
+              console.error(`[Import] Failed to import child gem ${i + 1}/${childGems.length}:`, error);
+            }
+          }
+
+          console.log(`[Import] Child gems import complete: ${childImportedCount} succeeded, ${childErrorCount} failed`);
         }
+
+        console.log(`[Import] ✅ Total imported: ${importedCount} primary gems, ${childImportedCount} child gems`);
 
         // Reload data from RxDB
         await loadData();
@@ -1114,12 +1150,15 @@ function importData() {
         await checkBetaCheckinModal();
         await checkBackupReminder();
 
-        if (importedCount === preferences.length) {
-          alert(`✅ Data imported successfully!\n\n${importedCount} preferences imported to RxDB.\n\nNote: AI enrichment not yet run. Child gems and vectors will be added when you run enrichment.`);
-        } else if (importedCount > 0) {
-          alert(`⚠️ Partial import:\n${importedCount} of ${preferences.length} preferences imported.\n\nCheck console for errors.`);
+        const totalExpected = preferences.length + childGems.length;
+        const totalImported = importedCount + childImportedCount;
+
+        if (totalImported === totalExpected && errorCount === 0 && childErrorCount === 0) {
+          alert(`✅ Data imported successfully!\n\n${importedCount} primary gems\n${childImportedCount} child gems\n\nYour data is fully restored!`);
+        } else if (totalImported > 0) {
+          alert(`⚠️ Partial import:\n${importedCount}/${preferences.length} primary gems\n${childImportedCount}/${childGems.length} child gems\n\nCheck console for errors.`);
         } else {
-          alert(`❌ Import failed!\n0 of ${preferences.length} preferences imported.\n\nCheck console for errors.`);
+          alert(`❌ Import failed!\nNo gems imported.\n\nCheck console for errors.`);
         }
       } else {
         // Fallback: Use Chrome Storage (old behavior)
