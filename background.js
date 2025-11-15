@@ -520,3 +520,24 @@ function generateUUID() {
   });
 }
 
+// CRITICAL: Initialize Context Engine v2 with proper sequencing
+// 1. Create offscreen document first (for embedding generation)
+// 2. Then manually initialize Context Engine (which may trigger migration)
+// This prevents "Could not establish connection" errors during migration
+(async () => {
+  try {
+    console.log('[Background] Initializing Context Engine v2...');
+
+    // Step 1: Ensure offscreen document exists FIRST
+    console.log('[Background] Step 1/2: Creating offscreen document...');
+    await ensureOffscreenDocument();
+    console.log('[Background] ✓ Offscreen document ready');
+
+    // Step 2: Now manually initialize Context Engine (safe to generate embeddings)
+    console.log('[Background] Step 2/2: Initializing Context Engine...');
+    await window.ContextEngineAPI.initialize();
+    console.log('[Background] ✓ Context Engine v2 fully initialized and ready!');
+  } catch (error) {
+    console.error('[Background] ✗ Context Engine initialization failed:', error);
+  }
+})();

@@ -163,8 +163,6 @@ window.ContextEngineAPI = {
   }
 };
 
-// Auto-initialize on load
-console.log('[Engine Bridge] Loaded, auto-initializing...');
-window.ContextEngineAPI.initialize().catch(error => {
-  console.error('[Engine Bridge] Auto-initialization failed:', error);
-});
+// NOTE: Auto-initialization removed to prevent race condition
+// background.js will manually initialize AFTER offscreen document is ready
+console.log('[Engine Bridge] Loaded (manual initialization required)');

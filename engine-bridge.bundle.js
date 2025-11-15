@@ -22824,10 +22824,7 @@ IMPORTANT:
       return this.engine.batchReEnrich(filters, onProgress);
     }
   };
-  console.log("[Engine Bridge] Loaded, auto-initializing...");
-  window.ContextEngineAPI.initialize().catch((error) => {
-    console.error("[Engine Bridge] Auto-initialization failed:", error);
-  });
+  console.log("[Engine Bridge] Loaded (manual initialization required)");
 })();
 /*! Bundled license information:
 
