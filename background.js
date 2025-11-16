@@ -133,6 +133,27 @@ async function ensureContextEngine() {
   }
 }
 
+/**
+ * Destroy Context Engine (for clean database deletion)
+ */
+async function destroyContextEngine() {
+  console.log('[Background] Destroying Context Engine...');
+
+  try {
+    if (self.ContextEngineAPI && self.ContextEngineAPI.engine) {
+      await self.ContextEngineAPI.engine.destroy();
+    }
+    contextEngineReady = false;
+    contextEngineInitializing = false;
+    console.log('[Background] ✓ Context Engine destroyed');
+  } catch (error) {
+    console.error('[Background] Error destroying Context Engine:', error);
+    // Reset flags anyway
+    contextEngineReady = false;
+    contextEngineInitializing = false;
+  }
+}
+
 // Initialize extension on install
 chrome.runtime.onInstalled.addListener(async (details) => {
   // Create offscreen document for embeddings
@@ -226,6 +247,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       checkBetaReminderConditions()
         .then(shouldShow => sendResponse({ shouldShow }))
         .catch(error => sendResponse({ shouldShow: false, error: error.message }));
+      return true;
+
+    case 'destroyEngine':
+      destroyContextEngine()
+        .then(() => sendResponse({ success: true }))
+        .catch(error => sendResponse({ success: false, error: error.message }));
       return true;
 
     default:

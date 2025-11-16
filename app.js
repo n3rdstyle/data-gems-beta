@@ -1188,13 +1188,64 @@ function importData() {
   input.click();
 }
 
-function clearAllData() {
+async function clearAllData() {
   const confirmed = confirm('⚠️ Are you sure you want to clear all data? This cannot be undone.');
-  if (confirmed) {
+  if (!confirmed) return;
+
+  try {
+    // Check if we're using RxDB
+    const storageCheck = await chrome.storage.local.get(['migrationCompleted']);
+    const usesRxDB = storageCheck.migrationCompleted === true;
+
+    if (usesRxDB) {
+      console.log('[Clear] Clearing RxDB and HNSW index...');
+
+      // Send message to background to destroy Context Engine
+      try {
+        await chrome.runtime.sendMessage({ action: 'destroyEngine' });
+      } catch (error) {
+        console.warn('[Clear] Could not destroy engine:', error);
+      }
+
+      // Delete RxDB database
+      await new Promise((resolve, reject) => {
+        const request = indexedDB.deleteDatabase('data-gems-db-v3');
+        request.onsuccess = () => {
+          console.log('[Clear] RxDB database deleted');
+          resolve();
+        };
+        request.onerror = () => {
+          console.error('[Clear] Failed to delete RxDB database:', request.error);
+          reject(request.error);
+        };
+        request.onblocked = () => {
+          console.warn('[Clear] Database deletion blocked - close all tabs using this extension');
+          // Continue anyway after timeout
+          setTimeout(resolve, 1000);
+        };
+      });
+
+      // Clear HNSW index from chrome.storage.local
+      await chrome.storage.local.remove(['hnsw_index']);
+      console.log('[Clear] HNSW index cleared');
+    }
+
+    // Clear chrome.storage data (AppState)
     AppState = initializeDefaultProfile();
-    saveData();
+    await saveData();
+
+    // Reload the page to reinitialize everything
     renderCurrentScreen();
-    alert('✅ All data cleared successfully!');
+    alert('✅ All data cleared successfully!\n\nThe extension will reload to reinitialize.');
+
+    // Reload extension after a brief delay
+    setTimeout(() => {
+      chrome.runtime.reload();
+    }, 1000);
+
+  } catch (error) {
+    console.error('[Clear] Error clearing data:', error);
+    alert(`❌ Error clearing data: ${error.message}\n\nTry reloading the extension manually.`);
   }
 }
 
