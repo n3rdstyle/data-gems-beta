@@ -1023,15 +1023,11 @@ function importData() {
         }
       }
 
-      // Check if we're using RxDB
-      const storageCheck = await chrome.storage.local.get(['migrationCompleted']);
-      const usesRxDB = storageCheck.migrationCompleted === true;
-
-      if (usesRxDB) {
+      // Always use Context Engine (RxDB) for imports
+      // Context Engine is now always active, migration flag is legacy
+      if (true) {
         // Import to RxDB
-        console.log('[Import] Importing to RxDB...');
-        console.log('[Import] usesRxDB:', usesRxDB);
-        console.log('[Import] migrationCompleted:', storageCheck.migrationCompleted);
+        console.log('[Import] Importing to Context Engine (RxDB)...');
 
         // Update profile identity in Chrome Storage
         AppState.content.basic.identity = importedData.content.basic.identity;
