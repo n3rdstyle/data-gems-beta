@@ -99,11 +99,35 @@ window.ContextEngineAPI = {
   }
 };
 
-// Auto-initialize
+// Auto-initialize with polling
 (async function() {
   try {
     await window.ContextEngineAPI.initialize();
     console.log('[ContextEngine Bridge] MAIN world auto-init complete');
+
+    // If not ready yet, poll until ready
+    if (!window.ContextEngineAPI.isReady) {
+      console.log('[ContextEngine Bridge] Context Engine not ready yet, starting polling...');
+
+      const pollingInterval = setInterval(async () => {
+        try {
+          await window.ContextEngineAPI.initialize();
+
+          if (window.ContextEngineAPI.isReady) {
+            clearInterval(pollingInterval);
+            console.log('[ContextEngine Bridge] ✓ Context Engine is now ready!');
+          }
+        } catch (error) {
+          console.error('[ContextEngine Bridge] Polling error:', error);
+        }
+      }, 1000); // Poll every 1 second
+
+      // Stop polling after 60 seconds
+      setTimeout(() => {
+        clearInterval(pollingInterval);
+        console.log('[ContextEngine Bridge] Polling stopped (timeout)');
+      }, 60000);
+    }
   } catch (error) {
     console.error('[ContextEngine Bridge] MAIN world auto-init failed:', error);
   }
