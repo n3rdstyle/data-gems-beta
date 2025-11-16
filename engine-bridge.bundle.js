@@ -22374,10 +22374,10 @@ DO NOT include any explanation, punctuation, or extra text.`;
       }
     }
     /**
-     * Generate 384-dim embedding for text
-     * Delegates to offscreen document via message passing
+     * Generate 768-dim embedding for text
+     * Uses global generateEmbeddingOffscreen function from background.js
      * @param {string} text - Text to embed
-     * @returns {Promise<number[]|null>} 384-dim vector or null
+     * @returns {Promise<number[]|null>} 768-dim vector or null
      */
     async generateEmbedding(text) {
       if (!this.embedderSession) {
@@ -22386,24 +22386,12 @@ DO NOT include any explanation, punctuation, or extra text.`;
       }
       try {
         if (this.embedderSession === "offscreen") {
-          return await new Promise((resolve2, reject) => {
-            chrome.runtime.sendMessage(
-              {
-                target: "offscreen",
-                type: "generateEmbedding",
-                text
-              },
-              (response) => {
-                if (chrome.runtime.lastError) {
-                  reject(new Error(chrome.runtime.lastError.message));
-                } else if (response && response.success) {
-                  resolve2(response.embedding);
-                } else {
-                  reject(new Error(response?.error || "Unknown error"));
-                }
-              }
-            );
-          });
+          if (typeof self.generateEmbeddingOffscreen === "function") {
+            return await self.generateEmbeddingOffscreen(text);
+          } else {
+            console.error("[Enrichment] generateEmbeddingOffscreen not found on global scope!");
+            return null;
+          }
         }
         console.warn("[Enrichment] Unknown embedder session type:", this.embedderSession);
         return null;

@@ -60,7 +60,7 @@ async function ensureOffscreenDocument() {
 /**
  * Send embedding request to offscreen document
  * @param {string} text - Text to embed
- * @returns {Promise<number[]>} 384-dim embedding vector
+ * @returns {Promise<number[]>} 768-dim embedding vector
  */
 async function generateEmbeddingOffscreen(text) {
   await ensureOffscreenDocument();
@@ -84,6 +84,9 @@ async function generateEmbeddingOffscreen(text) {
     );
   });
 }
+
+// Expose to engine bundle (Service Worker can't message itself!)
+self.generateEmbeddingOffscreen = generateEmbeddingOffscreen;
 
 // Context Engine instance (initialized on first use)
 let contextEngineReady = false;
