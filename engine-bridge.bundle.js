@@ -22193,7 +22193,7 @@ var ContextEngineBridge = (() => {
         useDiversity
       });
       const rankedLists = [];
-      if (queryVector && queryVector.length === 384) {
+      if (queryVector && queryVector.length === 768) {
         console.log("[HybridSearch] Running dense search...");
         const denseResults = await this.vectorStore.denseSearch(
           queryVector,
@@ -22204,7 +22204,10 @@ var ContextEngineBridge = (() => {
         rankedLists.push(denseResults);
         console.log(`[HybridSearch] Dense: ${denseResults.length} results`);
       } else {
-        console.warn("[HybridSearch] No query vector, skipping dense search");
+        console.warn(
+          "[HybridSearch] No query vector, skipping dense search",
+          queryVector ? `(got ${queryVector.length}-dim)` : "(no vector)"
+        );
       }
       console.log("[HybridSearch] Running sparse search...");
       const sparseResults = await this.bm25.sparseSearch(
@@ -22380,16 +22383,24 @@ DO NOT include any explanation, punctuation, or extra text.`;
      * @returns {Promise<number[]|null>} 768-dim vector or null
      */
     async generateEmbedding(text) {
+      console.log("[Enrichment] generateEmbedding() called, embedderSession:", this.embedderSession);
+      console.log("[Enrichment] Text length:", text?.length || 0);
       if (!this.embedderSession) {
         console.warn("[Enrichment] Embedder not available, skipping embedding");
         return null;
       }
       try {
         if (this.embedderSession === "offscreen") {
+          console.log("[Enrichment] Checking for global function...");
+          console.log("[Enrichment] typeof self.generateEmbeddingOffscreen:", typeof self.generateEmbeddingOffscreen);
           if (typeof self.generateEmbeddingOffscreen === "function") {
-            return await self.generateEmbeddingOffscreen(text);
+            console.log("[Enrichment] Calling self.generateEmbeddingOffscreen()...");
+            const embedding = await self.generateEmbeddingOffscreen(text);
+            console.log("[Enrichment] Embedding result:", embedding ? `${embedding.length}-dim vector` : "null");
+            return embedding;
           } else {
             console.error("[Enrichment] generateEmbeddingOffscreen not found on global scope!");
+            console.error("[Enrichment] Available on self:", Object.keys(self).filter((k) => k.includes("Embedding")));
             return null;
           }
         }

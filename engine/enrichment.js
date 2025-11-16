@@ -135,6 +135,9 @@ export class Enrichment {
    * @returns {Promise<number[]|null>} 768-dim vector or null
    */
   async generateEmbedding(text) {
+    console.log('[Enrichment] generateEmbedding() called, embedderSession:', this.embedderSession);
+    console.log('[Enrichment] Text length:', text?.length || 0);
+
     if (!this.embedderSession) {
       console.warn('[Enrichment] Embedder not available, skipping embedding');
       return null;
@@ -143,12 +146,19 @@ export class Enrichment {
     try {
       // Use offscreen document for embedding generation
       if (this.embedderSession === 'offscreen') {
+        console.log('[Enrichment] Checking for global function...');
+        console.log('[Enrichment] typeof self.generateEmbeddingOffscreen:', typeof self.generateEmbeddingOffscreen);
+
         // Call global function exposed by background.js
         // (Service Workers can't message themselves!)
         if (typeof self.generateEmbeddingOffscreen === 'function') {
-          return await self.generateEmbeddingOffscreen(text);
+          console.log('[Enrichment] Calling self.generateEmbeddingOffscreen()...');
+          const embedding = await self.generateEmbeddingOffscreen(text);
+          console.log('[Enrichment] Embedding result:', embedding ? `${embedding.length}-dim vector` : 'null');
+          return embedding;
         } else {
           console.error('[Enrichment] generateEmbeddingOffscreen not found on global scope!');
+          console.error('[Enrichment] Available on self:', Object.keys(self).filter(k => k.includes('Embedding')));
           return null;
         }
       }

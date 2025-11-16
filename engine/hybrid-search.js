@@ -193,7 +193,7 @@ export class HybridSearch {
     const rankedLists = [];
 
     // Dense search (if vector available)
-    if (queryVector && queryVector.length === 384) {
+    if (queryVector && queryVector.length === 768) {
       console.log('[HybridSearch] Running dense search...');
       const denseResults = await this.vectorStore.denseSearch(
         queryVector,
@@ -203,7 +203,8 @@ export class HybridSearch {
       rankedLists.push(denseResults);
       console.log(`[HybridSearch] Dense: ${denseResults.length} results`);
     } else {
-      console.warn('[HybridSearch] No query vector, skipping dense search');
+      console.warn('[HybridSearch] No query vector, skipping dense search',
+        queryVector ? `(got ${queryVector.length}-dim)` : '(no vector)');
     }
 
     // Sparse search (always run for keyword matching)
