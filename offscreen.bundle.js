@@ -29003,18 +29003,17 @@ ${t2}`);
     try {
       embedder = await pipeline(
         "feature-extraction",
-        "onnx-community/embeddinggemma-300m-ONNX",
-        // 768-dim EmbeddingGemma (state-of-the-art)
+        "Xenova/bge-large-en-v1.5",
+        // 1024-dim BGE model (best quality, compatible)
         {
           // Disable multi-threading to avoid Web Worker CSP issues
           device: "wasm",
           dtype: "fp32",
-          // EmbeddingGemma requires fp32 (doesn't support fp16)
           quantized: false
           // Use full precision for best quality
         }
       );
-      console.log("[Offscreen] Embedder ready! Model: EmbeddingGemma (768-dim, 300M params)");
+      console.log("[Offscreen] Embedder ready! Model: BGE-large-en-v1.5 (1024-dim)");
       return embedder;
     } catch (error) {
       console.error("[Offscreen] Failed to initialize embedder:", error);
