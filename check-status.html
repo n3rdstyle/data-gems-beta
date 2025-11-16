@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head><title>Check Status</title></head>
+<body>
+<pre id="output"></pre>
+<script>
+const output = document.getElementById('output');
+
+async function check() {
+  let text = 'Checking HNSW Index & Embeddings...\n\n';
+
+  const hnswData = localStorage.getItem('hnsw_index');
+  if (hnswData) {
+    const parsed = JSON.parse(hnswData);
+    text += 'HNSW Index Found\n';
+    text += 'Dimension: ' + parsed.dimension + '\n';
+    text += 'Size: ' + parsed.size + '\n';
+    text += 'Storage: ' + Math.round(hnswData.length / 1024) + ' KB\n\n';
+  } else {
+    text += 'No HNSW index found\n\n';
+  }
+
+  const dbName = 'data-gems-db-v3';
+  const dbs = await indexedDB.databases();
+  const hasDB = dbs.some(db => db.name === dbName);
+
+  if (hasDB) {
+    text += 'Database: ' + dbName + '\n';
+
+    const request = indexedDB.open(dbName);
+    request.onsuccess = (event) => {
+      const db = event.target.result;
+      const tx = db.transaction(['rxdb-dexie-gems'], 'readonly');
+      const store = tx.objectStore('rxdb-dexie-gems');
+      const getAll = store.getAll();
+
+      getAll.onsuccess = () => {
+        const gems = getAll.result;
+        const withVector = gems.filter(g => g.vector && g.vector.length > 0);
+        const dimensions = [...new Set(withVector.map(g => g.vector.length))];
+
+        text += 'Total Gems: ' + gems.length + '\n';
+        text += 'Gems with Vectors: ' + withVector.length + '\n';
+        text += 'Vector Dimensions: ' + JSON.stringify(dimensions) + '\n\n';
+
+        if (withVector.length > 0) {
+          const sample = withVector[0];
+          text += 'Sample Gem:\n';
+          text += '  ID: ' + sample.id + '\n';
+          text += '  Value: ' + sample.value.substring(0, 50) + '...\n';
+          text += '  Vector Dim: ' + sample.vector.length + '\n';
+          text += '  Vector Preview: [' + sample.vector.slice(0, 5).join(', ') + '...]\n\n';
+        }
+
+        text += '==================================================\n';
+        if (dimensions.includes(768)) {
+          text += 'SUCCESS: Found 768-dim vectors (new embeddings!)\n';
+        } else if (dimensions.includes(384)) {
+          text += 'WARNING: Found 384-dim vectors (old embeddings)\n';
+        } else {
+          text += 'ERROR: No vectors found\n';
+        }
+        text += '==================================================\n';
+
+        output.textContent = text;
+      };
+    };
+  } else {
+    text += 'Database not found\n';
+    output.textContent = text;
+  }
+}
+
+check();
+</script>
+</body>
+</html>

@@ -1095,8 +1095,8 @@ function importData() {
               topic: pref.topic || ''
             };
 
-            // Use Context Engine API to add gem (without auto-enrichment)
-            await engine.addGem(gem, false);  // false = don't enrich
+            // Use Context Engine API to add gem (with auto-enrichment for fresh embeddings)
+            await engine.addGem(gem, true);  // true = generate fresh embeddings
             importedCount++;
 
             // Log progress every 10 items
@@ -1126,8 +1126,8 @@ function importData() {
             const child = childGems[i];
 
             try {
-              // Import child gem (preserving all fields)
-              await engine.addGem(child, false);  // false = don't enrich
+              // Import child gem (with auto-enrichment for fresh embeddings)
+              await engine.addGem(child, true);  // true = generate fresh embeddings
               childImportedCount++;
 
               if (childImportedCount % 10 === 0 || childImportedCount === childGems.length) {

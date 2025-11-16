@@ -75,11 +75,12 @@ export class VectorStore {
    */
   async _initHNSW() {
     try {
-      // Try to load persisted index from localStorage
-      const serialized = localStorage.getItem('hnsw_index');
+      // Try to load persisted index from chrome.storage.local (works in Service Workers)
+      const storage = await chrome.storage.local.get(['hnsw_index']);
+      const serialized = storage.hnsw_index;
 
       if (serialized) {
-        console.log('[VectorStore] Loading HNSW index from localStorage...');
+        console.log('[VectorStore] Loading HNSW index from chrome.storage.local...');
         const data = JSON.parse(serialized);
         this.hnswIndex = HNSWIndex.fromJSON(data);
         this.indexReady = true;
@@ -141,19 +142,19 @@ export class VectorStore {
   }
 
   /**
-   * Save HNSW index to localStorage
+   * Save HNSW index to chrome.storage.local
    */
   async _saveHNSW() {
     try {
       const serialized = JSON.stringify(this.hnswIndex.toJSON());
-      localStorage.setItem('hnsw_index', serialized);
+      await chrome.storage.local.set({ hnsw_index: serialized });
       const sizeKB = Math.round(serialized.length / 1024);
-      console.log(`[VectorStore] HNSW index saved to localStorage (${sizeKB} KB)`);
+      console.log(`[VectorStore] HNSW index saved to chrome.storage.local (${sizeKB} KB)`);
     } catch (error) {
       console.error('[VectorStore] Failed to save HNSW index:', error);
       // If storage quota exceeded, continue without persisting
-      if (error.name === 'QuotaExceededError') {
-        console.warn('[VectorStore] localStorage quota exceeded, index will rebuild on next init');
+      if (error.message && error.message.includes('QUOTA_BYTES')) {
+        console.warn('[VectorStore] chrome.storage.local quota exceeded, index will rebuild on next init');
       }
     }
   }
