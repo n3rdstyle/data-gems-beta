@@ -142,10 +142,14 @@ async function destroyContextEngine() {
   try {
     if (self.ContextEngineAPI && self.ContextEngineAPI.engine) {
       await self.ContextEngineAPI.engine.destroy();
+
+      // Reset the singleton so it gets recreated fresh next time
+      self.ContextEngineAPI.engine = null;
+      self.ContextEngineAPI.isReady = false;
     }
     contextEngineReady = false;
     contextEngineInitializing = false;
-    console.log('[Background] ✓ Context Engine destroyed');
+    console.log('[Background] ✓ Context Engine destroyed and reset');
   } catch (error) {
     console.error('[Background] Error destroying Context Engine:', error);
     // Reset flags anyway

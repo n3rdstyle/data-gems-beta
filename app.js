@@ -1225,18 +1225,25 @@ async function clearAllData() {
     await chrome.storage.local.remove(['hnsw_index']);
     console.log('[Clear] HNSW index cleared');
 
+    // Verify HNSW was removed
+    const checkHNSW = await chrome.storage.local.get(['hnsw_index']);
+    console.log('[Clear] HNSW verification - exists:', !!checkHNSW.hnsw_index);
+
     // Clear chrome.storage data (AppState)
     AppState = initializeDefaultProfile();
     await saveData();
+
+    console.log('[Clear] All cleanup complete, reloading extension...');
 
     // Reload the page to reinitialize everything
     renderCurrentScreen();
     alert('✅ All data cleared successfully!\n\nThe extension will reload to reinitialize.');
 
-    // Reload extension after a brief delay
-    setTimeout(() => {
-      chrome.runtime.reload();
-    }, 1000);
+    // Ensure all async operations complete before reload
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Reload extension
+    chrome.runtime.reload();
 
   } catch (error) {
     console.error('[Clear] Error clearing data:', error);

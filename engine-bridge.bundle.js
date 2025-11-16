@@ -23097,6 +23097,11 @@ IMPORTANT:
       if (this.enrichment) {
         await this.enrichment.destroy();
       }
+      if (this.vectorStore) {
+        this.vectorStore.hnswIndex = null;
+        this.vectorStore.indexReady = false;
+        console.log("[ContextEngine] Vector store cleared from memory");
+      }
       this.isReady = false;
       console.log("[ContextEngine] Context Engine destroyed");
     }
