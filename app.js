@@ -1194,28 +1194,35 @@ async function clearAllData() {
 
   try {
     console.log('[Clear] Starting data cleanup...');
+    chrome.runtime.sendMessage({ action: 'log', message: '[Clear] User initiated data cleanup' });
 
     // Always try to destroy Context Engine (works whether using RxDB or not)
     try {
       await chrome.runtime.sendMessage({ action: 'destroyEngine' });
       console.log('[Clear] Context Engine destroyed');
+      chrome.runtime.sendMessage({ action: 'log', message: '[Clear] Context Engine destroyed' });
     } catch (error) {
       console.warn('[Clear] Could not destroy engine:', error);
+      chrome.runtime.sendMessage({ action: 'log', message: `[Clear] Could not destroy engine: ${error.message}` });
     }
 
     // Always try to delete RxDB database (harmless if doesn't exist)
+    chrome.runtime.sendMessage({ action: 'log', message: '[Clear] Attempting to delete IndexedDB data-gems-db-v3...' });
     await new Promise((resolve, reject) => {
       const request = indexedDB.deleteDatabase('data-gems-db-v3');
       request.onsuccess = () => {
         console.log('[Clear] RxDB database deleted');
+        chrome.runtime.sendMessage({ action: 'log', message: '[Clear] ✅ RxDB database deleted successfully' });
         resolve();
       };
       request.onerror = () => {
         console.error('[Clear] Failed to delete RxDB database:', request.error);
+        chrome.runtime.sendMessage({ action: 'log', message: `[Clear] ❌ Failed to delete RxDB: ${request.error}` });
         reject(request.error);
       };
       request.onblocked = () => {
         console.warn('[Clear] Database deletion blocked - close all tabs using this extension');
+        chrome.runtime.sendMessage({ action: 'log', message: '[Clear] ⚠️  Database deletion BLOCKED' });
         // Continue anyway after timeout
         setTimeout(resolve, 1000);
       };
@@ -1224,16 +1231,20 @@ async function clearAllData() {
     // Always clear HNSW index (harmless if doesn't exist)
     await chrome.storage.local.remove(['hnsw_index']);
     console.log('[Clear] HNSW index cleared');
+    chrome.runtime.sendMessage({ action: 'log', message: '[Clear] HNSW index removed from chrome.storage.local' });
 
     // Verify HNSW was removed
     const checkHNSW = await chrome.storage.local.get(['hnsw_index']);
     console.log('[Clear] HNSW verification - exists:', !!checkHNSW.hnsw_index);
+    chrome.runtime.sendMessage({ action: 'log', message: `[Clear] HNSW verification - exists: ${!!checkHNSW.hnsw_index}` });
 
     // Clear chrome.storage data (AppState)
     AppState = initializeDefaultProfile();
     await saveData();
+    chrome.runtime.sendMessage({ action: 'log', message: '[Clear] AppState reset to default' });
 
     console.log('[Clear] All cleanup complete, reloading extension...');
+    chrome.runtime.sendMessage({ action: 'log', message: '[Clear] All cleanup complete, extension will reload in 500ms' });
 
     // Reload the page to reinitialize everything
     renderCurrentScreen();
@@ -1247,6 +1258,7 @@ async function clearAllData() {
 
   } catch (error) {
     console.error('[Clear] Error clearing data:', error);
+    chrome.runtime.sendMessage({ action: 'log', message: `[Clear] ❌ ERROR: ${error.message}` });
     alert(`❌ Error clearing data: ${error.message}\n\nTry reloading the extension manually.`);
   }
 }

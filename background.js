@@ -259,6 +259,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         .catch(error => sendResponse({ success: false, error: error.message }));
       return true;
 
+    case 'log':
+      console.log(request.message);
+      sendResponse({ success: true });
+      return false;
+
     default:
       sendResponse({ error: 'Unknown action' });
   }
