@@ -26,7 +26,7 @@ async function initializeEmbedder() {
   try {
     embedder = await pipeline(
       'feature-extraction',
-      'Xenova/all-MiniLM-L6-v2',
+      'Xenova/bge-base-en-v1.5',  // 768-dim BGE model (high quality)
       {
         // Disable multi-threading to avoid Web Worker CSP issues
         device: 'wasm',
@@ -34,7 +34,7 @@ async function initializeEmbedder() {
       }
     );
 
-    console.log('[Offscreen] Embedder ready!');
+    console.log('[Offscreen] Embedder ready! Model: bge-base-en-v1.5 (768-dim)');
     return embedder;
   } catch (error) {
     console.error('[Offscreen] Failed to initialize embedder:', error);
