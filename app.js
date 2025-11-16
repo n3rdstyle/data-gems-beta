@@ -1074,7 +1074,7 @@ function importData() {
           }
 
           try {
-            // Prepare gem for import (without enrichment to avoid vector requirement)
+            // Prepare gem for import
             const gem = {
               id: pref.id,
               value: pref.value,
@@ -1090,7 +1090,13 @@ function importData() {
               mergedFrom: pref.mergedFrom,
               created_at: pref.created_at || new Date().toISOString(),
               updated_at: pref.updated_at || new Date().toISOString(),
-              topic: pref.topic || ''
+              topic: pref.topic || '',
+
+              // Primary gem fields
+              isPrimary: true,
+              parentGem: '',
+              childGems: [],
+              isVirtual: false
             };
 
             // Use Context Engine API to add gem (with auto-enrichment for fresh embeddings)
@@ -1124,8 +1130,16 @@ function importData() {
             const child = childGems[i];
 
             try {
+              // Ensure child gem has correct isPrimary flag
+              const childGem = {
+                ...child,
+                isPrimary: false,
+                parentGem: child.parentGem || '',
+                isVirtual: false
+              };
+
               // Import child gem (with auto-enrichment for fresh embeddings)
-              await engine.addGem(child, true);  // true = generate fresh embeddings
+              await engine.addGem(childGem, true);  // true = generate fresh embeddings
               childImportedCount++;
 
               if (childImportedCount % 10 === 0 || childImportedCount === childGems.length) {
