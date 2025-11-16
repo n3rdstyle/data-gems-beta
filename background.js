@@ -196,8 +196,11 @@ chrome.runtime.onStartup.addListener(async () => {
 
 // Handle messages from popup or content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log('[Background] Received message:', request.action, 'from:', sender.tab ? 'content script' : 'popup');
+
   // Handle Context Engine API calls
   if (request.action?.startsWith('contextEngine.')) {
+    console.log('[Background] → Routing to Context Engine handler');
     handleContextEngineMessage(request, sender, sendResponse);
     return true; // Keep channel open for async response
   }
