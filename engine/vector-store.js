@@ -343,9 +343,9 @@ export class VectorStore {
 
     const results = (await Promise.all(gemPromises)).filter(r => r !== null);
 
-    // Apply minimum similarity threshold (0.3) for maximum recall
-    // 0.3 = loosely related, 0.5 = somewhat related, 0.7 = highly related
-    const MIN_SIMILARITY_THRESHOLD = 0.3;
+    // Apply minimum similarity threshold (0.5) - standard for RAG
+    // 0.5 = somewhat related (good balance), 0.7 = highly related
+    const MIN_SIMILARITY_THRESHOLD = 0.5;
     const filteredResults = results.filter(r => r.score >= MIN_SIMILARITY_THRESHOLD);
 
     if (filteredResults.length === 0 && results.length > 0) {
