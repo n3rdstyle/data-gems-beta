@@ -301,7 +301,6 @@ export class VectorStore {
 
     // Determine if we can use HNSW or need brute-force
     const hasFilters = (filters.collections?.length > 0) ||
-                       (filters.semanticTypes?.length > 0) ||
                        filters.dateRange;
 
     const useHNSW = this.useANN && this.indexReady && !hasFilters;
@@ -390,11 +389,6 @@ export class VectorStore {
     // Apply collection filter
     if (filters.collections && filters.collections.length > 0) {
       query = query.where('collections').in(filters.collections);
-    }
-
-    // Apply semantic type filter
-    if (filters.semanticTypes && filters.semanticTypes.length > 0) {
-      query = query.where('semanticType').in(filters.semanticTypes);
     }
 
     // Apply date range filter
@@ -580,10 +574,6 @@ export class VectorStore {
 
     if (filters.collections && filters.collections.length > 0) {
       selector.collections = { $in: filters.collections };
-    }
-
-    if (filters.semanticTypes && filters.semanticTypes.length > 0) {
-      selector.semanticType = { $in: filters.semanticTypes };
     }
 
     // Build query

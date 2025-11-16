@@ -226,11 +226,6 @@ export class BM25 {
       rxQuery = rxQuery.where('collections').in(filters.collections);
     }
 
-    // Apply semantic type filter
-    if (filters.semanticTypes && filters.semanticTypes.length > 0) {
-      rxQuery = rxQuery.where('semanticType').in(filters.semanticTypes);
-    }
-
     // Apply date range filter
     if (filters.dateRange) {
       rxQuery = rxQuery.where('timestamp').gte(filters.dateRange.from);

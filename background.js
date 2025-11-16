@@ -303,7 +303,6 @@ async function handleContextEngineMessage(request, sender, sendResponse) {
             value: gemData.value || gemData._data?.value,
             collections: gemData.collections || gemData._data?.collections,
             subCollections: gemData.subCollections || gemData._data?.subCollections,
-            semanticType: gemData.semanticType || gemData._data?.semanticType,
             keywords: gemData.keywords || gemData._data?.keywords,
             score: gemData.score || result.score || 0
           };
@@ -321,7 +320,6 @@ async function handleContextEngineMessage(request, sender, sendResponse) {
             value: gemData.value || gemData._data?.value,
             collections: gemData.collections || gemData._data?.collections,
             subCollections: gemData.subCollections || gemData._data?.subCollections,
-            semanticType: gemData.semanticType || gemData._data?.semanticType,
             keywords: gemData.keywords || gemData._data?.keywords
           };
         });
@@ -340,7 +338,6 @@ async function handleContextEngineMessage(request, sender, sendResponse) {
               value: gemData.value || gemData._data?.value,
               collections: gemData.collections || gemData._data?.collections,
               subCollections: gemData.subCollections || gemData._data?.subCollections,
-              semanticType: gemData.semanticType || gemData._data?.semanticType,
               keywords: gemData.keywords || gemData._data?.keywords
             }
           });

@@ -249,14 +249,6 @@ Return JSON only:`);
   const budgetMatch = lowerQuery.match(/(\d+)\s*€|under\s*(\d+)|max\s*(\d+)|budget.*?(\d+)/i);
   const budget = budgetMatch ? parseInt(budgetMatch[1] || budgetMatch[2] || budgetMatch[3] || budgetMatch[4]) : null;
 
-  // Required semantic types by query type
-  const requiredTypes = {
-    shopping: ['constraint', 'preference', 'characteristic'],
-    planning: ['goal', 'activity', 'preference'],
-    recommendation: ['preference', 'constraint', 'characteristic'],
-    information: ['characteristic', 'preference']
-  };
-
   // Critical constraints by domain (for shopping/recommendation)
   let criticalConstraints = [];
   if (domain === 'Fashion') criticalConstraints = ['budget', 'size'];
@@ -270,7 +262,6 @@ Return JSON only:`);
     type,
     domain,
     budget,
-    requiredSemanticTypes: requiredTypes[type] || ['preference'],
     needsConstraints: type === 'shopping' || type === 'recommendation',
     criticalConstraints: (type === 'shopping' || type === 'recommendation') ? criticalConstraints : []
   };
@@ -278,42 +269,6 @@ Return JSON only:`);
   console.log('[Context Selector] Final intent:', JSON.stringify(intent));
 
   return intent;
-}
-
-/**
- * Calculate semantic type boost based on query intent
- * @param {string} semanticType - Gem's semantic type
- * @param {Object} queryIntent - Analyzed query intent
- * @returns {number} Boost value to add to score
- */
-function getSemanticBoost(semanticType, queryIntent) {
-  if (!semanticType) return 0;
-
-  // Base semantic boost (applies to all queries)
-  let boost = 0;
-  if (semanticType === 'constraint') boost = 5;
-  else if (semanticType === 'preference') boost = 3;
-  else if (semanticType === 'characteristic') boost = 1;
-  else if (semanticType === 'activity') boost = 1;
-  else if (semanticType === 'goal') boost = 1;
-
-  // Query-specific boost
-  let queryBoost = 0;
-  if (queryIntent.type === 'shopping') {
-    // Shopping: constraints are CRITICAL
-    if (semanticType === 'constraint') queryBoost = 2;
-    if (semanticType === 'preference') queryBoost = 1;
-  } else if (queryIntent.type === 'planning') {
-    // Planning: goals and activities are important
-    if (semanticType === 'goal') queryBoost = 2;
-    if (semanticType === 'activity') queryBoost = 1;
-  } else if (queryIntent.type === 'recommendation') {
-    // Recommendation: preferences and constraints
-    if (semanticType === 'preference') queryBoost = 2;
-    if (semanticType === 'constraint') queryBoost = 1;
-  }
-
-  return boost + queryBoost;
 }
 
 /**
@@ -2283,12 +2238,6 @@ async function searchSubQuestionWithContextEngine(subQuestion, queryIntent, limi
 
     // Build filters
     const filters = {};
-    // DISABLED: No semantic type filtering - AI-scoring handles relevance
-    /*
-    if (queryIntent?.requiredSemanticTypes?.length > 0) {
-      filters.semanticTypes = queryIntent.requiredSemanticTypes;
-    }
-    */
     if (selectedCategories.length > 0) {
       filters.collections = selectedCategories;
     }
@@ -2337,9 +2286,6 @@ async function searchSubQuestionWithContextEngine(subQuestion, queryIntent, limi
  */
 async function singleQueryWithContextEngine(promptText, queryIntent, maxGems) {
   const filters = {};
-  if (queryIntent.requiredSemanticTypes?.length > 0) {
-    filters.semanticTypes = queryIntent.requiredSemanticTypes;
-  }
   if (queryIntent.domain) {
     filters.collections = [queryIntent.domain];
   }

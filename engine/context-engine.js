@@ -266,33 +266,6 @@ export class ContextEngine {
   }
 
   /**
-   * Search with semantic type filtering
-   * @param {Object} params - Search parameters
-   * @param {string} params.query - Search query
-   * @param {Array<string>} params.semanticTypes - Semantic types to include
-   * @param {Object} params.filters - Additional filters
-   * @param {number} params.limit - Max results
-   * @returns {Promise<Array>}
-   */
-  async searchBySemanticType({
-    query,
-    semanticTypes = [],
-    filters = {},
-    limit = 10
-  }) {
-    const mergedFilters = {
-      ...filters,
-      semanticTypes
-    };
-
-    return this.search({
-      query,
-      filters: mergedFilters,
-      limit
-    });
-  }
-
-  /**
    * Get all gems (with optional filters)
    * @param {Object} filters - Optional filters
    * @returns {Promise<Array>}

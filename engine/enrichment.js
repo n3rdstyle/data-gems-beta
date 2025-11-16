@@ -3,42 +3,12 @@
  * Context Engine v2 - Auto-Enrichment
  *
  * Enriches gems with:
- * - 384-dim vector embeddings (via Offscreen Document + Transformers.js)
- * - Semantic type classification (Chrome LanguageModel or Fallback)
+ * - 768-dim vector embeddings (via Offscreen Document + Transformers.js)
+ * - Topic extraction (Chrome LanguageModel)
  * - Keywords for BM25 sparse search
  */
 
 import { tokenize } from './bm25.js';
-
-/**
- * Semantic type classification prompt
- */
-const SEMANTIC_TYPE_SYSTEM_PROMPT = `You are a semantic classifier for user preferences and data.
-
-Your task is to classify user data into ONE of these semantic types:
-
-1. **constraint** - Hard filters, must-have requirements
-   Examples: Budget limits, dietary restrictions, size requirements, time constraints
-   Keywords: max, min, must, only, never, required, limit
-
-2. **preference** - Soft rankings, likes/dislikes, favorites
-   Examples: Favorite colors, preferred brands, cuisine preferences, style preferences
-   Keywords: prefer, like, favorite, love, enjoy, dislike, hate
-
-3. **activity** - Behavioral patterns, routines, frequency
-   Examples: Runs 3x/week, cooks daily, travels yearly, shops monthly
-   Keywords: daily, weekly, monthly, often, sometimes, rarely, every, routine
-
-4. **characteristic** - Stable attributes, facts, skills
-   Examples: Height, location, profession, skills, language, age
-   Keywords: I am, I have, speaks, lives in, works as, born
-
-5. **goal** - Future objectives, aspirations, targets
-   Examples: Run marathon, lose weight, learn skill, visit place, achieve milestone
-   Keywords: want to, plan to, goal is, aspire, achieve, reach, become
-
-IMPORTANT: Respond with ONLY the semantic type name (constraint, preference, activity, characteristic, or goal).
-DO NOT include any explanation, punctuation, or extra text.`;
 
 /**
  * Enrichment Engine
@@ -70,7 +40,7 @@ export class Enrichment {
   }
 
   /**
-   * Initialize Language Model for semantic classification
+   * Initialize Language Model for topic extraction
    */
   async initLanguageModel() {
     try {
@@ -83,8 +53,8 @@ export class Enrichment {
 
       if (availability === 'readily' || availability === 'available') {
         this.languageSession = await LanguageModel.create({
-          language: 'en',
-          systemPrompt: SEMANTIC_TYPE_SYSTEM_PROMPT
+          language: 'en'
+          // No system prompt - will be provided per-request
         });
 
         this.isAvailable.languageModel = true;
@@ -172,82 +142,6 @@ export class Enrichment {
   }
 
   /**
-   * Classify semantic type using AI
-   * @param {string} text - Text to classify
-   * @returns {Promise<string|null>} Semantic type or null
-   */
-  async classifySemanticType(text) {
-    if (!this.languageSession) {
-      console.warn('[Enrichment] LanguageModel not available, skipping classification');
-      return null;
-    }
-
-    try {
-      const prompt = `Classify this text:\n\n"${text}"\n\nSemantic type:`;
-
-      const response = await this.languageSession.prompt(prompt);
-
-      // Parse response - extract just the type name
-      // Handle formats like "preference", "semanticType: preference", or "Semantic type: preference"
-      let cleanedResponse = response.trim().toLowerCase();
-
-      // Remove common prefixes
-      cleanedResponse = cleanedResponse
-        .replace(/^semantic\s*type\s*:\s*/i, '')
-        .replace(/^type\s*:\s*/i, '')
-        .replace(/^classification\s*:\s*/i, '')
-        .trim();
-
-      // Get just the first word (in case there's extra text)
-      const type = cleanedResponse.split(/\s+/)[0];
-
-      // Validate type
-      const validTypes = ['constraint', 'preference', 'activity', 'characteristic', 'goal'];
-      if (validTypes.includes(type)) {
-        return type;
-      } else {
-        console.warn('[Enrichment] Invalid semantic type from AI:', response, '→ cleaned:', type);
-        return this.fallbackClassification(text);
-      }
-    } catch (error) {
-      console.error('[Enrichment] Error classifying semantic type:', error);
-      return this.fallbackClassification(text);
-    }
-  }
-
-  /**
-   * Fallback classification using keyword matching
-   * @param {string} text - Text to classify
-   * @returns {string} Best guess semantic type
-   */
-  fallbackClassification(text) {
-    const lower = text.toLowerCase();
-
-    // Constraint keywords
-    if (/\b(max|min|must|only|never|required|limit|budget|under|below|above)\b/.test(lower)) {
-      return 'constraint';
-    }
-
-    // Goal keywords
-    if (/\b(want to|plan to|goal|aspire|achieve|reach|become|will|going to)\b/.test(lower)) {
-      return 'goal';
-    }
-
-    // Activity keywords
-    if (/\b(daily|weekly|monthly|often|sometimes|rarely|every|times? (a|per)|routine)\b/.test(lower)) {
-      return 'activity';
-    }
-
-    // Characteristic keywords
-    if (/\b(i am|i have|speaks?|lives? in|works? as|born|profession|height|age)\b/.test(lower)) {
-      return 'characteristic';
-    }
-
-    // Default to preference
-    return 'preference';
-  }
-
-  /**
    * Extract keywords for BM25 search
    * @param {string} text - Text to extract keywords from
    * @returns {Object} Term frequency map { word: count }
@@ -296,7 +190,6 @@ Each attribute should have:
 - "value": Extracted value (e.g., "Espresso")
 - "unit": Unit if applicable (e.g., "cm", "kg") or null
 - "category": Category from available list or suggest new one
-- "semanticType": one of: constraint, preference, activity, characteristic, goal
 
 Example output:
 {
@@ -307,8 +200,7 @@ Example output:
       "attribute": "coffee_type",
       "value": "Espresso",
       "unit": null,
-      "category": "Nutrition",
-      "semanticType": "preference"
+      "category": "Nutrition"
     }
   ]
 }
@@ -352,7 +244,6 @@ IMPORTANT:
 
     // Simple pattern matching for common attributes
     const attributes = [];
-    const lower = text.toLowerCase();
 
     // Height
     const heightMatch = text.match(/(\d+)\s*(cm|m|ft|'|")/i);
@@ -362,8 +253,7 @@ IMPORTANT:
         attribute: 'height',
         value: heightMatch[1],
         unit: heightMatch[2],
-        category: existingCategories.includes('Health') ? 'Health' : 'Physical Attributes',
-        semanticType: 'characteristic'
+        category: existingCategories.includes('Health') ? 'Health' : 'Physical Attributes'
       });
     }
 
@@ -375,21 +265,18 @@ IMPORTANT:
         attribute: 'age',
         value: ageMatch[1] || ageMatch[2],
         unit: 'years',
-        category: existingCategories.includes('Identity') ? 'Identity' : 'Personal Info',
-        semanticType: 'characteristic'
+        category: existingCategories.includes('Identity') ? 'Identity' : 'Personal Info'
       });
     }
 
     // If no specific patterns matched, treat whole text as single attribute
     if (attributes.length === 0) {
-      const semanticType = this.fallbackClassification(text);
       attributes.push({
         subTopic: text.substring(0, 50) + (text.length > 50 ? '...' : ''),
         attribute: 'general',
         value: text,
         unit: null,
-        category: existingCategories[0] || 'General',
-        semanticType
+        category: existingCategories[0] || 'General'
       });
     }
 
@@ -451,24 +338,11 @@ IMPORTANT:
       const vector = await this.generateEmbedding(value);
       if (vector) {
         enriched.vector = vector;
-        console.log(`[Enrichment] Generated 384-dim embedding for: ${gem.id}`);
+        console.log(`[Enrichment] Generated 768-dim embedding for: ${gem.id}`);
       }
     }
 
-    // 3. Classify semantic type (always try)
-    if (this.isAvailable.languageModel && options.classifySemanticType !== false) {
-      const semanticType = await this.classifySemanticType(value);
-      if (semanticType) {
-        enriched.semanticType = semanticType;
-        console.log(`[Enrichment] Classified as: ${semanticType} for: ${gem.id}`);
-      }
-    } else if (options.classifySemanticType !== false) {
-      // Use fallback if AI not available
-      enriched.semanticType = this.fallbackClassification(value);
-      console.log(`[Enrichment] Fallback classified as: ${enriched.semanticType} for: ${gem.id}`);
-    }
-
-    // 4. Extract keywords for BM25 (always do this, no AI needed)
+    // 3. Extract keywords for BM25 (always do this, no AI needed)
     if (options.extractKeywords !== false) {
       enriched.keywords = this.extractKeywords(value);
       console.log(`[Enrichment] Extracted ${Object.keys(enriched.keywords).length} keywords for: ${gem.id}`);
@@ -505,9 +379,6 @@ IMPORTANT:
           parentGem: gem.id,
           isVirtual: true,  // Don't show in UI
           isPrimary: false,
-
-          // Semantic
-          semanticType: attr.semanticType,
 
           // Timestamp
           timestamp: gem.timestamp || Date.now(),
