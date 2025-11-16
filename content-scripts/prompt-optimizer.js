@@ -98,6 +98,7 @@ let optimizeButton = null;
 let promptElement = null;
 let hspProfile = null;
 let isOptimizing = false;
+let contextEngineReady = false;
 
 /**
  * Detect current platform
@@ -204,18 +205,50 @@ function setPromptValue(text) {
 }
 
 /**
+ * Check Context Engine readiness
+ */
+async function checkContextEngineStatus() {
+  try {
+    // Check if ContextEngineAPI is available in MAIN world
+    if (typeof window.ContextEngineAPI === 'undefined') {
+      console.log('[Data Gems Prompt Optimizer] ContextEngineAPI not yet available');
+      return false;
+    }
+
+    const wasReady = contextEngineReady;
+    contextEngineReady = window.ContextEngineAPI.isReady === true;
+
+    // If status changed from not ready to ready, update button
+    if (!wasReady && contextEngineReady) {
+      console.log('[Data Gems Prompt Optimizer] ✓ Context Engine is now ready!');
+      updateOptimizeButtonState();
+    }
+
+    return contextEngineReady;
+  } catch (error) {
+    console.error('[Data Gems Prompt Optimizer] Error checking Context Engine status:', error);
+    return false;
+  }
+}
+
+/**
  * Create the optimize button
  */
 function createOptimizeButton() {
   const button = document.createElement('button');
   button.id = 'data-gems-optimize-button';
   button.className = 'data-gems-optimize-button';
-  button.textContent = 'Optimize with Context';
+  button.textContent = 'Initializing...';
   button.setAttribute('aria-label', 'Optimize prompt with Data Gems context');
   button.setAttribute('type', 'button');
+  button.disabled = true; // Start disabled
 
   // Add click handler
   button.addEventListener('click', handleOptimization);
+
+  // Check Context Engine status and start polling
+  checkContextEngineStatus();
+  startContextEnginePolling();
 
   return button;
 }
@@ -249,6 +282,9 @@ function showOptimizeButton() {
 
   // Create button
   optimizeButton = createOptimizeButton();
+
+  // Update button state based on Context Engine readiness
+  updateOptimizeButtonState();
 
   // Add button to wrapper
   wrapper.appendChild(optimizeButton);
@@ -312,9 +348,25 @@ function setOptimizeButtonLoading(loading) {
     optimizeButton.disabled = true;
     optimizeButton.classList.add('loading');
   } else {
+    updateOptimizeButtonState();
+  }
+}
+
+/**
+ * Update button state based on Context Engine readiness
+ */
+function updateOptimizeButtonState() {
+  if (!optimizeButton) return;
+
+  if (!contextEngineReady) {
+    optimizeButton.textContent = 'Initializing...';
+    optimizeButton.disabled = true;
+    optimizeButton.classList.add('initializing');
+    optimizeButton.classList.remove('loading');
+  } else {
     optimizeButton.textContent = 'Optimize with Context';
     optimizeButton.disabled = false;
-    optimizeButton.classList.remove('loading');
+    optimizeButton.classList.remove('initializing', 'loading');
   }
 }
 
@@ -686,6 +738,37 @@ function setupInputMonitoring() {
     childList: true,
     subtree: true
   });
+}
+
+/**
+ * Context Engine status polling
+ */
+let contextEnginePollingInterval = null;
+
+function startContextEnginePolling() {
+  // Don't start if already polling
+  if (contextEnginePollingInterval) return;
+
+  // Poll every 500ms until ready
+  contextEnginePollingInterval = setInterval(async () => {
+    const isReady = await checkContextEngineStatus();
+
+    // Stop polling once ready
+    if (isReady) {
+      clearInterval(contextEnginePollingInterval);
+      contextEnginePollingInterval = null;
+      console.log('[Data Gems Prompt Optimizer] Context Engine polling stopped (ready)');
+    }
+  }, 500);
+
+  // Stop polling after 30 seconds (timeout)
+  setTimeout(() => {
+    if (contextEnginePollingInterval) {
+      clearInterval(contextEnginePollingInterval);
+      contextEnginePollingInterval = null;
+      console.log('[Data Gems Prompt Optimizer] Context Engine polling stopped (timeout)');
+    }
+  }, 30000);
 }
 
 // Listen for profile updates
