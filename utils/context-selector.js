@@ -1984,10 +1984,19 @@ async function optimizePromptWithContext(promptText, profile, useAI = true, maxG
     const queryIntent = null; // Skip intent analysis
     console.log('[Context Selector] ⚡ Skipping intent analysis - AI-scoring will handle relevance');
 
-    // STEP 2: Decompose into sub-prompts (ALWAYS)
-    const subQuestions = await decomposeIntoSubPrompts(promptText);
-    logTiming('Decomposition');
+    // DISABLED: Decomposition into sub-prompts (testing direct search)
+    // const subQuestions = await decomposeIntoSubPrompts(promptText);
+    // logTiming('Decomposition');
 
+    // TESTING: Always use single-query mode (no decomposition)
+    console.log('[Context Selector] 🧪 TESTING: Decomposition disabled, using direct single-query search');
+    if (window.ContextEngineAPI?.isReady) {
+      return await singleQueryWithContextEngine(promptText, queryIntent, maxGems);
+    } else {
+      return await singleQueryLegacy(promptText, profile, maxGems);
+    }
+
+    /* ORIGINAL DECOMPOSITION CODE (disabled for testing)
     if (subQuestions.length < 2) {
       console.log('[Context Selector] Decomposition failed or returned <2 prompts, falling back to single-query');
       // Fallback to single-query
@@ -1997,6 +2006,7 @@ async function optimizePromptWithContext(promptText, profile, useAI = true, maxG
         return await singleQueryLegacy(promptText, profile, maxGems);
       }
     }
+    */
 
     console.log('[Context Selector] Decomposed into', subQuestions.length, 'sub-prompts');
 
