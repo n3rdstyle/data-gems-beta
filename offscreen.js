@@ -26,16 +26,16 @@ async function initializeEmbedder() {
   try {
     embedder = await pipeline(
       'feature-extraction',
-      'Xenova/bge-large-en-v1.5',  // 1024-dim BGE model (best quality, compatible)
+      'Xenova/bge-base-en-v1.5',  // 768-dim BGE model (good balance of quality and size)
       {
         // Disable multi-threading to avoid Web Worker CSP issues
         device: 'wasm',
         dtype: 'fp32',
-        quantized: false  // Use full precision for best quality
+        quantized: true  // Use quantized version for better browser compatibility
       }
     );
 
-    console.log('[Offscreen] Embedder ready! Model: BGE-large-en-v1.5 (1024-dim)');
+    console.log('[Offscreen] Embedder ready! Model: BGE-base-en-v1.5 (768-dim)');
     return embedder;
   } catch (error) {
     console.error('[Offscreen] Failed to initialize embedder:', error);
