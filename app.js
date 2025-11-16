@@ -528,8 +528,8 @@ async function loadData() {
   try {
     const result = await chrome.storage.local.get(['hspProfile', 'userData', 'preferences', 'migrationCompleted']);
 
-    // Check if migration to RxDB is completed
-    const usesRxDB = result.migrationCompleted === true;
+    // Always use Context Engine (RxDB) - it's always active now
+    const usesRxDB = true;
 
     // Load profile identity from Chrome Storage
     if (result.hspProfile) {
@@ -674,7 +674,7 @@ async function exportData() {
   // Get beta user data
   const betaUserData = await chrome.storage.local.get(['betaUser', 'migrationCompleted']);
   const betaUser = betaUserData.betaUser || {};
-  const usesRxDB = betaUserData.migrationCompleted === true;
+  const usesRxDB = true; // Always use Context Engine (RxDB)
 
   // Get preferences (from RxDB if migrated, otherwise from AppState)
   let preferences;
@@ -977,10 +977,12 @@ async function mergeImportedData(importedData) {
 }
 
 function importData() {
+  console.log('[Import] Import button clicked, creating file picker...');
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = 'application/json';
   input.onchange = async (e) => {
+    console.log('[Import] File selected:', e.target.files[0]?.name);
     const file = e.target.files[0];
     if (!file) return;
 
@@ -1420,9 +1422,8 @@ async function renderCurrentScreen() {
           onPreferenceAdd: async (value, state, collections, topic = null) => {
             console.log('[App] onPreferenceAdd called with topic:', topic);
 
-            // Check if we're using RxDB
-            const result = await chrome.storage.local.get(['migrationCompleted']);
-            const usesRxDB = result.migrationCompleted === true;
+            // Always use Context Engine (RxDB)
+            const usesRxDB = true;
 
             if (usesRxDB) {
               // Add to RxDB
@@ -1467,9 +1468,8 @@ async function renderCurrentScreen() {
             }
           },
           onPreferenceUpdate: async (prefId, updates) => {
-            // Check if we're using RxDB
-            const result = await chrome.storage.local.get(['migrationCompleted']);
-            const usesRxDB = result.migrationCompleted === true;
+            // Always use Context Engine (RxDB)
+            const usesRxDB = true;
 
             if (usesRxDB) {
               // Update in RxDB
@@ -1500,9 +1500,8 @@ async function renderCurrentScreen() {
             }
           },
           onPreferenceDelete: async (prefId) => {
-            // Check if we're using RxDB
-            const result = await chrome.storage.local.get(['migrationCompleted']);
-            const usesRxDB = result.migrationCompleted === true;
+            // Always use Context Engine (RxDB)
+            const usesRxDB = true;
 
             if (usesRxDB) {
               // Delete from RxDB
