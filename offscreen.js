@@ -26,15 +26,16 @@ async function initializeEmbedder() {
   try {
     embedder = await pipeline(
       'feature-extraction',
-      'Xenova/bge-base-en-v1.5',  // 768-dim BGE model (high quality)
+      'onnx-community/embeddinggemma-300m-ONNX',  // 768-dim EmbeddingGemma (state-of-the-art)
       {
         // Disable multi-threading to avoid Web Worker CSP issues
         device: 'wasm',
-        dtype: 'fp32'
+        dtype: 'fp32',  // EmbeddingGemma requires fp32 (doesn't support fp16)
+        quantized: false  // Use full precision for best quality
       }
     );
 
-    console.log('[Offscreen] Embedder ready! Model: bge-base-en-v1.5 (768-dim)');
+    console.log('[Offscreen] Embedder ready! Model: EmbeddingGemma (768-dim, 300M params)');
     return embedder;
   } catch (error) {
     console.error('[Offscreen] Failed to initialize embedder:', error);
