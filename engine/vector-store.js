@@ -1,11 +1,13 @@
 /**
  * Vector Store
- * Context Engine v2 - Dense Vector Search (RxDB-based)
+ * Context Engine v2 - Dense Vector Search with ANN (HNSW)
  *
- * Implements dense vector search using cosine similarity
+ * Implements dense vector search using HNSW (Hierarchical Navigable Small World)
+ * for fast approximate nearest neighbor search
  */
 
 import { getGemsCollection } from './database.js';
+import { HNSWIndex } from './hnsw-index.js';
 
 /**
  * Cosine similarity between two vectors
@@ -40,11 +42,14 @@ function cosineSimilarity(vecA, vecB) {
 
 /**
  * Vector Store Class
- * Wraps RxDB collection with vector search capabilities
+ * Wraps RxDB collection with vector search capabilities + HNSW ANN index
  */
 export class VectorStore {
   constructor() {
     this.collection = null;
+    this.hnswIndex = null;
+    this.indexReady = false;
+    this.useANN = true; // Enable ANN by default, fallback to brute-force if needed
   }
 
   /**
@@ -57,8 +62,100 @@ export class VectorStore {
       throw new Error('[VectorStore] Database not initialized');
     }
 
+    // Initialize HNSW index
+    console.log('[VectorStore] Initializing HNSW index...');
+    await this._initHNSW();
+
     console.log('[VectorStore] Initialized successfully');
     return this;
+  }
+
+  /**
+   * Initialize or load HNSW index
+   */
+  async _initHNSW() {
+    try {
+      // Try to load persisted index from localStorage
+      const serialized = localStorage.getItem('hnsw_index');
+
+      if (serialized) {
+        console.log('[VectorStore] Loading HNSW index from localStorage...');
+        const data = JSON.parse(serialized);
+        this.hnswIndex = HNSWIndex.fromJSON(data);
+        this.indexReady = true;
+        console.log('[VectorStore] HNSW index loaded:', this.hnswIndex.getStats());
+      } else {
+        // Build new index from existing gems
+        console.log('[VectorStore] Building new HNSW index...');
+        await this._buildHNSW();
+      }
+    } catch (error) {
+      console.error('[VectorStore] Failed to load HNSW index, rebuilding:', error);
+      await this._buildHNSW();
+    }
+  }
+
+  /**
+   * Build HNSW index from all gems with vectors
+   */
+  async _buildHNSW() {
+    // Create new index with optimized parameters
+    this.hnswIndex = new HNSWIndex({
+      M: 16,              // Connections per node (balance between accuracy and memory)
+      efConstruction: 200, // Construction quality (higher = better but slower build)
+      efSearch: 50        // Search quality (can be adjusted per query)
+    });
+
+    // Get all gems with vectors
+    const docs = await this.collection.find({
+      selector: {
+        vector: { $exists: true }
+      }
+    }).exec();
+
+    console.log(`[VectorStore] Building HNSW index with ${docs.length} vectors...`);
+
+    let added = 0;
+    for (const doc of docs) {
+      const gem = doc.toJSON();
+      if (gem.vector && Array.isArray(gem.vector) && gem.vector.length > 0) {
+        try {
+          this.hnswIndex.add(gem.id, gem.vector);
+          added++;
+
+          // Log progress every 100 gems
+          if (added % 100 === 0) {
+            console.log(`[VectorStore] HNSW: ${added}/${docs.length} vectors indexed`);
+          }
+        } catch (error) {
+          console.warn(`[VectorStore] Failed to add gem ${gem.id} to HNSW:`, error.message);
+        }
+      }
+    }
+
+    this.indexReady = true;
+    console.log('[VectorStore] HNSW index built:', this.hnswIndex.getStats());
+
+    // Persist index
+    await this._saveHNSW();
+  }
+
+  /**
+   * Save HNSW index to localStorage
+   */
+  async _saveHNSW() {
+    try {
+      const serialized = JSON.stringify(this.hnswIndex.toJSON());
+      localStorage.setItem('hnsw_index', serialized);
+      const sizeKB = Math.round(serialized.length / 1024);
+      console.log(`[VectorStore] HNSW index saved to localStorage (${sizeKB} KB)`);
+    } catch (error) {
+      console.error('[VectorStore] Failed to save HNSW index:', error);
+      // If storage quota exceeded, continue without persisting
+      if (error.name === 'QuotaExceededError') {
+        console.warn('[VectorStore] localStorage quota exceeded, index will rebuild on next init');
+      }
+    }
   }
 
   /**
@@ -66,10 +163,13 @@ export class VectorStore {
    * @param {Object} gem - Gem object (vector field optional)
    */
   async insert(gem) {
-    // Validate vector if present
-    if (gem.vector && gem.vector.length !== 384) {
-      console.warn(`[VectorStore] Gem ${gem.id} has invalid vector (length: ${gem.vector.length}), removing it`);
-      delete gem.vector;
+    // Validate vector if present (support both 384-dim and 768-dim)
+    if (gem.vector) {
+      const validDimensions = [384, 768];
+      if (!validDimensions.includes(gem.vector.length)) {
+        console.warn(`[VectorStore] Gem ${gem.id} has invalid vector (length: ${gem.vector.length}), removing it`);
+        delete gem.vector;
+      }
     }
 
     // Vector is optional - gems without vectors won't be searchable via dense search
@@ -79,6 +179,22 @@ export class VectorStore {
 
     try {
       await this.collection.insert(gem);
+
+      // Add to HNSW index if vector present
+      if (gem.vector && this.indexReady) {
+        try {
+          this.hnswIndex.add(gem.id, gem.vector);
+
+          // Persist index periodically (every 10 insertions to avoid too frequent saves)
+          if (this.hnswIndex.size % 10 === 0) {
+            await this._saveHNSW();
+          }
+        } catch (error) {
+          console.warn(`[VectorStore] Failed to add gem to HNSW: ${gem.id}`, error.message);
+          // Continue without HNSW - will use brute-force search as fallback
+        }
+      }
+
       console.log(`[VectorStore] Inserted gem: ${gem.id}${gem.vector ? ' (with vector)' : ' (no vector)'}`);
     } catch (error) {
       if (error.code === 'CONFLICT') {
@@ -106,6 +222,17 @@ export class VectorStore {
       $set: updates
     });
 
+    // If vector was updated, update HNSW index
+    if (updates.vector && this.indexReady) {
+      try {
+        this.hnswIndex.remove(id);
+        this.hnswIndex.add(id, updates.vector);
+        await this._saveHNSW();
+      } catch (error) {
+        console.warn(`[VectorStore] Failed to update HNSW index for ${id}:`, error.message);
+      }
+    }
+
     console.log(`[VectorStore] Updated gem: ${id}`);
   }
 
@@ -122,6 +249,17 @@ export class VectorStore {
     }
 
     await doc.remove();
+
+    // Remove from HNSW index
+    if (this.indexReady) {
+      try {
+        this.hnswIndex.remove(id);
+        await this._saveHNSW();
+      } catch (error) {
+        console.warn(`[VectorStore] Failed to remove from HNSW index: ${id}`, error.message);
+      }
+    }
+
     console.log(`[VectorStore] Deleted gem: ${id}`);
   }
 
@@ -143,23 +281,96 @@ export class VectorStore {
   }
 
   /**
-   * Dense vector search (cosine similarity) with deduplication
-   * @param {number[]} queryVector - Query embedding (384-dim)
+   * Dense vector search with HNSW ANN (fast approximate search)
+   * Falls back to brute-force if HNSW unavailable or filters require it
+   * @param {number[]} queryVector - Query embedding
    * @param {Object} filters - Filter criteria
    * @param {number} limit - Max results
    * @returns {Promise<Array>} Sorted search results
    */
   async denseSearch(queryVector, filters = {}, limit = 20) {
+    const startTime = performance.now();
+
     console.log('[VectorStore] Dense search started', {
       vectorDim: queryVector.length,
       filters,
-      limit
+      limit,
+      useANN: this.useANN && this.indexReady
     });
 
+    // Determine if we can use HNSW or need brute-force
+    const hasFilters = (filters.collections?.length > 0) ||
+                       (filters.semanticTypes?.length > 0) ||
+                       filters.dateRange;
+
+    const useHNSW = this.useANN && this.indexReady && !hasFilters;
+
+    if (useHNSW) {
+      return await this._denseSearchHNSW(queryVector, filters, limit, startTime);
+    } else {
+      console.log('[VectorStore] Using brute-force search (HNSW unavailable or filters applied)');
+      return await this._denseSearchBruteForce(queryVector, filters, limit, startTime);
+    }
+  }
+
+  /**
+   * Fast HNSW-based search (no filters)
+   */
+  async _denseSearchHNSW(queryVector, filters, limit, startTime) {
+    // Search HNSW index for approximate nearest neighbors
+    // Request more candidates to account for deduplication
+    const searchK = Math.max(limit * 3, 100);
+    const hnswResults = this.hnswIndex.search(queryVector, searchK);
+
+    console.log(`[VectorStore] HNSW search found ${hnswResults.length} candidates`);
+
+    // Fetch full gems from database for the HNSW results
+    const gemPromises = hnswResults.map(async (result) => {
+      const doc = await this.collection.findOne(result.id).exec();
+      if (!doc) return null;
+
+      const gem = doc.toJSON();
+      return {
+        id: gem.id,
+        score: result.similarity,
+        gem,
+        isPrimary: gem.isPrimary || false,
+        isVirtual: gem.isVirtual || false,
+        parentGem: gem.parentGem || null,
+        source: 'dense-hnsw'
+      };
+    });
+
+    const results = (await Promise.all(gemPromises)).filter(r => r !== null);
+
+    console.log('[VectorStore] Top 5 HNSW matches before deduplication:');
+    results.slice(0, 5).forEach((r, i) => {
+      const type = r.isPrimary ? 'PRIMARY' : (r.isVirtual ? 'CHILD' : 'SINGLE');
+      console.log(`  ${i + 1}. ${r.gem.value.substring(0, 40)}... (${r.score.toFixed(3)}, ${type})`);
+    });
+
+    // Deduplicate
+    const deduplicated = await this.deduplicateGemResults(results);
+
+    const elapsed = performance.now() - startTime;
+    console.log(`[VectorStore] HNSW search complete in ${elapsed.toFixed(2)}ms:`, {
+      candidates: hnswResults.length,
+      afterDeduplication: deduplicated.length,
+      returned: Math.min(deduplicated.length, limit),
+      topScore: deduplicated[0]?.score.toFixed(3)
+    });
+
+    return deduplicated.slice(0, limit);
+  }
+
+  /**
+   * Brute-force search (used when filters applied or HNSW unavailable)
+   */
+  async _denseSearchBruteForce(queryVector, filters, limit, startTime) {
     // Build query with filters
     let query = this.collection.find({
       selector: {
-        vector: { $exists: true }  // Only gems with vectors (both primary and child)
+        vector: { $exists: true }
       }
     });
 
@@ -184,9 +395,9 @@ export class VectorStore {
     // Execute query
     const docs = await query.exec();
 
-    console.log(`[VectorStore] Found ${docs.length} candidates (primary + child gems)`);
+    console.log(`[VectorStore] Found ${docs.length} candidates (brute-force)`);
 
-    // Calculate similarity scores for ALL gems (primary and child)
+    // Calculate similarity scores for ALL gems
     const results = docs.map(doc => {
       const gem = doc.toJSON();
       const score = cosineSimilarity(queryVector, gem.vector);
@@ -198,23 +409,24 @@ export class VectorStore {
         isPrimary: gem.isPrimary || false,
         isVirtual: gem.isVirtual || false,
         parentGem: gem.parentGem || null,
-        source: 'dense'
+        source: 'dense-bruteforce'
       };
     });
 
     // Sort by score (descending)
     const sorted = results.sort((a, b) => b.score - a.score);
 
-    console.log('[VectorStore] Top 5 raw matches before deduplication:');
+    console.log('[VectorStore] Top 5 brute-force matches before deduplication:');
     sorted.slice(0, 5).forEach((r, i) => {
       const type = r.isPrimary ? 'PRIMARY' : (r.isVirtual ? 'CHILD' : 'SINGLE');
       console.log(`  ${i + 1}. ${r.gem.value.substring(0, 40)}... (${r.score.toFixed(3)}, ${type})`);
     });
 
-    // Deduplicate: Merge primary and child gems
+    // Deduplicate
     const deduplicated = await this.deduplicateGemResults(sorted);
 
-    console.log(`[VectorStore] Dense search complete:`, {
+    const elapsed = performance.now() - startTime;
+    console.log(`[VectorStore] Brute-force search complete in ${elapsed.toFixed(2)}ms:`, {
       candidates: docs.length,
       afterDeduplication: deduplicated.length,
       returned: Math.min(deduplicated.length, limit),
@@ -396,13 +608,26 @@ export class VectorStore {
   }
 
   /**
-   * Rebuild index (placeholder for future optimization)
+   * Rebuild HNSW index from all vectors in database
    */
   async rebuildIndex() {
-    console.log('[VectorStore] Index rebuild requested');
-    // RxDB handles indexing automatically
-    // This is a placeholder for future optimizations
-    console.log('[VectorStore] Index rebuild complete');
+    console.log('[VectorStore] HNSW index rebuild requested');
+    await this._buildHNSW();
+    console.log('[VectorStore] HNSW index rebuild complete');
+  }
+
+  /**
+   * Get HNSW index statistics
+   */
+  getIndexStats() {
+    if (!this.indexReady || !this.hnswIndex) {
+      return { ready: false };
+    }
+
+    return {
+      ready: true,
+      ...this.hnswIndex.getStats()
+    };
   }
 }
 

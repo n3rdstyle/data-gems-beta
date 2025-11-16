@@ -17454,14 +17454,14 @@ var ContextEngineBridge = (() => {
   var KEY_PREFIX = "pubkey.broadcastChannel-";
   var type3 = "localstorage";
   function getLocalStorage() {
-    var localStorage;
+    var localStorage2;
     if (typeof window === "undefined") return null;
     try {
-      localStorage = window.localStorage;
-      localStorage = window["ie8-eventlistener/storage"] || window.localStorage;
+      localStorage2 = window.localStorage;
+      localStorage2 = window["ie8-eventlistener/storage"] || window.localStorage;
     } catch (e) {
     }
-    return localStorage;
+    return localStorage2;
   }
   function storageKey(channelName) {
     return KEY_PREFIX + channelName;
@@ -20903,8 +20903,378 @@ var ContextEngineBridge = (() => {
     };
   }
 
-  // engine/vector-store.js
+  // engine/hnsw-index.js
   function cosineSimilarity(vecA, vecB) {
+    if (!vecA || !vecB || vecA.length !== vecB.length) {
+      return -1;
+    }
+    let dotProduct = 0;
+    let normA = 0;
+    let normB = 0;
+    for (let i = 0; i < vecA.length; i++) {
+      dotProduct += vecA[i] * vecB[i];
+      normA += vecA[i] * vecA[i];
+      normB += vecB[i] * vecB[i];
+    }
+    const magnitude = Math.sqrt(normA) * Math.sqrt(normB);
+    if (magnitude === 0) {
+      return -1;
+    }
+    return dotProduct / magnitude;
+  }
+  function distance(vecA, vecB) {
+    return 1 - cosineSimilarity(vecA, vecB);
+  }
+  var MaxHeap = class {
+    constructor() {
+      this.heap = [];
+    }
+    push(distance2, id) {
+      this.heap.push({ distance: distance2, id });
+      this._bubbleUp(this.heap.length - 1);
+    }
+    pop() {
+      if (this.heap.length === 0) return null;
+      if (this.heap.length === 1) return this.heap.pop();
+      const top = this.heap[0];
+      this.heap[0] = this.heap.pop();
+      this._bubbleDown(0);
+      return top;
+    }
+    peek() {
+      return this.heap[0] || null;
+    }
+    size() {
+      return this.heap.length;
+    }
+    toArray() {
+      return [...this.heap].sort((a, b) => a.distance - b.distance);
+    }
+    _bubbleUp(index) {
+      while (index > 0) {
+        const parentIndex = Math.floor((index - 1) / 2);
+        if (this.heap[index].distance <= this.heap[parentIndex].distance) break;
+        [this.heap[index], this.heap[parentIndex]] = [this.heap[parentIndex], this.heap[index]];
+        index = parentIndex;
+      }
+    }
+    _bubbleDown(index) {
+      while (true) {
+        const leftChild = 2 * index + 1;
+        const rightChild = 2 * index + 2;
+        let largest = index;
+        if (leftChild < this.heap.length && this.heap[leftChild].distance > this.heap[largest].distance) {
+          largest = leftChild;
+        }
+        if (rightChild < this.heap.length && this.heap[rightChild].distance > this.heap[largest].distance) {
+          largest = rightChild;
+        }
+        if (largest === index) break;
+        [this.heap[index], this.heap[largest]] = [this.heap[largest], this.heap[index]];
+        index = largest;
+      }
+    }
+  };
+  var HNSWIndex = class _HNSWIndex {
+    constructor(options = {}) {
+      this.M = options.M || 16;
+      this.efConstruction = options.efConstruction || 200;
+      this.efSearch = options.efSearch || 50;
+      this.ml = 1 / Math.log(2);
+      this.vectors = /* @__PURE__ */ new Map();
+      this.layers = /* @__PURE__ */ new Map();
+      this.graph = /* @__PURE__ */ new Map();
+      this.entryPoint = null;
+      this.dimension = null;
+      this.size = 0;
+      console.log("[HNSW] Index created with params:", {
+        M: this.M,
+        efConstruction: this.efConstruction,
+        efSearch: this.efSearch
+      });
+    }
+    /**
+     * Get random layer using exponential distribution
+     * @returns {number}
+     */
+    _getRandomLayer() {
+      return Math.floor(-Math.log(Math.random()) * this.ml);
+    }
+    /**
+     * Add a vector to the index
+     * @param {string} id - Unique identifier
+     * @param {number[]} vector - Embedding vector
+     */
+    add(id, vector) {
+      if (!vector || !Array.isArray(vector)) {
+        throw new Error("[HNSW] Vector must be a non-empty array");
+      }
+      if (this.dimension === null) {
+        this.dimension = vector.length;
+        console.log("[HNSW] Dimension auto-detected:", this.dimension);
+      } else if (vector.length !== this.dimension) {
+        throw new Error(`[HNSW] Vector dimension mismatch: expected ${this.dimension}, got ${vector.length}`);
+      }
+      this.vectors.set(id, vector);
+      if (this.size === 0) {
+        const layer2 = this._getRandomLayer();
+        this.layers.set(id, layer2);
+        this.entryPoint = id;
+        this.graph.set(id, /* @__PURE__ */ new Map());
+        for (let lc = 0; lc <= layer2; lc++) {
+          this.graph.get(id).set(lc, /* @__PURE__ */ new Set());
+        }
+        this.size++;
+        console.log("[HNSW] First node added as entry point:", id, "layer:", layer2);
+        return;
+      }
+      const layer = this._getRandomLayer();
+      this.layers.set(id, layer);
+      this.graph.set(id, /* @__PURE__ */ new Map());
+      for (let lc = 0; lc <= layer; lc++) {
+        this.graph.get(id).set(lc, /* @__PURE__ */ new Set());
+      }
+      let currentNearest = this.entryPoint;
+      const entryPointLayer = this.layers.get(this.entryPoint);
+      for (let lc = entryPointLayer; lc > layer; lc--) {
+        currentNearest = this._searchLayer(vector, [currentNearest], 1, lc)[0].id;
+      }
+      for (let lc = layer; lc >= 0; lc--) {
+        const candidates = this._searchLayer(vector, [currentNearest], this.efConstruction, lc);
+        const M = lc === 0 ? this.M * 2 : this.M;
+        const neighbors = this._selectNeighbors(candidates, M);
+        for (const neighbor of neighbors) {
+          this.graph.get(id).get(lc).add(neighbor.id);
+          const neighborLayers = this.graph.get(neighbor.id);
+          if (neighborLayers && neighborLayers.has(lc)) {
+            neighborLayers.get(lc).add(id);
+            const neighborConnections = neighborLayers.get(lc);
+            if (neighborConnections.size > M) {
+              this._pruneConnections(neighbor.id, lc, M);
+            }
+          }
+        }
+        currentNearest = neighbors[0].id;
+      }
+      if (layer > entryPointLayer) {
+        this.entryPoint = id;
+      }
+      this.size++;
+    }
+    /**
+     * Search layer for nearest neighbors
+     * @param {number[]} queryVector
+     * @param {string[]} entryPoints - Array of node IDs to start search
+     * @param {number} ef - Size of dynamic candidate list
+     * @param {number} layer
+     * @returns {Array<{distance, id}>}
+     */
+    _searchLayer(queryVector, entryPoints, ef, layer) {
+      const visited = /* @__PURE__ */ new Set();
+      const candidates = new MaxHeap();
+      const nearest = new MaxHeap();
+      for (const id of entryPoints) {
+        const dist = distance(queryVector, this.vectors.get(id));
+        candidates.push(dist, id);
+        nearest.push(dist, id);
+        visited.add(id);
+      }
+      while (candidates.size() > 0) {
+        const current = candidates.pop();
+        const farthest = nearest.peek();
+        if (current.distance > farthest.distance && nearest.size() >= ef) {
+          break;
+        }
+        const neighbors = this.graph.get(current.id).get(layer) || /* @__PURE__ */ new Set();
+        for (const neighborId of neighbors) {
+          if (visited.has(neighborId)) continue;
+          visited.add(neighborId);
+          const dist = distance(queryVector, this.vectors.get(neighborId));
+          const farthest2 = nearest.peek();
+          if (dist < farthest2.distance || nearest.size() < ef) {
+            candidates.push(dist, neighborId);
+            nearest.push(dist, neighborId);
+            if (nearest.size() > ef) {
+              nearest.pop();
+            }
+          }
+        }
+      }
+      return nearest.toArray();
+    }
+    /**
+     * Select M neighbors using heuristic (prefer diverse neighbors)
+     * @param {Array<{distance, id}>} candidates
+     * @param {number} M
+     * @returns {Array<{distance, id}>}
+     */
+    _selectNeighbors(candidates, M) {
+      if (candidates.length <= M) {
+        return candidates;
+      }
+      return candidates.slice(0, M);
+    }
+    /**
+     * Prune connections for a node to keep only M best
+     * @param {string} id
+     * @param {number} layer
+     * @param {number} M
+     */
+    _pruneConnections(id, layer, M) {
+      const connections = this.graph.get(id).get(layer);
+      if (connections.size <= M) return;
+      const vector = this.vectors.get(id);
+      const neighbors = Array.from(connections).map((neighborId) => ({
+        id: neighborId,
+        distance: distance(vector, this.vectors.get(neighborId))
+      }));
+      neighbors.sort((a, b) => a.distance - b.distance);
+      const toKeep = new Set(neighbors.slice(0, M).map((n) => n.id));
+      const toRemove = Array.from(connections).filter((nId) => !toKeep.has(nId));
+      for (const neighborId of toRemove) {
+        connections.delete(neighborId);
+        const neighborLayers = this.graph.get(neighborId);
+        if (neighborLayers && neighborLayers.has(layer)) {
+          neighborLayers.get(layer).delete(id);
+        }
+      }
+    }
+    /**
+     * Search for K nearest neighbors
+     * @param {number[]} queryVector
+     * @param {number} k - Number of neighbors to return
+     * @param {number} ef - Search quality (higher = better accuracy, slower)
+     * @returns {Array<{id, distance, similarity}>}
+     */
+    search(queryVector, k = 10, ef = null) {
+      if (this.size === 0) {
+        return [];
+      }
+      if (queryVector.length !== this.dimension) {
+        throw new Error(`[HNSW] Query vector dimension mismatch: expected ${this.dimension}, got ${queryVector.length}`);
+      }
+      const searchEf = ef || Math.max(this.efSearch, k);
+      let currentNearest = this.entryPoint;
+      const entryPointLayer = this.layers.get(this.entryPoint);
+      for (let lc = entryPointLayer; lc > 0; lc--) {
+        currentNearest = this._searchLayer(queryVector, [currentNearest], 1, lc)[0].id;
+      }
+      const candidates = this._searchLayer(queryVector, [currentNearest], searchEf, 0);
+      return candidates.slice(0, k).map((item) => ({
+        id: item.id,
+        distance: item.distance,
+        similarity: 1 - item.distance
+        // Convert distance back to similarity
+      }));
+    }
+    /**
+     * Remove a vector from the index
+     * @param {string} id
+     */
+    remove(id) {
+      if (!this.vectors.has(id)) {
+        return;
+      }
+      const layer = this.layers.get(id);
+      for (let lc = 0; lc <= layer; lc++) {
+        const neighbors = this.graph.get(id).get(lc);
+        for (const neighborId of neighbors) {
+          this.graph.get(neighborId).get(lc).delete(id);
+        }
+      }
+      this.vectors.delete(id);
+      this.layers.delete(id);
+      this.graph.delete(id);
+      this.size--;
+      if (this.entryPoint === id && this.size > 0) {
+        let maxLayer = -1;
+        let newEntryPoint = null;
+        for (const [nodeId, nodeLayer] of this.layers) {
+          if (nodeLayer > maxLayer) {
+            maxLayer = nodeLayer;
+            newEntryPoint = nodeId;
+          }
+        }
+        this.entryPoint = newEntryPoint;
+      }
+    }
+    /**
+     * Serialize index to JSON
+     * @returns {Object}
+     */
+    toJSON() {
+      return {
+        M: this.M,
+        efConstruction: this.efConstruction,
+        efSearch: this.efSearch,
+        dimension: this.dimension,
+        size: this.size,
+        entryPoint: this.entryPoint,
+        vectors: Array.from(this.vectors.entries()),
+        layers: Array.from(this.layers.entries()),
+        graph: Array.from(this.graph.entries()).map(([id, layerMap]) => [
+          id,
+          Array.from(layerMap.entries()).map(([layer, neighbors]) => [
+            layer,
+            Array.from(neighbors)
+          ])
+        ])
+      };
+    }
+    /**
+     * Deserialize index from JSON
+     * @param {Object} data
+     * @returns {HNSWIndex}
+     */
+    static fromJSON(data) {
+      const index = new _HNSWIndex({
+        M: data.M,
+        efConstruction: data.efConstruction,
+        efSearch: data.efSearch
+      });
+      index.dimension = data.dimension;
+      index.size = data.size;
+      index.entryPoint = data.entryPoint;
+      index.vectors = new Map(data.vectors);
+      index.layers = new Map(data.layers);
+      for (const [id, layerArray] of data.graph) {
+        const layerMap = /* @__PURE__ */ new Map();
+        for (const [layer, neighbors] of layerArray) {
+          layerMap.set(layer, new Set(neighbors));
+        }
+        index.graph.set(id, layerMap);
+      }
+      console.log("[HNSW] Index loaded from JSON:", {
+        dimension: index.dimension,
+        size: index.size,
+        M: index.M
+      });
+      return index;
+    }
+    /**
+     * Get index statistics
+     * @returns {Object}
+     */
+    getStats() {
+      const layerDistribution = /* @__PURE__ */ new Map();
+      for (const layer of this.layers.values()) {
+        layerDistribution.set(layer, (layerDistribution.get(layer) || 0) + 1);
+      }
+      return {
+        size: this.size,
+        dimension: this.dimension,
+        M: this.M,
+        efConstruction: this.efConstruction,
+        efSearch: this.efSearch,
+        entryPoint: this.entryPoint,
+        entryPointLayer: this.entryPoint ? this.layers.get(this.entryPoint) : null,
+        layerDistribution: Object.fromEntries(layerDistribution)
+      };
+    }
+  };
+
+  // engine/vector-store.js
+  function cosineSimilarity2(vecA, vecB) {
     if (!vecA || !vecB || vecA.length !== vecB.length) {
       return 0;
     }
@@ -20925,6 +21295,9 @@ var ContextEngineBridge = (() => {
   var VectorStore = class {
     constructor() {
       this.collection = null;
+      this.hnswIndex = null;
+      this.indexReady = false;
+      this.useANN = true;
     }
     /**
      * Initialize vector store
@@ -20934,23 +21307,112 @@ var ContextEngineBridge = (() => {
       if (!this.collection) {
         throw new Error("[VectorStore] Database not initialized");
       }
+      console.log("[VectorStore] Initializing HNSW index...");
+      await this._initHNSW();
       console.log("[VectorStore] Initialized successfully");
       return this;
+    }
+    /**
+     * Initialize or load HNSW index
+     */
+    async _initHNSW() {
+      try {
+        const serialized = localStorage.getItem("hnsw_index");
+        if (serialized) {
+          console.log("[VectorStore] Loading HNSW index from localStorage...");
+          const data = JSON.parse(serialized);
+          this.hnswIndex = HNSWIndex.fromJSON(data);
+          this.indexReady = true;
+          console.log("[VectorStore] HNSW index loaded:", this.hnswIndex.getStats());
+        } else {
+          console.log("[VectorStore] Building new HNSW index...");
+          await this._buildHNSW();
+        }
+      } catch (error) {
+        console.error("[VectorStore] Failed to load HNSW index, rebuilding:", error);
+        await this._buildHNSW();
+      }
+    }
+    /**
+     * Build HNSW index from all gems with vectors
+     */
+    async _buildHNSW() {
+      this.hnswIndex = new HNSWIndex({
+        M: 16,
+        // Connections per node (balance between accuracy and memory)
+        efConstruction: 200,
+        // Construction quality (higher = better but slower build)
+        efSearch: 50
+        // Search quality (can be adjusted per query)
+      });
+      const docs = await this.collection.find({
+        selector: {
+          vector: { $exists: true }
+        }
+      }).exec();
+      console.log(`[VectorStore] Building HNSW index with ${docs.length} vectors...`);
+      let added = 0;
+      for (const doc of docs) {
+        const gem = doc.toJSON();
+        if (gem.vector && Array.isArray(gem.vector) && gem.vector.length > 0) {
+          try {
+            this.hnswIndex.add(gem.id, gem.vector);
+            added++;
+            if (added % 100 === 0) {
+              console.log(`[VectorStore] HNSW: ${added}/${docs.length} vectors indexed`);
+            }
+          } catch (error) {
+            console.warn(`[VectorStore] Failed to add gem ${gem.id} to HNSW:`, error.message);
+          }
+        }
+      }
+      this.indexReady = true;
+      console.log("[VectorStore] HNSW index built:", this.hnswIndex.getStats());
+      await this._saveHNSW();
+    }
+    /**
+     * Save HNSW index to localStorage
+     */
+    async _saveHNSW() {
+      try {
+        const serialized = JSON.stringify(this.hnswIndex.toJSON());
+        localStorage.setItem("hnsw_index", serialized);
+        const sizeKB = Math.round(serialized.length / 1024);
+        console.log(`[VectorStore] HNSW index saved to localStorage (${sizeKB} KB)`);
+      } catch (error) {
+        console.error("[VectorStore] Failed to save HNSW index:", error);
+        if (error.name === "QuotaExceededError") {
+          console.warn("[VectorStore] localStorage quota exceeded, index will rebuild on next init");
+        }
+      }
     }
     /**
      * Insert a gem (vector field is optional)
      * @param {Object} gem - Gem object (vector field optional)
      */
     async insert(gem) {
-      if (gem.vector && gem.vector.length !== 384) {
-        console.warn(`[VectorStore] Gem ${gem.id} has invalid vector (length: ${gem.vector.length}), removing it`);
-        delete gem.vector;
+      if (gem.vector) {
+        const validDimensions = [384, 768];
+        if (!validDimensions.includes(gem.vector.length)) {
+          console.warn(`[VectorStore] Gem ${gem.id} has invalid vector (length: ${gem.vector.length}), removing it`);
+          delete gem.vector;
+        }
       }
       if (!gem.vector) {
         console.log(`[VectorStore] Inserting gem without vector: ${gem.id}`);
       }
       try {
         await this.collection.insert(gem);
+        if (gem.vector && this.indexReady) {
+          try {
+            this.hnswIndex.add(gem.id, gem.vector);
+            if (this.hnswIndex.size % 10 === 0) {
+              await this._saveHNSW();
+            }
+          } catch (error) {
+            console.warn(`[VectorStore] Failed to add gem to HNSW: ${gem.id}`, error.message);
+          }
+        }
         console.log(`[VectorStore] Inserted gem: ${gem.id}${gem.vector ? " (with vector)" : " (no vector)"}`);
       } catch (error) {
         if (error.code === "CONFLICT") {
@@ -20974,6 +21436,15 @@ var ContextEngineBridge = (() => {
       await doc.update({
         $set: updates
       });
+      if (updates.vector && this.indexReady) {
+        try {
+          this.hnswIndex.remove(id);
+          this.hnswIndex.add(id, updates.vector);
+          await this._saveHNSW();
+        } catch (error) {
+          console.warn(`[VectorStore] Failed to update HNSW index for ${id}:`, error.message);
+        }
+      }
       console.log(`[VectorStore] Updated gem: ${id}`);
     }
     /**
@@ -20987,6 +21458,14 @@ var ContextEngineBridge = (() => {
         return;
       }
       await doc.remove();
+      if (this.indexReady) {
+        try {
+          this.hnswIndex.remove(id);
+          await this._saveHNSW();
+        } catch (error) {
+          console.warn(`[VectorStore] Failed to remove from HNSW index: ${id}`, error.message);
+        }
+      }
       console.log(`[VectorStore] Deleted gem: ${id}`);
     }
     /**
@@ -21003,22 +21482,74 @@ var ContextEngineBridge = (() => {
       return results;
     }
     /**
-     * Dense vector search (cosine similarity) with deduplication
-     * @param {number[]} queryVector - Query embedding (384-dim)
+     * Dense vector search with HNSW ANN (fast approximate search)
+     * Falls back to brute-force if HNSW unavailable or filters require it
+     * @param {number[]} queryVector - Query embedding
      * @param {Object} filters - Filter criteria
      * @param {number} limit - Max results
      * @returns {Promise<Array>} Sorted search results
      */
     async denseSearch(queryVector, filters = {}, limit = 20) {
+      const startTime = performance.now();
       console.log("[VectorStore] Dense search started", {
         vectorDim: queryVector.length,
         filters,
-        limit
+        limit,
+        useANN: this.useANN && this.indexReady
       });
+      const hasFilters = filters.collections?.length > 0 || filters.semanticTypes?.length > 0 || filters.dateRange;
+      const useHNSW = this.useANN && this.indexReady && !hasFilters;
+      if (useHNSW) {
+        return await this._denseSearchHNSW(queryVector, filters, limit, startTime);
+      } else {
+        console.log("[VectorStore] Using brute-force search (HNSW unavailable or filters applied)");
+        return await this._denseSearchBruteForce(queryVector, filters, limit, startTime);
+      }
+    }
+    /**
+     * Fast HNSW-based search (no filters)
+     */
+    async _denseSearchHNSW(queryVector, filters, limit, startTime) {
+      const searchK = Math.max(limit * 3, 100);
+      const hnswResults = this.hnswIndex.search(queryVector, searchK);
+      console.log(`[VectorStore] HNSW search found ${hnswResults.length} candidates`);
+      const gemPromises = hnswResults.map(async (result) => {
+        const doc = await this.collection.findOne(result.id).exec();
+        if (!doc) return null;
+        const gem = doc.toJSON();
+        return {
+          id: gem.id,
+          score: result.similarity,
+          gem,
+          isPrimary: gem.isPrimary || false,
+          isVirtual: gem.isVirtual || false,
+          parentGem: gem.parentGem || null,
+          source: "dense-hnsw"
+        };
+      });
+      const results = (await Promise.all(gemPromises)).filter((r) => r !== null);
+      console.log("[VectorStore] Top 5 HNSW matches before deduplication:");
+      results.slice(0, 5).forEach((r, i) => {
+        const type5 = r.isPrimary ? "PRIMARY" : r.isVirtual ? "CHILD" : "SINGLE";
+        console.log(`  ${i + 1}. ${r.gem.value.substring(0, 40)}... (${r.score.toFixed(3)}, ${type5})`);
+      });
+      const deduplicated = await this.deduplicateGemResults(results);
+      const elapsed = performance.now() - startTime;
+      console.log(`[VectorStore] HNSW search complete in ${elapsed.toFixed(2)}ms:`, {
+        candidates: hnswResults.length,
+        afterDeduplication: deduplicated.length,
+        returned: Math.min(deduplicated.length, limit),
+        topScore: deduplicated[0]?.score.toFixed(3)
+      });
+      return deduplicated.slice(0, limit);
+    }
+    /**
+     * Brute-force search (used when filters applied or HNSW unavailable)
+     */
+    async _denseSearchBruteForce(queryVector, filters, limit, startTime) {
       let query = this.collection.find({
         selector: {
           vector: { $exists: true }
-          // Only gems with vectors (both primary and child)
         }
       });
       if (filters.collections && filters.collections.length > 0) {
@@ -21034,10 +21565,10 @@ var ContextEngineBridge = (() => {
         }
       }
       const docs = await query.exec();
-      console.log(`[VectorStore] Found ${docs.length} candidates (primary + child gems)`);
+      console.log(`[VectorStore] Found ${docs.length} candidates (brute-force)`);
       const results = docs.map((doc) => {
         const gem = doc.toJSON();
-        const score = cosineSimilarity(queryVector, gem.vector);
+        const score = cosineSimilarity2(queryVector, gem.vector);
         return {
           id: gem.id,
           score,
@@ -21045,17 +21576,18 @@ var ContextEngineBridge = (() => {
           isPrimary: gem.isPrimary || false,
           isVirtual: gem.isVirtual || false,
           parentGem: gem.parentGem || null,
-          source: "dense"
+          source: "dense-bruteforce"
         };
       });
       const sorted = results.sort((a, b) => b.score - a.score);
-      console.log("[VectorStore] Top 5 raw matches before deduplication:");
+      console.log("[VectorStore] Top 5 brute-force matches before deduplication:");
       sorted.slice(0, 5).forEach((r, i) => {
         const type5 = r.isPrimary ? "PRIMARY" : r.isVirtual ? "CHILD" : "SINGLE";
         console.log(`  ${i + 1}. ${r.gem.value.substring(0, 40)}... (${r.score.toFixed(3)}, ${type5})`);
       });
       const deduplicated = await this.deduplicateGemResults(sorted);
-      console.log(`[VectorStore] Dense search complete:`, {
+      const elapsed = performance.now() - startTime;
+      console.log(`[VectorStore] Brute-force search complete in ${elapsed.toFixed(2)}ms:`, {
         candidates: docs.length,
         afterDeduplication: deduplicated.length,
         returned: Math.min(deduplicated.length, limit),
@@ -21198,11 +21730,24 @@ var ContextEngineBridge = (() => {
       return doc ? doc.toJSON() : null;
     }
     /**
-     * Rebuild index (placeholder for future optimization)
+     * Rebuild HNSW index from all vectors in database
      */
     async rebuildIndex() {
-      console.log("[VectorStore] Index rebuild requested");
-      console.log("[VectorStore] Index rebuild complete");
+      console.log("[VectorStore] HNSW index rebuild requested");
+      await this._buildHNSW();
+      console.log("[VectorStore] HNSW index rebuild complete");
+    }
+    /**
+     * Get HNSW index statistics
+     */
+    getIndexStats() {
+      if (!this.indexReady || !this.hnswIndex) {
+        return { ready: false };
+      }
+      return {
+        ready: true,
+        ...this.hnswIndex.getStats()
+      };
     }
   };
   var vectorStoreInstance = null;
@@ -21581,11 +22126,11 @@ var ContextEngineBridge = (() => {
         if (!candidate.gem.vector) {
           continue;
         }
-        const relevance = cosineSimilarity(candidate.gem.vector, queryVector);
+        const relevance = cosineSimilarity2(candidate.gem.vector, queryVector);
         let maxSimilarity = 0;
         for (const selectedDoc of selected) {
           if (selectedDoc.gem.vector) {
-            const similarity = cosineSimilarity(candidate.gem.vector, selectedDoc.gem.vector);
+            const similarity = cosineSimilarity2(candidate.gem.vector, selectedDoc.gem.vector);
             maxSimilarity = Math.max(maxSimilarity, similarity);
           }
         }
