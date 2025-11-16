@@ -21529,12 +21529,21 @@ var ContextEngineBridge = (() => {
         };
       });
       const results = (await Promise.all(gemPromises)).filter((r) => r !== null);
+      const MIN_SIMILARITY_THRESHOLD = 0.7;
+      const filteredResults = results.filter((r) => r.score >= MIN_SIMILARITY_THRESHOLD);
+      if (filteredResults.length === 0 && results.length > 0) {
+        console.warn("[VectorStore] All HNSW results below similarity threshold:", {
+          totalResults: results.length,
+          threshold: MIN_SIMILARITY_THRESHOLD,
+          topScore: results[0]?.score.toFixed(3)
+        });
+      }
       console.log("[VectorStore] Top 5 HNSW matches before deduplication:");
-      results.slice(0, 5).forEach((r, i) => {
+      filteredResults.slice(0, 5).forEach((r, i) => {
         const type5 = r.isPrimary ? "PRIMARY" : r.isVirtual ? "CHILD" : "SINGLE";
         console.log(`  ${i + 1}. ${r.gem.value.substring(0, 40)}... (${r.score.toFixed(3)}, ${type5})`);
       });
-      const deduplicated = await this.deduplicateGemResults(results);
+      const deduplicated = await this.deduplicateGemResults(filteredResults);
       const elapsed = performance.now() - startTime;
       console.log(`[VectorStore] HNSW search complete in ${elapsed.toFixed(2)}ms:`, {
         candidates: hnswResults.length,
