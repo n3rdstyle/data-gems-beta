@@ -1193,42 +1193,37 @@ async function clearAllData() {
   if (!confirmed) return;
 
   try {
-    // Check if we're using RxDB
-    const storageCheck = await chrome.storage.local.get(['migrationCompleted']);
-    const usesRxDB = storageCheck.migrationCompleted === true;
+    console.log('[Clear] Starting data cleanup...');
 
-    if (usesRxDB) {
-      console.log('[Clear] Clearing RxDB and HNSW index...');
-
-      // Send message to background to destroy Context Engine
-      try {
-        await chrome.runtime.sendMessage({ action: 'destroyEngine' });
-      } catch (error) {
-        console.warn('[Clear] Could not destroy engine:', error);
-      }
-
-      // Delete RxDB database
-      await new Promise((resolve, reject) => {
-        const request = indexedDB.deleteDatabase('data-gems-db-v3');
-        request.onsuccess = () => {
-          console.log('[Clear] RxDB database deleted');
-          resolve();
-        };
-        request.onerror = () => {
-          console.error('[Clear] Failed to delete RxDB database:', request.error);
-          reject(request.error);
-        };
-        request.onblocked = () => {
-          console.warn('[Clear] Database deletion blocked - close all tabs using this extension');
-          // Continue anyway after timeout
-          setTimeout(resolve, 1000);
-        };
-      });
-
-      // Clear HNSW index from chrome.storage.local
-      await chrome.storage.local.remove(['hnsw_index']);
-      console.log('[Clear] HNSW index cleared');
+    // Always try to destroy Context Engine (works whether using RxDB or not)
+    try {
+      await chrome.runtime.sendMessage({ action: 'destroyEngine' });
+      console.log('[Clear] Context Engine destroyed');
+    } catch (error) {
+      console.warn('[Clear] Could not destroy engine:', error);
     }
+
+    // Always try to delete RxDB database (harmless if doesn't exist)
+    await new Promise((resolve, reject) => {
+      const request = indexedDB.deleteDatabase('data-gems-db-v3');
+      request.onsuccess = () => {
+        console.log('[Clear] RxDB database deleted');
+        resolve();
+      };
+      request.onerror = () => {
+        console.error('[Clear] Failed to delete RxDB database:', request.error);
+        reject(request.error);
+      };
+      request.onblocked = () => {
+        console.warn('[Clear] Database deletion blocked - close all tabs using this extension');
+        // Continue anyway after timeout
+        setTimeout(resolve, 1000);
+      };
+    });
+
+    // Always clear HNSW index (harmless if doesn't exist)
+    await chrome.storage.local.remove(['hnsw_index']);
+    console.log('[Clear] HNSW index cleared');
 
     // Clear chrome.storage data (AppState)
     AppState = initializeDefaultProfile();
