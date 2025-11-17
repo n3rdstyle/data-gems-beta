@@ -1237,6 +1237,47 @@ function importData() {
   console.log('[Import] ✅ File picker triggered (waiting for user selection)');
 }
 
+async function debugDataSources() {
+  console.log('========================================');
+  console.log('DEBUG: DATA SOURCES');
+  console.log('========================================');
+
+  // 1. Check AppState
+  console.log('1. AppState.content.preferences.items:', AppState?.content?.preferences?.items?.length || 0);
+  if (AppState?.content?.preferences?.items?.length > 0) {
+    console.log('   First item:', AppState.content.preferences.items[0]);
+  }
+
+  // 2. Check Chrome Storage
+  const chromeData = await chrome.storage.local.get(['hspProfile']);
+  console.log('2. Chrome Storage items:', chromeData?.hspProfile?.content?.preferences?.items?.length || 0);
+
+  // 3. Check RxDB via Context Engine
+  try {
+    const engine = await ensureContextEngine();
+    const rxdbGems = await engine.getAllGems({ isPrimary: true });
+    console.log('3. RxDB items (via Context Engine):', rxdbGems.length);
+    if (rxdbGems.length > 0) {
+      console.log('   First gem:', rxdbGems[0]);
+    }
+  } catch (error) {
+    console.log('3. RxDB ERROR:', error.message);
+  }
+
+  // 4. Check IndexedDB directly
+  try {
+    const databases = await indexedDB.databases();
+    console.log('4. IndexedDB databases:', databases.map(db => db.name));
+  } catch (error) {
+    console.log('4. IndexedDB enumeration not supported');
+  }
+
+  console.log('========================================');
+}
+
+// Make debug function globally available
+window.debugDataSources = debugDataSources;
+
 async function clearAllData() {
   console.log('[Clear] ========================================');
   console.log('[Clear] clearAllData() function called!');
