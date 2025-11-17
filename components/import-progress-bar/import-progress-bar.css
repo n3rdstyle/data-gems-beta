@@ -1,0 +1,54 @@
+/**
+ * Import Progress Bar
+ * Top-loading bar for import/embedding progress
+ */
+
+.import-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--color-surface-secondary);
+  z-index: 10000;
+  overflow: hidden;
+}
+
+.import-progress-bar__fill {
+  height: 100%;
+  background: linear-gradient(90deg, #FF6B6B, #4ECDC4, #45B7D1);
+  background-size: 200% 100%;
+  animation: shimmer 2s linear infinite;
+  transition: width 0.3s ease-out;
+  width: 0%;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.import-progress-bar__label {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-surface-primary);
+  padding: 8px 16px;
+  border-radius: var(--border-radius-m);
+  box-shadow: var(--shadow-m);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  z-index: 10001;
+  white-space: nowrap;
+}
+
+.import-progress-bar--complete .import-progress-bar__fill {
+  background: #4ECDC4;
+  animation: none;
+}
