@@ -1188,9 +1188,16 @@ function importData() {
 
         console.log(`[Import] ✅ Total imported: ${importedCount} primary gems, ${childImportedCount} child gems`);
 
-        // Reload data from RxDB
+        // Reload data from RxDB and navigate to home screen
+        console.log('[Import] Reloading data from RxDB...');
         await loadData();
+        console.log('[Import] ✅ Data reloaded, AppState now has', AppState?.content?.preferences?.items?.length, 'items');
+
+        console.log('[Import] Navigating to home screen...');
+        AppState.metadata.currentScreen = 'home';
         renderCurrentScreen();
+        console.log('[Import] ✅ UI rendered');
+
         await checkBetaCheckinModal();
         await checkBackupReminder();
 
