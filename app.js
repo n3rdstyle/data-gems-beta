@@ -1295,9 +1295,27 @@ async function clearAllData() {
       throw new Error('Failed to delete database after multiple attempts');
     }
 
-    // Always clear HNSW index (harmless if doesn't exist)
+    // Step 3: Delete ALL IndexedDB databases (Dexie may create additional internal DBs)
+    console.log('[Clear] Step 3: Checking for additional IndexedDB databases...');
+    try {
+      const databases = await indexedDB.databases();
+      console.log('[Clear] Found IndexedDB databases:', databases.map(db => db.name));
+
+      for (const db of databases) {
+        if (db.name.includes('rxdb') || db.name.includes('datagems') || db.name.includes('data-gems')) {
+          console.log(`[Clear] Deleting additional database: ${db.name}`);
+          await indexedDB.deleteDatabase(db.name);
+          console.log(`[Clear] ✅ Deleted: ${db.name}`);
+        }
+      }
+    } catch (error) {
+      console.warn('[Clear] Could not enumerate databases (not critical):', error);
+    }
+
+    // Step 4: Clear HNSW index from chrome.storage.local
+    console.log('[Clear] Step 4: Clearing HNSW index...');
     await chrome.storage.local.remove(['hnsw_index']);
-    console.log('[Clear] HNSW index cleared');
+    console.log('[Clear] ✅ HNSW index cleared');
     chrome.runtime.sendMessage({ action: 'log', message: '[Clear] HNSW index removed from chrome.storage.local' });
 
     // Verify HNSW was removed
@@ -1305,12 +1323,17 @@ async function clearAllData() {
     console.log('[Clear] HNSW verification - exists:', !!checkHNSW.hnsw_index);
     chrome.runtime.sendMessage({ action: 'log', message: `[Clear] HNSW verification - exists: ${!!checkHNSW.hnsw_index}` });
 
-    // Clear chrome.storage data (AppState)
+    // Step 5: Clear chrome.storage data (AppState)
+    console.log('[Clear] Step 5: Resetting AppState...');
     AppState = initializeDefaultProfile();
     await saveData();
+    console.log('[Clear] ✅ AppState reset to default');
     chrome.runtime.sendMessage({ action: 'log', message: '[Clear] AppState reset to default' });
 
-    console.log('[Clear] All cleanup complete, reloading extension...');
+    console.log('[Clear] ========================================');
+    console.log('[Clear] All cleanup complete!');
+    console.log('[Clear] Extension will reload in 500ms...');
+    console.log('[Clear] ========================================');
     chrome.runtime.sendMessage({ action: 'log', message: '[Clear] All cleanup complete, extension will reload in 500ms' });
 
     // Reload the page to reinitialize everything
