@@ -1718,10 +1718,22 @@ async function renderCurrentScreen() {
               await saveData();
             }
           },
-          onBackupData: exportData,
-          onUpdateData: importData,
-          onClearData: clearAllData,
-          onThirdPartyData: importThirdPartyData,
+          onBackupData: () => {
+            console.log('🟢 HOME: onBackupData called');
+            exportData();
+          },
+          onUpdateData: () => {
+            console.log('🟢 HOME: onUpdateData called - about to call importData()');
+            importData();
+          },
+          onClearData: () => {
+            console.log('🟢 HOME: onClearData called');
+            clearAllData();
+          },
+          onThirdPartyData: () => {
+            console.log('🟢 HOME: onThirdPartyData called');
+            importThirdPartyData();
+          },
           onDescriptionToggle: async (state) => {
             AppState = updateUserIdentityState(AppState, 'description', state);
             await saveData();
