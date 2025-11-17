@@ -2066,9 +2066,18 @@ async function renderCurrentScreen() {
             AppState.metadata.currentScreen = 'home';
             renderCurrentScreen();
           },
-          onBackupData: () => exportData(),
-          onUpdateData: () => importData(),
-          onClearData: () => clearAllData(),
+          onBackupData: () => {
+            console.log('🔵 onBackupData called');
+            exportData();
+          },
+          onUpdateData: () => {
+            console.log('🔵 onUpdateData called - about to call importData()');
+            importData();
+          },
+          onClearData: () => {
+            console.log('🔵 onClearData called');
+            clearAllData();
+          },
           onThirdPartyData: () => importThirdPartyData(),
           autoInjectEnabled: AppState?.settings?.injection?.auto_inject || false,
           onAutoInjectToggle: async (isEnabled) => {
@@ -2319,6 +2328,20 @@ async function renderCurrentScreen() {
         };
 
         screenComponent = createSettings(settingsOptions);
+
+        // DEBUG: Add a test button that DEFINITELY works
+        const testButton = document.createElement('button');
+        testButton.textContent = '🧪 TEST IMPORT BUTTON';
+        testButton.style.cssText = 'position: fixed; bottom: 20px; left: 20px; z-index: 9999; padding: 20px; background: red; color: white; font-size: 16px; border: none; cursor: pointer;';
+        testButton.onclick = () => {
+          alert('🧪 TEST BUTTON CLICKED!');
+          importData();
+        };
+        setTimeout(() => {
+          document.body.appendChild(testButton);
+          console.log('🧪 Test button added to DOM');
+        }, 100);
+
         break;
 
       case 'third-party-data':
