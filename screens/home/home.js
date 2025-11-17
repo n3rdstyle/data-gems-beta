@@ -504,32 +504,30 @@ function createHome(options = {}) {
   // Initialize calibration with current card count
   updateCalibrationFromCards();
 
-  // Questions will be loaded asynchronously
-  let randomQuestions = [];
-  let usedQuestions = [];
-  let availableQuestions = [];
+  // Initialize Random Question System with JSON Templates
+  let currentQuestionData = null;
 
-  // Load questions from CSV file
-  loadRandomQuestions().then(questions => {
-    randomQuestions = questions;
+  // Initialize templates and get first question
+  initializeRandomQuestions().then(async () => {
+    // Get a random question
+    currentQuestionData = await getRandomQuestion();
 
-    // Track which questions have been used
-    usedQuestions = randomQuestions.filter(q => usedRandomQuestions.includes(q.question));
-    availableQuestions = randomQuestions.filter(q => !usedRandomQuestions.includes(q.question));
-
-    // Update preference options with first available question
-    if (preferenceOptions && availableQuestions.length > 0) {
-      preferenceOptions.setRandomQuestionLabel(availableQuestions[0].question);
+    // Update preference options button
+    if (preferenceOptions && currentQuestionData) {
+      preferenceOptions.setRandomQuestionLabel(currentQuestionData.question);
       preferenceOptions.setRandomQuestionDisabled(false);
     } else if (preferenceOptions) {
-      preferenceOptions.setRandomQuestionLabel('New questions soon');
+      preferenceOptions.setRandomQuestionLabel('All questions answered!');
       preferenceOptions.setRandomQuestionDisabled(true);
     }
   }).catch(error => {
-    console.error('Failed to load questions:', error);
-    // Use empty array as fallback (button will be disabled)
-    randomQuestions = [];
-    availableQuestions = [];
+    console.error('Failed to initialize random questions:', error);
+    // Use empty state as fallback (button will be disabled)
+    currentQuestionData = null;
+    if (preferenceOptions) {
+      preferenceOptions.setRandomQuestionLabel('Questions unavailable');
+      preferenceOptions.setRandomQuestionDisabled(true);
+    }
   });
 
   // Create Preference Options component
@@ -611,77 +609,52 @@ function createHome(options = {}) {
       }
     },
     onToggle: onPreferenceOptionsToggle,
-    onRandomQuestionClick: () => {
-      // Check if there are available questions
-      if (availableQuestions.length === 0) {
+    onRandomQuestionClick: async () => {
+      // Check if there is a current question
+      if (!currentQuestionData) {
         return; // Button should be disabled, but double-check
       }
 
-      // Get the first available question
-      let currentQuestionObj = availableQuestions[0];
-
-      // Batch answered questions to save when modal closes
-      const batchedAnswers = [];
-
       // Create and show Random Question Modal
       const randomQuestionModal = createRandomQuestionModal({
-        question: currentQuestionObj.question,
-        onAnswer: (answer, question) => {
-          // When user sends an answer, batch it for later saving
+        question: currentQuestionData.question,
+        onAnswer: async (answer, question) => {
+          // When user sends an answer, save it as a gem
           if (answer && answer.trim()) {
-            // Format: "Question: Answer"
-            const cardText = `${question}\n${answer}`;
+            try {
+              // Save answer and update template
+              await saveAnswer(currentQuestionData, answer);
 
-            // Get the tag from the current question object
-            const questionTag = currentQuestionObj.tag || currentQuestionObj.category || 'General';
+              // Trigger re-render to show new gem
+              if (onPreferenceAdd) {
+                // Force a re-render by calling renderCurrentScreen
+                renderCurrentScreen();
+              }
 
-            // Get the subCategory key (if available)
-            const questionSubCategoryKey = currentQuestionObj.subCategoryKey || '';
+              // Get next question
+              currentQuestionData = await getRandomQuestion();
 
-            // Add to batch
-            batchedAnswers.push({
-              text: cardText,
-              state: 'default',
-              collections: [questionTag],
-              subCollections: questionSubCategoryKey ? [questionSubCategoryKey] : []
-            });
-
-            // Mark this question as used
-            const usedQuestion = availableQuestions.shift();
-            usedQuestions.push(usedQuestion);
-
-            // Save used questions to AppState via callback
-            if (onRandomQuestionUsed) {
-              onRandomQuestionUsed(usedQuestion.question);
-            }
-
-            // Check if there are more questions
-            if (availableQuestions.length > 0) {
-              // Update current question reference
-              currentQuestionObj = availableQuestions[0];
-              // Show next available question in modal
-              randomQuestionModal.setQuestion(currentQuestionObj.question);
-              // Update button label
-              preferenceOptions.setRandomQuestionLabel(currentQuestionObj.question);
-            } else {
-              // All questions used - close modal and disable button
-              randomQuestionModal.hide();
-              preferenceOptions.setRandomQuestionLabel('New questions soon');
-              preferenceOptions.setRandomQuestionDisabled(true);
+              // Check if there are more questions
+              if (currentQuestionData) {
+                // Show next question in modal
+                randomQuestionModal.setQuestion(currentQuestionData.question);
+                // Update button label
+                preferenceOptions.setRandomQuestionLabel(currentQuestionData.question);
+              } else {
+                // All questions answered - close modal and disable button
+                randomQuestionModal.hide();
+                preferenceOptions.setRandomQuestionLabel('All questions answered!');
+                preferenceOptions.setRandomQuestionDisabled(true);
+              }
+            } catch (error) {
+              console.error('Error saving answer:', error);
+              alert('Failed to save answer. Please try again.');
             }
           }
         },
         onClose: () => {
-          // Modal closed - save all batched answers at once
-          if (batchedAnswers.length > 0) {
-            // Save all answers
-            batchedAnswers.forEach(answer => {
-              if (onPreferenceAdd) {
-                onPreferenceAdd(answer.text, answer.state, answer.collections, answer.topic);
-              }
-            });
-            // Note: renderCurrentScreen() will be called by the last onPreferenceAdd
-          }
+          // Modal closed - nothing to batch, answers are saved immediately
+          console.log('Random question modal closed');
         }
       });
 

@@ -1,0 +1,66 @@
+{
+  "activity_identity": {
+    "main_sports": [],
+    "fitness_level": "",
+    "training_goals": [],
+    "training_frequency": "",
+    "sports_background": "",
+    "injury_history": []
+  },
+  "training_preferences": {
+    "preferred_training_environment": "",
+    "favorite_training_styles": [],
+    "preferred_time_of_day": "",
+    "training_alone_vs_group": "",
+    "tracking_devices_or_apps": [],
+    "motivation_triggers": []
+  },
+  "performance_context": {
+    "current_running_pace": "",
+    "strength_focus_areas": [],
+    "mobility_or_recovery_routines": [],
+    "competition_participation": "",
+    "rest_day_activities": [],
+    "personal_bests_or_milestones": []
+  },
+  "equipment_preferences": {
+    "preferred_brands": [],
+    "favorite_shoes_or_gear": [],
+    "equipment_material_preferences": [],
+    "tech_integration_preference": "",
+    "gear_upgrade_frequency": "",
+    "eco_friendly_preference": ""
+  },
+  "health_and_wellbeing": {
+    "sleep_focus": "",
+    "recovery_methods": [],
+    "stress_management_activities": [],
+    "nutrition_sync_with_training": "",
+    "supplement_routine": [],
+    "body_feedback_awareness": ""
+  },
+  "hobbies_identity": {
+    "creative_hobbies": [],
+    "intellectual_hobbies": [],
+    "outdoor_hobbies": [],
+    "collecting_or_crafting_hobbies": [],
+    "frequency_of_hobbies": "",
+    "learning_goals": []
+  },
+  "social_and_community": {
+    "sports_or_hobby_groups": [],
+    "training_partners": [],
+    "online_communities": [],
+    "competition_or_event_interest": [],
+    "teaching_or_coaching_interest": "",
+    "preferred_community_vibe": ""
+  },
+  "emotional_connection": {
+    "feelings_sought_from_activity": [],
+    "most_motivating_moment": "",
+    "biggest_challenge": "",
+    "activity_pet_peeves": [],
+    "bucket_list_goals": [],
+    "definition_of_success_in_activity": ""
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "environment_identity": {
+    "relationship_with_environment": "",
+    "definition_of_sustainability": "",
+    "eco_values": [],
+    "preferred_climate": "",
+    "connection_to_nature": "",
+    "environmental_concerns": []
+  },
+  "living_environment": {
+    "urban_or_rural_preference": "",
+    "proximity_to_nature": "",
+    "green_space_access": "",
+    "home_energy_source": "",
+    "waste_management_habits": [],
+    "transportation_mode": ""
+  },
+  "daily_environmental_impact": {
+    "commute_behavior": "",
+    "digital_footprint_awareness": "",
+    "energy_consumption_habits": "",
+    "food_waste_habits": "",
+    "eco_friendly_practices": [],
+    "water_usage_mindfulness": ""
+  },
+  "sustainability_choices": {
+    "shopping_criteria_for_sustainability": [],
+    "preferred_sustainable_brands": [],
+    "eco_certifications_you_trust": [],
+    "repair_or_reuse_habits": "",
+    "circular_economy_involvement": "",
+    "local_vs_global_product_preference": ""
+  },
+  "mobility_and_travel_footprint": {
+    "primary_transport_methods": [],
+    "flight_frequency_per_year": "",
+    "car_ownership_status": "",
+    "electric_or_hybrid_vehicle_interest": "",
+    "bike_or_public_transport_usage": "",
+    "carbon_offsetting_practices": []
+  },
+  "community_and_activism": {
+    "environmental_organizations_supported": [],
+    "local_initiatives_participated_in": [],
+    "volunteering_or_donations": "",
+    "advocacy_topics": [],
+    "community_engagement_level": "",
+    "educational_outreach_interest": ""
+  },
+  "emotional_connection_to_environment": {
+    "favorite_natural_places": [],
+    "emotions_triggered_by_nature": [],
+    "memorable_environmental_experiences": [],
+    "how_environment_affects_mood": "",
+    "coping_strategies_in_urban_stress": "",
+    "personal_definition_of_balance_with_nature": ""
+  },
+  "future_environmental_vision": {
+    "lifestyle_changes_planned": [],
+    "technologies_you_believe_in": [],
+    "personal_sustainability_goals": [],
+    "dream_future_environment": "",
+    "legacy_for_future_generations": "",
+    "role_you_want_to_play_in_environmental_change": ""
+  }
+}

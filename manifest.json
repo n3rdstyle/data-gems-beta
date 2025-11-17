@@ -79,7 +79,10 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["complete-questions-catalog.csv"],
+      "resources": [
+        "complete-questions-catalog.csv",
+        "templates/*.json"
+      ],
       "matches": ["<all_urls>"]
     }
   ]

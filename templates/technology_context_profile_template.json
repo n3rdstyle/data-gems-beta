@@ -1,0 +1,67 @@
+{
+  "tech_identity": {
+    "tech_persona": "",
+    "overall_tech_attitude": "",
+    "preferred_operating_systems": [],
+    "device_ecosystem": [],
+    "daily_core_devices": [],
+    "tech_curiosity_level": "",
+    "comfort_with_experiments": ""
+  },
+  "device_preferences": {
+    "smartphone_brand": "",
+    "computer_brand": "",
+    "tablet_usage": "",
+    "wearables": [],
+    "audio_devices": [],
+    "smart_home_devices": []
+  },
+  "digital_behavior": {
+    "screen_time_pattern": "",
+    "main_daily_apps": [],
+    "social_media_usage": "",
+    "notification_tolerance": "",
+    "preferred_input_methods": [],
+    "cross_device_sync_importance": ""
+  },
+  "ai_and_automation": {
+    "ai_tools_used": [],
+    "ai_use_cases": [],
+    "comfort_with_ai_decisions": "",
+    "automation_tools": [],
+    "task_automation_preference": "",
+    "personal_agent_expectations": []
+  },
+  "data_privacy_and_security": {
+    "privacy_priority_level": "",
+    "password_management_style": "",
+    "data_storage_preference": "",
+    "cloud_service_trust_level": "",
+    "local_vs_cloud_preference": "",
+    "backup_routine": ""
+  },
+  "technology_shopping_behavior": {
+    "upgrade_frequency": "",
+    "preferred_brands": [],
+    "research_depth_before_purchase": "",
+    "importance_of_design_vs_specs": "",
+    "budget_for_tech": "",
+    "eco_or_refurbished_interest": ""
+  },
+  "work_and_productivity": {
+    "work_device_setup": "",
+    "preferred_software_tools": [],
+    "note_taking_system": "",
+    "project_management_style": "",
+    "collaboration_habits": [],
+    "digital_distraction_management": ""
+  },
+  "emotional_connection_to_tech": {
+    "tech_as_identity_factor": "",
+    "most_beloved_device": "",
+    "biggest_tech_frustration": "",
+    "nostalgic_tech_memories": [],
+    "definition_of_good_technology": "",
+    "future_tech_dreams": []
+  }
+}

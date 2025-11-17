@@ -19,14 +19,12 @@ window.ContextEngineAPI = {
    * Initialize - check if background Context Engine is ready
    */
   async initialize() {
-    console.log('[ContextEngineAPI] Checking background Context Engine status...');
     this.isInitializing = true;
 
     try {
       const response = await this._sendMessage('contextEngine.isReady');
       if (response.success) {
         this.isReady = response.isReady;
-        console.log('[ContextEngineAPI] Background Context Engine ready:', this.isReady);
       }
       return this;
     } catch (error) {
@@ -98,6 +96,47 @@ window.ContextEngineAPI = {
   },
 
   /**
+   * Generate embedding for text
+   */
+  async generateEmbedding(text) {
+    const response = await this._sendMessage('contextEngine.generateEmbedding', {
+      text
+    });
+
+    if (response.success) {
+      return response.embedding;
+    } else {
+      throw new Error(response.error || 'Failed to generate embedding');
+    }
+  },
+
+  /**
+   * Get pre-computed category embeddings
+   */
+  async getCategoryEmbeddings() {
+    const response = await this._sendMessage('contextEngine.getCategoryEmbeddings');
+
+    if (response.success) {
+      return response.embeddings;
+    } else {
+      throw new Error(response.error || 'Failed to get category embeddings');
+    }
+  },
+
+  /**
+   * Check if category embeddings are ready
+   */
+  async areCategoryEmbeddingsReady() {
+    const response = await this._sendMessage('contextEngine.areCategoryEmbeddingsReady');
+
+    if (response.success) {
+      return response.ready;
+    } else {
+      throw new Error(response.error || 'Failed to check category embeddings status');
+    }
+  },
+
+  /**
    * Send message to background and await response
    * @private
    */
@@ -132,7 +171,6 @@ window.ContextEngineAPI = {
 // Bridge for MAIN world requests
 document.addEventListener('dataGems:contextEngine:request', async (event) => {
   const { action, params, requestId } = event.detail;
-  console.log('[ContextEngineAPI] Bridge: Received request from MAIN world:', action);
 
   try {
     let result;
@@ -141,14 +179,12 @@ document.addEventListener('dataGems:contextEngine:request', async (event) => {
       case 'initialize':
         // Wait for Context Engine to be ready (max 10 seconds)
         if (!window.ContextEngineAPI.isReady) {
-          console.log('[ContextEngineAPI] Bridge: Waiting for Context Engine to initialize...');
           const startTime = Date.now();
           while (!window.ContextEngineAPI.isReady && (Date.now() - startTime) < 10000) {
             await new Promise(resolve => setTimeout(resolve, 100));
           }
         }
         result = { isReady: window.ContextEngineAPI.isReady };
-        console.log('[ContextEngineAPI] Bridge: Returning isReady:', result.isReady);
         break;
 
       case 'search':
@@ -171,6 +207,18 @@ document.addEventListener('dataGems:contextEngine:request', async (event) => {
         result = await window.ContextEngineAPI.getStats();
         break;
 
+      case 'generateEmbedding':
+        result = await window.ContextEngineAPI.generateEmbedding(params.text);
+        break;
+
+      case 'getCategoryEmbeddings':
+        result = await window.ContextEngineAPI.getCategoryEmbeddings();
+        break;
+
+      case 'areCategoryEmbeddingsReady':
+        result = await window.ContextEngineAPI.areCategoryEmbeddingsReady();
+        break;
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }
@@ -187,4 +235,3 @@ document.addEventListener('dataGems:contextEngine:request', async (event) => {
   }
 });
 
-console.log('[ContextEngineAPI] Message passing wrapper loaded');

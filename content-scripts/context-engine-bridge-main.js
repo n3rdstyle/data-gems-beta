@@ -3,7 +3,6 @@
  * Communicates with ISOLATED world via Custom Events
  */
 
-console.log('[ContextEngine Bridge] Initializing MAIN world bridge...');
 
 window.ContextEngineAPI = {
   isReady: false,
@@ -18,7 +17,6 @@ window.ContextEngineAPI = {
     try {
       const result = await this._sendRequest('initialize');
       this.isReady = result.isReady;
-      console.log('[ContextEngine Bridge] MAIN world bridge ready:', this.isReady);
       return this;
     } catch (error) {
       console.error('[ContextEngine Bridge] Failed to initialize:', error);
@@ -54,6 +52,27 @@ window.ContextEngineAPI = {
    */
   async getStats() {
     return this._sendRequest('getStats');
+  },
+
+  /**
+   * Generate embedding for text
+   */
+  async generateEmbedding(text) {
+    return this._sendRequest('generateEmbedding', { text });
+  },
+
+  /**
+   * Get pre-computed category embeddings
+   */
+  async getCategoryEmbeddings() {
+    return this._sendRequest('getCategoryEmbeddings');
+  },
+
+  /**
+   * Check if category embeddings are ready
+   */
+  async areCategoryEmbeddingsReady() {
+    return this._sendRequest('areCategoryEmbeddingsReady');
   },
 
   /**
@@ -103,11 +122,9 @@ window.ContextEngineAPI = {
 (async function() {
   try {
     await window.ContextEngineAPI.initialize();
-    console.log('[ContextEngine Bridge] MAIN world auto-init complete');
 
     // If not ready yet, poll until ready
     if (!window.ContextEngineAPI.isReady) {
-      console.log('[ContextEngine Bridge] Context Engine not ready yet, starting polling...');
 
       const pollingInterval = setInterval(async () => {
         try {
@@ -125,7 +142,6 @@ window.ContextEngineAPI = {
       // Stop polling after 60 seconds
       setTimeout(() => {
         clearInterval(pollingInterval);
-        console.log('[ContextEngine Bridge] Polling stopped (timeout)');
       }, 60000);
     }
   } catch (error) {
@@ -133,4 +149,3 @@ window.ContextEngineAPI = {
   }
 })();
 
-console.log('[ContextEngine Bridge] MAIN world bridge loaded');

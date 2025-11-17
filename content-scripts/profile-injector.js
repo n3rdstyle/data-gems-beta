@@ -399,8 +399,6 @@ function formatProfileAsJSON(hspProfile) {
  * Attach file to chat (ChatGPT, Gemini, etc.)
  */
 async function attachFileToChat(file) {
-  console.log('[Data Gems] Starting file attachment for:', file.name);
-  console.log('[Data Gems] Platform:', currentPlatform.name);
 
   // Method 1: Try to find file input
   // CRITICAL: For Gemini, file inputs ALREADY EXIST in DOM (no button click needed)
@@ -431,12 +429,6 @@ async function attachFileToChat(file) {
       try {
         fileInput = document.querySelector(selector);
         if (fileInput) {
-          console.log('[Data Gems] 📎 Found file input:', fileInput);
-          console.log('[Data Gems] File input details:', {
-            class: fileInput.className,
-            accept: fileInput.accept,
-            type: fileInput.type
-          });
           break;
         }
       } catch (e) {
@@ -447,7 +439,6 @@ async function attachFileToChat(file) {
     // If not found with specific selectors, search all file inputs
     if (!fileInput) {
       const allFileInputs = document.querySelectorAll('input[type="file"]');
-      console.log('[Data Gems] Checking', allFileInputs.length, 'file inputs on page');
 
       if (allFileInputs.length > 0) {
         // Log all found inputs for debugging
@@ -462,7 +453,6 @@ async function attachFileToChat(file) {
         for (const input of allFileInputs) {
           if (input.className.includes('hidden-file-input')) {
             fileInput = input;
-            console.log('[Data Gems] Selected hidden-file-input');
             break;
           }
         }
@@ -470,7 +460,6 @@ async function attachFileToChat(file) {
         // Otherwise take first available
         if (!fileInput && allFileInputs.length > 0) {
           fileInput = allFileInputs[0];
-          console.log('[Data Gems] Using first available file input');
         }
       }
     }
@@ -482,7 +471,6 @@ async function attachFileToChat(file) {
       try {
         fileInput = document.querySelector(selector);
         if (fileInput) {
-          console.log('[Data Gems] Found file input with selector:', selector);
           break;
         }
       } catch (e) {
@@ -496,37 +484,21 @@ async function attachFileToChat(file) {
   console.log('[Data Gems] Found', fileInputs.length, 'file inputs');
 
   for (const input of fileInputs) {
-    console.log('[Data Gems] Checking file input:', {
-      accept: input.accept,
-      multiple: input.multiple,
-      classList: Array.from(input.classList),
-      id: input.id,
-      visibility: window.getComputedStyle(input).display,
-      parentVisibility: input.parentElement ? window.getComputedStyle(input.parentElement).display : 'n/a'
-    });
 
     // For Gemini, try ALL file inputs regardless of accept attribute
     const isGemini = currentPlatform.name === 'Gemini';
 
     // Skip image-only inputs (unless platform is Gemini which might need it)
     if (!isGemini && input.accept && input.accept.includes('image/') && !input.accept.includes('*') && !input.accept.includes('json')) {
-      console.log('[Data Gems] Skipping image-only input');
       continue;
     }
 
     try {
-      console.log('[Data Gems] Attempting file attachment via input element');
 
       // Take snapshot BEFORE attaching to detect changes
       const beforeAttachments = document.querySelectorAll('[class*="attachment"], [class*="file-"], [data-testid*="file"], [data-testid*="attachment"]').length;
       const beforeBodyText = document.body.textContent.toLowerCase();
       const fileNameLower = file.name.toLowerCase();
-
-      console.log('[Data Gems] Before state:', {
-        attachmentCount: beforeAttachments,
-        hasFileName: beforeBodyText.includes(fileNameLower),
-        hspProfileString: beforeBodyText.includes('data-gems-profile')
-      });
 
       // Create DataTransfer object with our file
       const dataTransfer = new DataTransfer();
@@ -534,31 +506,21 @@ async function attachFileToChat(file) {
 
       // Set files property (this doesn't require user activation!)
       input.files = dataTransfer.files;
-      console.log('[Data Gems] Files set to input:', input.files.length, 'files');
 
       // Trigger change event
       const changeEvent = new Event('change', { bubbles: true });
       input.dispatchEvent(changeEvent);
-      console.log('[Data Gems] Dispatched change event');
 
       // Also trigger input event
       const inputEvent = new Event('input', { bubbles: true });
       input.dispatchEvent(inputEvent);
-      console.log('[Data Gems] Dispatched input event');
 
       // Wait to see if attachment appears in UI
-      console.log('[Data Gems] Waiting 1500ms for UI update...');
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       // Take snapshot AFTER to compare
       const afterAttachments = document.querySelectorAll('[class*="attachment"], [class*="file-"], [data-testid*="file"], [data-testid*="attachment"]').length;
       const afterBodyText = document.body.textContent.toLowerCase();
-
-      console.log('[Data Gems] After state:', {
-        attachmentCount: afterAttachments,
-        hasFileName: afterBodyText.includes(fileNameLower),
-        hspProfileString: afterBodyText.includes('data-gems-profile')
-      });
 
       // Only report success if there's a CLEAR NEW CHANGE
       // Check 1: Attachment element count increased
@@ -587,7 +549,6 @@ async function attachFileToChat(file) {
   }
 
   // Method 2: Try to simulate drop event (for platforms that support drag & drop)
-  console.log('[Data Gems] Method 1 failed, trying Method 2: drop event simulation');
 
   // Use platform-specific dropZones if available, otherwise fallback to defaults
   const dropTargets = currentPlatform.dropZones || [
@@ -597,20 +558,17 @@ async function attachFileToChat(file) {
     currentPlatform.selectors?.inputContainer
   ];
 
-  console.log('[Data Gems] Drop target selectors:', dropTargets.filter(Boolean));
 
   for (const targetSelector of dropTargets) {
     const target = document.querySelector(targetSelector);
 
     if (target) {
-      console.log('[Data Gems] Found drop target:', targetSelector);
 
       try {
         // Take snapshot before drop to detect changes
         const beforeAttachments = document.querySelectorAll('[class*="attachment"], [class*="file-"], [data-testid*="file"]').length;
         const beforeBodyText = document.body.textContent;
 
-        console.log('[Data Gems] Before drop:', { attachmentCount: beforeAttachments });
 
         const dataTransfer = new DataTransfer();
         dataTransfer.items.add(file);
@@ -622,10 +580,8 @@ async function attachFileToChat(file) {
         });
 
         target.dispatchEvent(dropEvent);
-        console.log('[Data Gems] Dispatched drop event');
 
         // Wait to see if attachment appears
-        console.log('[Data Gems] Waiting 2000ms for UI update...');
         await new Promise(resolve => setTimeout(resolve, 2000));
 
         // Check for attachment UI - more robust verification
@@ -633,12 +589,6 @@ async function attachFileToChat(file) {
         const afterBodyText = document.body.textContent.toLowerCase();
         const beforeBodyTextLower = beforeBodyText.toLowerCase();
         const fileNameLower = file.name.toLowerCase();
-
-        console.log('[Data Gems] After drop:', {
-          attachmentCount: afterAttachments,
-          hasFileName: afterBodyText.includes(fileNameLower),
-          hspProfileString: afterBodyText.includes('data-gems-profile')
-        });
 
         // Check if attachment count increased OR if file name appears in DOM
         if (afterAttachments > beforeAttachments) {
@@ -663,24 +613,20 @@ async function attachFileToChat(file) {
         console.log('[Data Gems] ✗ Error with drop event:', error);
       }
     } else {
-      console.log('[Data Gems] Drop target not found:', targetSelector);
     }
   }
 
   // Method 3: For Gemini - look for upload button and try to access its associated file input
   if (currentPlatform.name === 'Gemini') {
-    console.log('[Data Gems] Method 2 failed, trying Method 3: Gemini-specific file input search');
 
     // Wait a bit and try to find file inputs again (they might be dynamically created)
     await new Promise(resolve => setTimeout(resolve, 500));
 
     const allInputs = document.querySelectorAll('input[type="file"]');
-    console.log('[Data Gems] Found', allInputs.length, 'file inputs (second attempt)');
 
     if (allInputs.length > 0) {
       for (const input of allInputs) {
         try {
-          console.log('[Data Gems] Gemini Method 3: Trying file input');
 
           const dataTransfer = new DataTransfer();
           dataTransfer.items.add(file);
@@ -693,7 +639,6 @@ async function attachFileToChat(file) {
             input.dispatchEvent(event);
           });
 
-          console.log('[Data Gems] Waiting 2000ms for UI update...');
           await new Promise(resolve => setTimeout(resolve, 2000));
 
           // Check for success
@@ -709,7 +654,6 @@ async function attachFileToChat(file) {
     }
 
     // Method 4: Try to find shadow DOM elements
-    console.log('[Data Gems] Method 3 failed, trying Method 4: Shadow DOM search');
     const shadowRoots = [];
 
     function findShadowRoots(element) {
@@ -722,11 +666,9 @@ async function attachFileToChat(file) {
     }
 
     findShadowRoots(document.body);
-    console.log('[Data Gems] Found', shadowRoots.length, 'shadow roots');
 
     for (const shadowRoot of shadowRoots) {
       const shadowInputs = shadowRoot.querySelectorAll('input[type="file"]');
-      console.log('[Data Gems] Found', shadowInputs.length, 'file inputs in shadow DOM');
 
       for (const input of shadowInputs) {
         try {

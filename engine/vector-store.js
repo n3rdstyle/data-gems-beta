@@ -63,10 +63,8 @@ export class VectorStore {
     }
 
     // Initialize HNSW index
-    console.log('[VectorStore] Initializing HNSW index...');
     await this._initHNSW();
 
-    console.log('[VectorStore] Initialized successfully');
     return this;
   }
 
@@ -80,14 +78,11 @@ export class VectorStore {
       const serialized = storage.hnsw_index;
 
       if (serialized) {
-        console.log('[VectorStore] Loading HNSW index from chrome.storage.local...');
         const data = JSON.parse(serialized);
         this.hnswIndex = HNSWIndex.fromJSON(data);
         this.indexReady = true;
-        console.log('[VectorStore] HNSW index loaded:', this.hnswIndex.getStats());
       } else {
         // Build new index from existing gems
-        console.log('[VectorStore] Building new HNSW index...');
         await this._buildHNSW();
       }
     } catch (error) {
@@ -114,7 +109,6 @@ export class VectorStore {
       }
     }).exec();
 
-    console.log(`[VectorStore] Building HNSW index with ${docs.length} vectors...`);
 
     let added = 0;
     for (const doc of docs) {
@@ -126,7 +120,6 @@ export class VectorStore {
 
           // Log progress every 100 gems
           if (added % 100 === 0) {
-            console.log(`[VectorStore] HNSW: ${added}/${docs.length} vectors indexed`);
           }
         } catch (error) {
           console.warn(`[VectorStore] Failed to add gem ${gem.id} to HNSW:`, error.message);
@@ -135,7 +128,6 @@ export class VectorStore {
     }
 
     this.indexReady = true;
-    console.log('[VectorStore] HNSW index built:', this.hnswIndex.getStats());
 
     // Persist index
     await this._saveHNSW();
@@ -149,7 +141,6 @@ export class VectorStore {
       const serialized = JSON.stringify(this.hnswIndex.toJSON());
       await chrome.storage.local.set({ hnsw_index: serialized });
       const sizeKB = Math.round(serialized.length / 1024);
-      console.log(`[VectorStore] HNSW index saved to chrome.storage.local (${sizeKB} KB)`);
     } catch (error) {
       console.error('[VectorStore] Failed to save HNSW index:', error);
       // If storage quota exceeded, continue without persisting
@@ -175,7 +166,6 @@ export class VectorStore {
 
     // Vector is optional - gems without vectors won't be searchable via dense search
     if (!gem.vector) {
-      console.log(`[VectorStore] Inserting gem without vector: ${gem.id}`);
     }
 
     try {
@@ -196,7 +186,6 @@ export class VectorStore {
         }
       }
 
-      console.log(`[VectorStore] Inserted gem: ${gem.id}${gem.vector ? ' (with vector)' : ' (no vector)'}`);
     } catch (error) {
       if (error.code === 'CONFLICT') {
         console.warn(`[VectorStore] Gem ${gem.id} already exists, updating...`);
@@ -223,7 +212,6 @@ export class VectorStore {
     const hasChanged = this._hasGemChanged(doc, updates);
 
     if (!hasChanged) {
-      console.log(`[VectorStore] Gem ${id} unchanged, skipping update`);
       return;
     }
 
@@ -250,7 +238,6 @@ export class VectorStore {
       }
     }
 
-    console.log(`[VectorStore] Updated gem: ${id}`);
   }
 
   /**
@@ -324,7 +311,6 @@ export class VectorStore {
       }
     }
 
-    console.log(`[VectorStore] Deleted gem: ${id}`);
   }
 
   /**
@@ -332,14 +318,8 @@ export class VectorStore {
    * @param {Array<Object>} gems - Array of gem objects
    */
   async bulkInsert(gems) {
-    console.log(`[VectorStore] Bulk inserting ${gems.length} gems...`);
 
     const results = await this.collection.bulkInsert(gems);
-
-    console.log(`[VectorStore] Bulk insert complete:`, {
-      success: results.success.length,
-      error: results.error.length
-    });
 
     return results;
   }
@@ -355,13 +335,6 @@ export class VectorStore {
   async denseSearch(queryVector, filters = {}, limit = 20) {
     const startTime = performance.now();
 
-    console.log('[VectorStore] Dense search started', {
-      vectorDim: queryVector.length,
-      filters,
-      limit,
-      useANN: this.useANN && this.indexReady
-    });
-
     // Determine if we can use HNSW or need brute-force
     const hasFilters = (filters.collections?.length > 0) ||
                        filters.dateRange;
@@ -371,7 +344,6 @@ export class VectorStore {
     if (useHNSW) {
       return await this._denseSearchHNSW(queryVector, filters, limit, startTime);
     } else {
-      console.log('[VectorStore] Using brute-force search (HNSW unavailable or filters applied)');
       return await this._denseSearchBruteForce(queryVector, filters, limit, startTime);
     }
   }
@@ -385,7 +357,6 @@ export class VectorStore {
     const searchK = Math.max(limit * 3, 100);
     const hnswResults = this.hnswIndex.search(queryVector, searchK);
 
-    console.log(`[VectorStore] HNSW search found ${hnswResults.length} candidates`);
 
     // Fetch full gems from database for the HNSW results
     const gemPromises = hnswResults.map(async (result) => {
@@ -419,7 +390,6 @@ export class VectorStore {
       });
     }
 
-    console.log('[VectorStore] Top 5 HNSW matches before deduplication:');
     filteredResults.slice(0, 5).forEach((r, i) => {
       const type = r.isPrimary ? 'PRIMARY' : (r.isVirtual ? 'CHILD' : 'SINGLE');
       console.log(`  ${i + 1}. ${r.gem.value.substring(0, 40)}... (${r.score.toFixed(3)}, ${type})`);
@@ -427,14 +397,6 @@ export class VectorStore {
 
     // Deduplicate
     const deduplicated = await this.deduplicateGemResults(filteredResults);
-
-    const elapsed = performance.now() - startTime;
-    console.log(`[VectorStore] HNSW search complete in ${elapsed.toFixed(2)}ms:`, {
-      candidates: hnswResults.length,
-      afterDeduplication: deduplicated.length,
-      returned: Math.min(deduplicated.length, limit),
-      topScore: deduplicated[0]?.score.toFixed(3)
-    });
 
     return deduplicated.slice(0, limit);
   }
@@ -466,7 +428,6 @@ export class VectorStore {
     // Execute query
     const docs = await query.exec();
 
-    console.log(`[VectorStore] Found ${docs.length} candidates (brute-force)`);
 
     // Calculate similarity scores for ALL gems
     const results = docs.map(doc => {
@@ -487,7 +448,6 @@ export class VectorStore {
     // Sort by score (descending)
     const sorted = results.sort((a, b) => b.score - a.score);
 
-    console.log('[VectorStore] Top 5 brute-force matches before deduplication:');
     sorted.slice(0, 5).forEach((r, i) => {
       const type = r.isPrimary ? 'PRIMARY' : (r.isVirtual ? 'CHILD' : 'SINGLE');
       console.log(`  ${i + 1}. ${r.gem.value.substring(0, 40)}... (${r.score.toFixed(3)}, ${type})`);
@@ -495,14 +455,6 @@ export class VectorStore {
 
     // Deduplicate
     const deduplicated = await this.deduplicateGemResults(sorted);
-
-    const elapsed = performance.now() - startTime;
-    console.log(`[VectorStore] Brute-force search complete in ${elapsed.toFixed(2)}ms:`, {
-      candidates: docs.length,
-      afterDeduplication: deduplicated.length,
-      returned: Math.min(deduplicated.length, limit),
-      topScore: deduplicated[0]?.score.toFixed(3)
-    });
 
     return deduplicated.slice(0, limit);
   }
@@ -614,10 +566,8 @@ export class VectorStore {
         matchedSubTopic: item.matchedSubTopic
       }));
 
-    console.log('[VectorStore] Deduplication summary:');
     deduplicated.slice(0, 3).forEach((r, i) => {
       console.log(`  ${i + 1}. ${r.gem.value.substring(0, 40)}... (${r.score.toFixed(3)})`);
-      console.log(`     Source: ${r.matchSource}${r.matchedSubTopic ? `, matched "${r.matchedSubTopic}"` : ''}`);
     });
 
     return deduplicated;
@@ -678,9 +628,7 @@ export class VectorStore {
    * Rebuild HNSW index from all vectors in database
    */
   async rebuildIndex() {
-    console.log('[VectorStore] HNSW index rebuild requested');
     await this._buildHNSW();
-    console.log('[VectorStore] HNSW index rebuild complete');
   }
 
   /**

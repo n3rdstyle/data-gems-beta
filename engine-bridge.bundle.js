@@ -25173,9 +25173,7 @@ var ContextEngineBridge = (() => {
       if (!this.collection) {
         throw new Error("[VectorStore] Database not initialized");
       }
-      console.log("[VectorStore] Initializing HNSW index...");
       await this._initHNSW();
-      console.log("[VectorStore] Initialized successfully");
       return this;
     }
     /**
@@ -25186,13 +25184,10 @@ var ContextEngineBridge = (() => {
         const storage = await chrome.storage.local.get(["hnsw_index"]);
         const serialized = storage.hnsw_index;
         if (serialized) {
-          console.log("[VectorStore] Loading HNSW index from chrome.storage.local...");
           const data = JSON.parse(serialized);
           this.hnswIndex = HNSWIndex.fromJSON(data);
           this.indexReady = true;
-          console.log("[VectorStore] HNSW index loaded:", this.hnswIndex.getStats());
         } else {
-          console.log("[VectorStore] Building new HNSW index...");
           await this._buildHNSW();
         }
       } catch (error) {
@@ -25217,7 +25212,6 @@ var ContextEngineBridge = (() => {
           vector: { $exists: true }
         }
       }).exec();
-      console.log(`[VectorStore] Building HNSW index with ${docs.length} vectors...`);
       let added = 0;
       for (const doc of docs) {
         const gem = doc.toJSON();
@@ -25226,7 +25220,6 @@ var ContextEngineBridge = (() => {
             this.hnswIndex.add(gem.id, gem.vector);
             added++;
             if (added % 100 === 0) {
-              console.log(`[VectorStore] HNSW: ${added}/${docs.length} vectors indexed`);
             }
           } catch (error) {
             console.warn(`[VectorStore] Failed to add gem ${gem.id} to HNSW:`, error.message);
@@ -25234,7 +25227,6 @@ var ContextEngineBridge = (() => {
         }
       }
       this.indexReady = true;
-      console.log("[VectorStore] HNSW index built:", this.hnswIndex.getStats());
       await this._saveHNSW();
     }
     /**
@@ -25245,7 +25237,6 @@ var ContextEngineBridge = (() => {
         const serialized = JSON.stringify(this.hnswIndex.toJSON());
         await chrome.storage.local.set({ hnsw_index: serialized });
         const sizeKB = Math.round(serialized.length / 1024);
-        console.log(`[VectorStore] HNSW index saved to chrome.storage.local (${sizeKB} KB)`);
       } catch (error) {
         console.error("[VectorStore] Failed to save HNSW index:", error);
         if (error.message && error.message.includes("QUOTA_BYTES")) {
@@ -25266,7 +25257,6 @@ var ContextEngineBridge = (() => {
         }
       }
       if (!gem.vector) {
-        console.log(`[VectorStore] Inserting gem without vector: ${gem.id}`);
       }
       try {
         await this.collection.insert(gem);
@@ -25280,7 +25270,6 @@ var ContextEngineBridge = (() => {
             console.warn(`[VectorStore] Failed to add gem to HNSW: ${gem.id}`, error.message);
           }
         }
-        console.log(`[VectorStore] Inserted gem: ${gem.id}${gem.vector ? " (with vector)" : " (no vector)"}`);
       } catch (error) {
         if (error.code === "CONFLICT") {
           console.warn(`[VectorStore] Gem ${gem.id} already exists, updating...`);
@@ -25302,7 +25291,6 @@ var ContextEngineBridge = (() => {
       }
       const hasChanged = this._hasGemChanged(doc, updates);
       if (!hasChanged) {
-        console.log(`[VectorStore] Gem ${id} unchanged, skipping update`);
         return;
       }
       await doc.update({
@@ -25321,7 +25309,6 @@ var ContextEngineBridge = (() => {
           console.warn(`[VectorStore] Failed to update HNSW index for ${id}:`, error.message);
         }
       }
-      console.log(`[VectorStore] Updated gem: ${id}`);
     }
     /**
      * Check if gem data has changed
@@ -25374,19 +25361,13 @@ var ContextEngineBridge = (() => {
           console.warn(`[VectorStore] Failed to remove from HNSW index: ${id}`, error.message);
         }
       }
-      console.log(`[VectorStore] Deleted gem: ${id}`);
     }
     /**
      * Bulk insert gems
      * @param {Array<Object>} gems - Array of gem objects
      */
     async bulkInsert(gems) {
-      console.log(`[VectorStore] Bulk inserting ${gems.length} gems...`);
       const results = await this.collection.bulkInsert(gems);
-      console.log(`[VectorStore] Bulk insert complete:`, {
-        success: results.success.length,
-        error: results.error.length
-      });
       return results;
     }
     /**
@@ -25399,18 +25380,11 @@ var ContextEngineBridge = (() => {
      */
     async denseSearch(queryVector, filters = {}, limit = 20) {
       const startTime = performance.now();
-      console.log("[VectorStore] Dense search started", {
-        vectorDim: queryVector.length,
-        filters,
-        limit,
-        useANN: this.useANN && this.indexReady
-      });
       const hasFilters = filters.collections?.length > 0 || filters.dateRange;
       const useHNSW = this.useANN && this.indexReady && !hasFilters;
       if (useHNSW) {
         return await this._denseSearchHNSW(queryVector, filters, limit, startTime);
       } else {
-        console.log("[VectorStore] Using brute-force search (HNSW unavailable or filters applied)");
         return await this._denseSearchBruteForce(queryVector, filters, limit, startTime);
       }
     }
@@ -25420,7 +25394,6 @@ var ContextEngineBridge = (() => {
     async _denseSearchHNSW(queryVector, filters, limit, startTime) {
       const searchK = Math.max(limit * 3, 100);
       const hnswResults = this.hnswIndex.search(queryVector, searchK);
-      console.log(`[VectorStore] HNSW search found ${hnswResults.length} candidates`);
       const gemPromises = hnswResults.map(async (result) => {
         const doc = await this.collection.findOne(result.id).exec();
         if (!doc) return null;
@@ -25445,19 +25418,11 @@ var ContextEngineBridge = (() => {
           topScore: results[0]?.score.toFixed(3)
         });
       }
-      console.log("[VectorStore] Top 5 HNSW matches before deduplication:");
       filteredResults.slice(0, 5).forEach((r, i) => {
         const type5 = r.isPrimary ? "PRIMARY" : r.isVirtual ? "CHILD" : "SINGLE";
         console.log(`  ${i + 1}. ${r.gem.value.substring(0, 40)}... (${r.score.toFixed(3)}, ${type5})`);
       });
       const deduplicated = await this.deduplicateGemResults(filteredResults);
-      const elapsed = performance.now() - startTime;
-      console.log(`[VectorStore] HNSW search complete in ${elapsed.toFixed(2)}ms:`, {
-        candidates: hnswResults.length,
-        afterDeduplication: deduplicated.length,
-        returned: Math.min(deduplicated.length, limit),
-        topScore: deduplicated[0]?.score.toFixed(3)
-      });
       return deduplicated.slice(0, limit);
     }
     /**
@@ -25479,7 +25444,6 @@ var ContextEngineBridge = (() => {
         }
       }
       const docs = await query.exec();
-      console.log(`[VectorStore] Found ${docs.length} candidates (brute-force)`);
       const results = docs.map((doc) => {
         const gem = doc.toJSON();
         const score = cosineSimilarity2(queryVector, gem.vector);
@@ -25494,19 +25458,11 @@ var ContextEngineBridge = (() => {
         };
       });
       const sorted = results.sort((a, b) => b.score - a.score);
-      console.log("[VectorStore] Top 5 brute-force matches before deduplication:");
       sorted.slice(0, 5).forEach((r, i) => {
         const type5 = r.isPrimary ? "PRIMARY" : r.isVirtual ? "CHILD" : "SINGLE";
         console.log(`  ${i + 1}. ${r.gem.value.substring(0, 40)}... (${r.score.toFixed(3)}, ${type5})`);
       });
       const deduplicated = await this.deduplicateGemResults(sorted);
-      const elapsed = performance.now() - startTime;
-      console.log(`[VectorStore] Brute-force search complete in ${elapsed.toFixed(2)}ms:`, {
-        candidates: docs.length,
-        afterDeduplication: deduplicated.length,
-        returned: Math.min(deduplicated.length, limit),
-        topScore: deduplicated[0]?.score.toFixed(3)
-      });
       return deduplicated.slice(0, limit);
     }
     /**
@@ -25593,10 +25549,8 @@ var ContextEngineBridge = (() => {
         matchedAttribute: item.matchedAttribute,
         matchedSubTopic: item.matchedSubTopic
       }));
-      console.log("[VectorStore] Deduplication summary:");
       deduplicated.slice(0, 3).forEach((r, i) => {
         console.log(`  ${i + 1}. ${r.gem.value.substring(0, 40)}... (${r.score.toFixed(3)})`);
-        console.log(`     Source: ${r.matchSource}${r.matchedSubTopic ? `, matched "${r.matchedSubTopic}"` : ""}`);
       });
       return deduplicated;
     }
@@ -25644,9 +25598,7 @@ var ContextEngineBridge = (() => {
      * Rebuild HNSW index from all vectors in database
      */
     async rebuildIndex() {
-      console.log("[VectorStore] HNSW index rebuild requested");
       await this._buildHNSW();
-      console.log("[VectorStore] HNSW index rebuild complete");
     }
     /**
      * Get HNSW index statistics
@@ -25813,9 +25765,7 @@ var ContextEngineBridge = (() => {
       if (!this.collection) {
         throw new Error("[BM25] Database not initialized");
       }
-      console.log("[BM25] Initializing...");
       await this.buildIndex();
-      console.log("[BM25] Initialized successfully");
       return this;
     }
     /**
@@ -25823,7 +25773,6 @@ var ContextEngineBridge = (() => {
      * Calculates document frequencies and average document length
      */
     async buildIndex() {
-      console.log("[BM25] Building index...");
       const docs = await this.collection.find().exec();
       const docLengths = [];
       const termDocCounts = {};
@@ -25846,12 +25795,6 @@ var ContextEngineBridge = (() => {
         this.stats.docFrequencies[term] = docSet.size;
       }
       this.stats.lastUpdate = Date.now();
-      console.log("[BM25] Index built:", {
-        totalDocs: this.stats.totalDocs,
-        avgDocLength: this.stats.avgDocLength.toFixed(1),
-        uniqueTerms: Object.keys(this.stats.docFrequencies).length,
-        lastUpdate: new Date(this.stats.lastUpdate).toISOString()
-      });
     }
     /**
      * Calculate IDF (Inverse Document Frequency) for a term
@@ -25894,9 +25837,7 @@ var ContextEngineBridge = (() => {
      * @returns {Promise<Array>} Sorted search results
      */
     async sparseSearch(query, filters = {}, limit = 20) {
-      console.log("[BM25] Sparse search started:", { query, filters, limit });
       if (!this.stats.lastUpdate || Date.now() - this.stats.lastUpdate > 5 * 60 * 1e3) {
-        console.log("[BM25] Index stale, rebuilding...");
         await this.buildIndex();
       }
       const queryTokens = tokenize(query);
@@ -25904,7 +25845,6 @@ var ContextEngineBridge = (() => {
         console.warn("[BM25] No valid query tokens");
         return [];
       }
-      console.log("[BM25] Query tokens:", queryTokens);
       let rxQuery = this.collection.find();
       if (filters.collections && filters.collections.length > 0) {
         rxQuery = rxQuery.where("collections").in(filters.collections);
@@ -25916,7 +25856,6 @@ var ContextEngineBridge = (() => {
         }
       }
       const docs = await rxQuery.exec();
-      console.log(`[BM25] Found ${docs.length} candidates`);
       const results = docs.map((doc) => {
         const gem = doc.toJSON();
         const score = this.calculateScore(queryTokens, gem);
@@ -25928,12 +25867,6 @@ var ContextEngineBridge = (() => {
         };
       }).filter((result) => result.score > 0);
       const sorted = results.sort((a, b) => b.score - a.score).slice(0, limit);
-      console.log(`[BM25] Sparse search complete:`, {
-        candidates: docs.length,
-        matches: results.length,
-        returned: sorted.length,
-        topScore: sorted[0]?.score.toFixed(3)
-      });
       return sorted;
     }
     /**
@@ -25949,7 +25882,6 @@ var ContextEngineBridge = (() => {
       const oldTotal = this.stats.totalDocs * this.stats.avgDocLength;
       this.stats.totalDocs += 1;
       this.stats.avgDocLength = (oldTotal + tokens.length) / this.stats.totalDocs;
-      console.log(`[BM25] Index updated for gem: ${gem.id}`);
     }
     /**
      * Remove gem from index
@@ -25974,7 +25906,6 @@ var ContextEngineBridge = (() => {
         this.stats.totalDocs = 0;
         this.stats.avgDocLength = 0;
       }
-      console.log(`[BM25] Removed gem from index: ${gem.id}`);
     }
     /**
      * Get index statistics
@@ -26067,10 +25998,8 @@ var ContextEngineBridge = (() => {
      * Initialize hybrid search engine
      */
     async init() {
-      console.log("[HybridSearch] Initializing...");
       this.vectorStore = await getVectorStore();
       this.bm25 = await getBM25();
-      console.log("[HybridSearch] Initialized successfully");
       return this;
     }
     /**
@@ -26110,7 +26039,6 @@ var ContextEngineBridge = (() => {
           // Fetch more for RRF
         );
         rankedLists.push(denseResults);
-        console.log(`[HybridSearch] Dense: ${denseResults.length} results`);
       } else {
         console.warn(
           "[HybridSearch] No query vector, skipping dense search",
@@ -26125,25 +26053,16 @@ var ContextEngineBridge = (() => {
         // Fetch more for RRF
       );
       rankedLists.push(sparseResults);
-      console.log(`[HybridSearch] Sparse: ${sparseResults.length} results`);
       if (rankedLists.every((list) => list.length === 0)) {
         console.warn("[HybridSearch] No results from any search method");
         return [];
       }
-      console.log("[HybridSearch] Applying RRF fusion...");
       let fusedResults = reciprocalRankFusion(rankedLists);
-      console.log(`[HybridSearch] RRF: ${fusedResults.length} unique results`);
       if (useDiversity && queryVector) {
-        console.log("[HybridSearch] Applying MMR diversity filter...");
         fusedResults = maximalMarginalRelevance(fusedResults, queryVector, limit);
-        console.log(`[HybridSearch] MMR: ${fusedResults.length} diverse results`);
       } else {
         fusedResults = fusedResults.slice(0, limit);
       }
-      console.log("[HybridSearch] Hybrid search complete:", {
-        returned: fusedResults.length,
-        topScore: fusedResults[0]?.score.toFixed(4)
-      });
       return fusedResults;
     }
     /**
@@ -26193,6 +26112,9 @@ var ContextEngineBridge = (() => {
     constructor() {
       this.languageSession = null;
       this.embedderSession = null;
+      this.categoryEmbeddings = null;
+      this.categoryEmbeddingsReady = false;
+      this.categoryEmbeddingsInitializing = false;
       this.isAvailable = {
         languageModel: false,
         embedder: false
@@ -26202,10 +26124,9 @@ var ContextEngineBridge = (() => {
      * Initialize enrichment engine
      */
     async init() {
-      console.log("[Enrichment] Initializing...");
       await this.initLanguageModel();
       await this.initEmbedder();
-      console.log("[Enrichment] Initialized:", this.isAvailable);
+      await this.loadCategoryEmbeddings();
       return this;
     }
     /**
@@ -26224,7 +26145,6 @@ var ContextEngineBridge = (() => {
             // No system prompt - will be provided per-request
           });
           this.isAvailable.languageModel = true;
-          console.log("[Enrichment] LanguageModel ready");
           return true;
         } else {
           console.warn("[Enrichment] LanguageModel not readily available:", availability);
@@ -26242,11 +26162,9 @@ var ContextEngineBridge = (() => {
      */
     async initEmbedder() {
       try {
-        console.log("[Enrichment] Checking embedder availability...");
         if (typeof chrome !== "undefined" && chrome.runtime) {
           this.embedderSession = "offscreen";
           this.isAvailable.embedder = true;
-          console.log("[Enrichment] Using offscreen document for embeddings");
           return true;
         } else {
           console.warn("[Enrichment] No embedding method available");
@@ -26265,15 +26183,12 @@ var ContextEngineBridge = (() => {
      * @returns {Promise<number[]|null>} 768-dim vector or null
      */
     async generateEmbedding(text) {
-      console.log("[Enrichment] generateEmbedding() called, embedderSession:", this.embedderSession);
-      console.log("[Enrichment] Text length:", text?.length || 0);
       if (!this.embedderSession) {
         console.warn("[Enrichment] Embedder not available, skipping embedding");
         return null;
       }
       try {
         if (this.embedderSession === "offscreen") {
-          console.log("[Enrichment] Sending message to offscreen document via background.js...");
           return new Promise((resolve2, reject) => {
             chrome.runtime.sendMessage(
               {
@@ -26292,7 +26207,6 @@ var ContextEngineBridge = (() => {
                   resolve2(null);
                   return;
                 }
-                console.log("[Enrichment] Embedding result:", response?.embedding ? `${response.embedding.length}-dim vector` : "null");
                 resolve2(response?.embedding || null);
               }
             );
@@ -26373,10 +26287,6 @@ IMPORTANT:
           cleanedResponse = cleanedResponse.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "");
         }
         const parsed = JSON.parse(cleanedResponse);
-        console.log("[Enrichment] AI extraction successful:", {
-          topic: parsed.topic,
-          attributeCount: parsed.attributes?.length || 0
-        });
         return parsed;
       } catch (error) {
         console.error("[Enrichment] AI extraction failed:", error);
@@ -26390,7 +26300,6 @@ IMPORTANT:
      * @returns {Object} { topic: null, attributes: Array }
      */
     fallbackExtraction(text, existingCategories = []) {
-      console.log("[Enrichment] Using fallback extraction");
       const attributes = [];
       const heightMatch = text.match(/(\d+)\s*(cm|m|ft|'|")/i);
       if (heightMatch) {
@@ -26434,7 +26343,6 @@ IMPORTANT:
      * @returns {Promise<Object>} Enriched gem with metadata
      */
     async enrichGem(gem, options = {}) {
-      console.log(`[Enrichment] Enriching gem: ${gem.id}`);
       const enriched = { ...gem };
       const { value } = gem;
       if (enriched.isPrimary === void 0) {
@@ -26467,17 +26375,14 @@ IMPORTANT:
         const vector = await this.generateEmbedding(value);
         if (vector) {
           enriched.vector = vector;
-          console.log(`[Enrichment] Generated 768-dim embedding for: ${gem.id}`);
         }
       }
       if (options.extractKeywords !== false) {
         enriched.keywords = this.extractKeywords(value);
-        console.log(`[Enrichment] Extracted ${Object.keys(enriched.keywords).length} keywords for: ${gem.id}`);
       }
       if (extraction && extraction.attributes && extraction.attributes.length > 1 && options.createChildGems !== false) {
         enriched.isPrimary = true;
         enriched.childGems = [];
-        console.log(`[Enrichment] Creating ${extraction.attributes.length} child gems for: ${gem.id}`);
         for (const attr of extraction.attributes) {
           const childValue = attr.unit ? `${attr.value} ${attr.unit}` : attr.value;
           const childGem = {
@@ -26517,22 +26422,10 @@ IMPORTANT:
             enriched._childGemsToInsert = [];
           }
           enriched._childGemsToInsert.push(childGem);
-          console.log(`[Enrichment] Created child gem: ${childGem.id}`, {
-            subTopic: childGem.subTopic,
-            value: childGem.value,
-            category: childGem.collections[0]
-          });
         }
       }
       enriched.enrichmentVersion = "v2.1";
       enriched.enrichmentTimestamp = Date.now();
-      console.log(`[Enrichment] Enrichment complete for: ${gem.id}`, {
-        hasVector: !!enriched.vector,
-        hasSemanticType: !!enriched.semanticType,
-        keywordCount: enriched.keywords ? Object.keys(enriched.keywords).length : 0,
-        hasTopic: !!enriched.topic,
-        childGemCount: enriched.childGems?.length || 0
-      });
       return enriched;
     }
     /**
@@ -26543,7 +26436,6 @@ IMPORTANT:
      * @returns {Promise<Array<Object>>} Enriched gems
      */
     async enrichBatch(gems, options = {}, onProgress = null) {
-      console.log(`[Enrichment] Batch enriching ${gems.length} gems...`);
       const enriched = [];
       for (let i = 0; i < gems.length; i++) {
         const gem = gems[i];
@@ -26558,7 +26450,6 @@ IMPORTANT:
           enriched.push(gem);
         }
       }
-      console.log(`[Enrichment] Batch enrichment complete: ${enriched.length}/${gems.length}`);
       return enriched;
     }
     /**
@@ -26580,11 +26471,91 @@ IMPORTANT:
     /**
      * Destroy sessions to free resources
      */
+    /**
+     * Load pre-computed category embeddings from storage
+     */
+    async loadCategoryEmbeddings() {
+      try {
+        const storage = await chrome.storage.local.get(["category_embeddings"]);
+        if (storage.category_embeddings) {
+          this.categoryEmbeddings = JSON.parse(storage.category_embeddings);
+          this.categoryEmbeddingsReady = true;
+        } else {
+          this.categoryEmbeddings = {};
+          this.categoryEmbeddingsReady = false;
+        }
+      } catch (error) {
+        console.error("[Enrichment] Error loading category embeddings:", error);
+        this.categoryEmbeddings = {};
+        this.categoryEmbeddingsReady = false;
+      }
+    }
+    /**
+     * Save category embeddings to storage
+     */
+    async saveCategoryEmbeddings() {
+      try {
+        const serialized = JSON.stringify(this.categoryEmbeddings);
+        await chrome.storage.local.set({ category_embeddings: serialized });
+        const sizeKB = Math.round(serialized.length / 1024);
+      } catch (error) {
+        console.error("[Enrichment] Error saving category embeddings:", error);
+      }
+    }
+    /**
+     * Initialize or update category embeddings
+     * @param {Array<string>} categories - List of category names
+     * @param {boolean} background - Run in background (non-blocking)
+     */
+    async initializeCategoryEmbeddings(categories, background = false) {
+      if (this.categoryEmbeddingsInitializing) {
+        return;
+      }
+      if (!this.isAvailable.embedder) {
+        console.warn("[Enrichment] Embedder not available, cannot initialize category embeddings");
+        return;
+      }
+      const newCategories = categories.filter((cat) => !this.categoryEmbeddings[cat]);
+      if (newCategories.length === 0) {
+        this.categoryEmbeddingsReady = true;
+        return;
+      }
+      this.categoryEmbeddingsInitializing = true;
+      if (background) {
+      } else {
+      }
+      for (const category of newCategories) {
+        try {
+          const embedding = await this.generateEmbedding(category);
+          if (embedding) {
+            this.categoryEmbeddings[category] = embedding;
+          }
+        } catch (error) {
+          console.error(`[Enrichment] Failed to embed category ${category}:`, error);
+        }
+      }
+      await this.saveCategoryEmbeddings();
+      this.categoryEmbeddingsReady = true;
+      this.categoryEmbeddingsInitializing = false;
+    }
+    /**
+     * Get category embeddings
+     * @returns {Object} Map of category name to embedding vector
+     */
+    getCategoryEmbeddings() {
+      return this.categoryEmbeddings || {};
+    }
+    /**
+     * Check if category embeddings are ready
+     * @returns {boolean} True if ready
+     */
+    areCategoryEmbeddingsReady() {
+      return this.categoryEmbeddingsReady;
+    }
     async destroy() {
       if (this.languageSession) {
         try {
           await this.languageSession.destroy();
-          console.log("[Enrichment] LanguageModel session destroyed");
         } catch (error) {
           console.error("[Enrichment] Error destroying LanguageModel:", error);
         }
@@ -26593,7 +26564,6 @@ IMPORTANT:
       if (this.embedderSession) {
         try {
           await this.embedderSession.destroy();
-          console.log("[Enrichment] Embedder session destroyed");
         } catch (error) {
           console.error("[Enrichment] Error destroying Embedder:", error);
         }
@@ -26630,25 +26600,46 @@ IMPORTANT:
      * Sets up all components: database, vector store, BM25, hybrid search, enrichment
      */
     async init() {
-      console.log("[ContextEngine] Initializing Context Engine v2...");
       try {
-        console.log("[ContextEngine] Step 1/5: Initialize database");
         this.db = await initDatabase();
         this.collection = getGemsCollection();
-        console.log("[ContextEngine] Step 2/5: Initialize vector store");
         this.vectorStore = await getVectorStore();
-        console.log("[ContextEngine] Step 3/5: Initialize BM25");
         this.bm25 = await getBM25();
-        console.log("[ContextEngine] Step 4/5: Initialize hybrid search");
         this.hybridSearch = await getHybridSearch();
-        console.log("[ContextEngine] Step 5/5: Initialize enrichment");
         this.enrichment = await getEnrichment();
         this.isReady = true;
         const stats = await getDatabaseStats();
         console.log("[ContextEngine] Context Engine v2 ready!", stats);
+        this._initializeCategoryEmbeddingsBackground().catch((error) => {
+          console.error("[ContextEngine] Background category embedding failed:", error);
+        });
         return this;
       } catch (error) {
         console.error("[ContextEngine] Failed to initialize:", error);
+        throw error;
+      }
+    }
+    /**
+     * Background task: Initialize category embeddings
+     * Runs async after Context Engine is ready
+     * @private
+     */
+    async _initializeCategoryEmbeddingsBackground() {
+      try {
+        const allGems = await this.vectorStore.getAllGems();
+        const categories = [...new Set(
+          allGems.flatMap((gem) => {
+            const gemData = gem.toJSON ? gem.toJSON() : gem;
+            return gemData.collections || gemData._data?.collections || [];
+          }).filter(Boolean)
+        )];
+        if (categories.length === 0) {
+          return;
+        }
+        await this.enrichment.initializeCategoryEmbeddings(categories, true);
+        console.log("[ContextEngine] \u2705 Background category embedding complete");
+      } catch (error) {
+        console.error("[ContextEngine] Background category embedding error:", error);
         throw error;
       }
     }
@@ -26662,7 +26653,6 @@ IMPORTANT:
       if (!this.isReady) {
         throw new Error("[ContextEngine] Engine not initialized");
       }
-      console.log(`[ContextEngine] Adding gem: ${gem.id}`);
       let enrichedGem = gem;
       if (autoEnrich) {
         enrichedGem = await this.enrichment.enrichGem(gem);
@@ -26671,7 +26661,6 @@ IMPORTANT:
       delete enrichedGem._childGemsToInsert;
       await this.vectorStore.insert(enrichedGem);
       if (childGems.length > 0) {
-        console.log(`[ContextEngine] Inserting ${childGems.length} child gems for: ${gem.id}`);
         for (const childGem of childGems) {
           await this.vectorStore.insert(childGem);
           if (childGem.keywords) {
@@ -26682,9 +26671,13 @@ IMPORTANT:
       if (enrichedGem.keywords) {
         await this.bm25.updateIndex(enrichedGem);
       }
-      console.log(`[ContextEngine] Gem added successfully: ${gem.id}`, {
-        childGems: childGems.length
-      });
+      if (enrichedGem.collections && enrichedGem.collections.length > 0) {
+        const existingEmbeddings = this.enrichment.getCategoryEmbeddings();
+        const newCategories = enrichedGem.collections.filter((cat) => !existingEmbeddings[cat]);
+        if (newCategories.length > 0) {
+          await this.enrichment.initializeCategoryEmbeddings(newCategories);
+        }
+      }
       return enrichedGem;
     }
     /**
@@ -26698,7 +26691,6 @@ IMPORTANT:
       if (!this.isReady) {
         throw new Error("[ContextEngine] Engine not initialized");
       }
-      console.log(`[ContextEngine] Updating gem: ${id}`);
       const currentGem = await this.vectorStore.getGem(id);
       if (!currentGem) {
         throw new Error(`[ContextEngine] Gem not found: ${id}`);
@@ -26711,7 +26703,6 @@ IMPORTANT:
       }
       await this.vectorStore.update(id, finalUpdates);
       await this.bm25.buildIndex();
-      console.log(`[ContextEngine] Gem updated successfully: ${id}`);
     }
     /**
      * Delete a gem
@@ -26722,7 +26713,6 @@ IMPORTANT:
       if (!this.isReady) {
         throw new Error("[ContextEngine] Engine not initialized");
       }
-      console.log(`[ContextEngine] Deleting gem: ${id}`);
       const gem = await this.vectorStore.getGem(id);
       await this.vectorStore.delete(id);
       if (gem && gem.keywords) {
@@ -26741,17 +26731,12 @@ IMPORTANT:
       if (!this.isReady) {
         throw new Error("[ContextEngine] Engine not initialized");
       }
-      console.log(`[ContextEngine] Bulk importing ${gems.length} gems...`);
       let enrichedGems = gems;
       if (autoEnrich) {
-        console.log("[ContextEngine] Enriching gems...");
         enrichedGems = await this.enrichment.enrichBatch(gems, {}, onProgress);
       }
-      console.log("[ContextEngine] Inserting gems...");
       const results = await this.vectorStore.bulkInsert(enrichedGems);
-      console.log("[ContextEngine] Rebuilding BM25 index...");
       await this.bm25.buildIndex();
-      console.log("[ContextEngine] Bulk import complete:", results);
       return results;
     }
     /**
@@ -26772,10 +26757,8 @@ IMPORTANT:
       if (!this.isReady) {
         throw new Error("[ContextEngine] Engine not initialized");
       }
-      console.log("[ContextEngine] Searching for context:", { query, filters, limit });
       let queryVector = null;
       if (this.enrichment.isAvailable.embedder) {
-        console.log("[ContextEngine] Generating query embedding...");
         queryVector = await this.enrichment.generateEmbedding(query);
       }
       const results = await this.hybridSearch.search({
@@ -26789,7 +26772,6 @@ IMPORTANT:
         ...result.gem,
         score: result.score
       }));
-      console.log(`[ContextEngine] Search complete: ${plainResults.length} results`);
       return plainResults;
     }
     /**
@@ -26813,6 +26795,41 @@ IMPORTANT:
         throw new Error("[ContextEngine] Engine not initialized");
       }
       return this.vectorStore.getGem(id);
+    }
+    /**
+     * Generate embedding for text
+     * @param {string} text - Text to embed
+     * @returns {Promise<Array<number>|null>} Embedding vector or null
+     */
+    async generateEmbedding(text) {
+      if (!this.isReady) {
+        throw new Error("[ContextEngine] Engine not initialized");
+      }
+      if (!this.enrichment.isAvailable.embedder) {
+        console.warn("[ContextEngine] Embedder not available");
+        return null;
+      }
+      return this.enrichment.generateEmbedding(text);
+    }
+    /**
+     * Get pre-computed category embeddings
+     * @returns {Object} Map of category name to embedding vector
+     */
+    getCategoryEmbeddings() {
+      if (!this.isReady) {
+        throw new Error("[ContextEngine] Engine not initialized");
+      }
+      return this.enrichment.getCategoryEmbeddings();
+    }
+    /**
+     * Check if category embeddings are ready
+     * @returns {boolean} True if ready
+     */
+    areCategoryEmbeddingsReady() {
+      if (!this.isReady) {
+        return false;
+      }
+      return this.enrichment.areCategoryEmbeddingsReady();
     }
     /**
      * Get database statistics
@@ -26862,7 +26879,6 @@ IMPORTANT:
           errorCount++;
         }
       }
-      console.log("[ContextEngine] Rebuilding BM25 index after re-enrichment...");
       await this.bm25.buildIndex();
       const results = {
         total: gems.length,
@@ -26880,34 +26896,28 @@ IMPORTANT:
       if (!this.isReady) {
         throw new Error("[ContextEngine] Engine not initialized");
       }
-      console.log("[ContextEngine] Rebuilding all indexes...");
       await this.vectorStore.rebuildIndex();
       await this.bm25.buildIndex();
-      console.log("[ContextEngine] Indexes rebuilt successfully");
     }
     /**
      * Destroy engine and clean up resources
      */
     async destroy() {
-      console.log("[ContextEngine] Destroying Context Engine...");
       if (this.enrichment) {
         await this.enrichment.destroy();
       }
       if (this.vectorStore) {
         this.vectorStore.hnswIndex = null;
         this.vectorStore.indexReady = false;
-        console.log("[ContextEngine] Vector store cleared from memory");
       }
       try {
         const { closeDatabase: closeDatabase2 } = await Promise.resolve().then(() => (init_database(), database_exports));
         await closeDatabase2();
-        console.log("[ContextEngine] Database connection closed");
       } catch (error) {
         console.warn("[ContextEngine] Error closing database:", error);
       }
       contextEngineInstance = null;
       this.isReady = false;
-      console.log("[ContextEngine] Context Engine destroyed and singleton reset");
     }
   };
   var contextEngineInstance = null;
@@ -26976,7 +26986,6 @@ IMPORTANT:
       console.log("[Migration] Converting to Context Engine v2 format...");
       const gems = items.map((item) => convertHSPItemToGem(item));
       console.log(`[Migration] Converted ${gems.length} gems`);
-      console.log("[Migration] Initializing Context Engine v2...");
       const engine = await getContextEngine();
       console.log(`[Migration] Importing ${gems.length} gems (autoEnrich: ${autoEnrich})...`);
       const importResults = await engine.bulkImport(
@@ -27003,7 +27012,6 @@ IMPORTANT:
         stats: stats.database,
         clearedOldData: clearOldData
       };
-      console.log("[Migration] Migration complete:", results);
       return results;
     } catch (error) {
       console.error("[Migration] Migration failed:", error);
@@ -27053,29 +27061,22 @@ IMPORTANT:
       }
       this.isInitializing = true;
       try {
-        console.log("[Engine Bridge] Initializing Context Engine v2...");
         const migrationStatus = await checkMigrationStatus();
-        console.log("[Engine Bridge] Migration status:", migrationStatus);
         if (migrationStatus.needsMigration) {
-          console.log("[Engine Bridge] Running migration...");
           const migrationResult = await migrateToContextEngine({
             autoEnrich: true,
             // Auto-enrich all gems with embeddings
             clearOldData: false,
             // Keep old data as backup
             onProgress: (current, total) => {
-              console.log(`[Engine Bridge] Migration progress: ${current}/${total}`);
             }
           });
-          console.log("[Engine Bridge] Migration complete:", migrationResult);
         } else {
-          console.log("[Engine Bridge] No migration needed");
         }
         this.engine = await getContextEngine();
         this.isReady = true;
         console.log("[Engine Bridge] Context Engine v2 ready!");
         const stats = await this.engine.getStats();
-        console.log("[Engine Bridge] Stats:", stats);
         return this.engine;
       } catch (error) {
         console.error("[Engine Bridge] Initialization failed:", error);
@@ -27177,9 +27178,40 @@ IMPORTANT:
         await this.initialize();
       }
       return this.engine.batchReEnrich(filters, onProgress);
+    },
+    /**
+     * Generate embedding for text
+     * @param {string} text - Text to embed
+     * @returns {Promise<Array<number>|null>}
+     */
+    async generateEmbedding(text) {
+      if (!this.isReady) {
+        await this.initialize();
+      }
+      return this.engine.generateEmbedding(text);
+    },
+    /**
+     * Get pre-computed category embeddings
+     * @returns {Object} Map of category name to embedding vector
+     */
+    getCategoryEmbeddings() {
+      if (!this.isReady) {
+        console.warn("[Engine Bridge] Engine not ready, returning empty embeddings");
+        return {};
+      }
+      return this.engine.getCategoryEmbeddings();
+    },
+    /**
+     * Check if category embeddings are ready
+     * @returns {boolean}
+     */
+    areCategoryEmbeddingsReady() {
+      if (!this.isReady) {
+        return false;
+      }
+      return this.engine.areCategoryEmbeddingsReady();
     }
   };
-  console.log("[Engine Bridge] Loaded (manual initialization required)");
 })();
 /*! Bundled license information:
 

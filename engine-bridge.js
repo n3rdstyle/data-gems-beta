@@ -176,6 +176,44 @@ window.ContextEngineAPI = {
     }
 
     return this.engine.batchReEnrich(filters, onProgress);
+  },
+
+  /**
+   * Generate embedding for text
+   * @param {string} text - Text to embed
+   * @returns {Promise<Array<number>|null>}
+   */
+  async generateEmbedding(text) {
+    if (!this.isReady) {
+      await this.initialize();
+    }
+
+    return this.engine.generateEmbedding(text);
+  },
+
+  /**
+   * Get pre-computed category embeddings
+   * @returns {Object} Map of category name to embedding vector
+   */
+  getCategoryEmbeddings() {
+    if (!this.isReady) {
+      console.warn('[Engine Bridge] Engine not ready, returning empty embeddings');
+      return {};
+    }
+
+    return this.engine.getCategoryEmbeddings();
+  },
+
+  /**
+   * Check if category embeddings are ready
+   * @returns {boolean}
+   */
+  areCategoryEmbeddingsReady() {
+    if (!this.isReady) {
+      return false;
+    }
+
+    return this.engine.areCategoryEmbeddingsReady();
   }
 };
 

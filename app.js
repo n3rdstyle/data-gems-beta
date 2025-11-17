@@ -1445,7 +1445,24 @@ async function renderCurrentScreen() {
 
   try {
     const userData = getUserData();
-    const preferences = getPreferences();
+
+    // Load preferences from RxDB (fresh data) instead of AppState (stale cache)
+    let preferences;
+    try {
+      const rxdbGems = await getPreferencesFromRxDB();
+      // Transform RxDB gems to UI format
+      preferences = rxdbGems.map(gem => ({
+        id: gem.id,
+        name: gem.value || gem.text,
+        state: gem.state || 'default',
+        collections: gem.collections || [],
+        topic: gem.topic,
+        source: gem.source
+      }));
+    } catch (error) {
+      console.error('[App] Failed to load from RxDB, falling back to AppState:', error);
+      preferences = getPreferences(); // Fallback to AppState
+    }
 
     switch (currentScreen) {
       case 'home':

@@ -27,7 +27,6 @@
     console.log('-'.repeat(40));
 
     const stats = await window.ContextEngineAPI.getStats();
-    console.log('Stats:', stats);
     console.log(`   Total Gems: ${stats.database.totalGems}`);
     console.log(`   With Vectors: ${stats.database.gemsWithVectors}`);
     console.log(`   With Semantics: ${stats.database.gemsWithSemantics}`);

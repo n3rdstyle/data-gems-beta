@@ -153,12 +153,10 @@ export class HybridSearch {
    * Initialize hybrid search engine
    */
   async init() {
-    console.log('[HybridSearch] Initializing...');
 
     this.vectorStore = await getVectorStore();
     this.bm25 = await getBM25();
 
-    console.log('[HybridSearch] Initialized successfully');
     return this;
   }
 
@@ -201,7 +199,6 @@ export class HybridSearch {
         limit * 2  // Fetch more for RRF
       );
       rankedLists.push(denseResults);
-      console.log(`[HybridSearch] Dense: ${denseResults.length} results`);
     } else {
       console.warn('[HybridSearch] No query vector, skipping dense search',
         queryVector ? `(got ${queryVector.length}-dim)` : '(no vector)');
@@ -215,7 +212,6 @@ export class HybridSearch {
       limit * 2  // Fetch more for RRF
     );
     rankedLists.push(sparseResults);
-    console.log(`[HybridSearch] Sparse: ${sparseResults.length} results`);
 
     // If no results from either search
     if (rankedLists.every(list => list.length === 0)) {
@@ -224,24 +220,15 @@ export class HybridSearch {
     }
 
     // Combine using Reciprocal Rank Fusion
-    console.log('[HybridSearch] Applying RRF fusion...');
     let fusedResults = reciprocalRankFusion(rankedLists);
 
-    console.log(`[HybridSearch] RRF: ${fusedResults.length} unique results`);
 
     // Apply MMR diversity filter if requested
     if (useDiversity && queryVector) {
-      console.log('[HybridSearch] Applying MMR diversity filter...');
       fusedResults = maximalMarginalRelevance(fusedResults, queryVector, limit);
-      console.log(`[HybridSearch] MMR: ${fusedResults.length} diverse results`);
     } else {
       fusedResults = fusedResults.slice(0, limit);
     }
-
-    console.log('[HybridSearch] Hybrid search complete:', {
-      returned: fusedResults.length,
-      topScore: fusedResults[0]?.score.toFixed(4)
-    });
 
     return fusedResults;
   }

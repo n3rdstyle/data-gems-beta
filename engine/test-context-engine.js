@@ -346,7 +346,6 @@ async function quickTest() {
   console.log('✓ Engine initialized');
 
   const stats = await engine.getStats();
-  console.log('Stats:', stats);
 
   return engine;
 }

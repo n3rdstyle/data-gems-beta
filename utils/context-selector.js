@@ -90,16 +90,154 @@ function enrichGemsWithBasicInfo(profile) {
     });
   }
 
-  if (basicGems.length > 0) {
-    console.log(`[Context Selector] Enriched with ${basicGems.length} basic info gems:`,
-      basicGems.map(g => g.attribute).join(', '));
-  }
-
   return [...basicGems, ...gems];
 }
 
 /**
- * Analyze query using AI to detect intent and requirements
+ * Calculate cosine similarity between two vectors
+ * @param {Array<number>} vecA - First vector
+ * @param {Array<number>} vecB - Second vector
+ * @returns {number} Similarity score (0-1)
+ */
+function cosineSimilarity(vecA, vecB) {
+  if (!vecA || !vecB || vecA.length !== vecB.length) {
+    return 0;
+  }
+
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+
+  for (let i = 0; i < vecA.length; i++) {
+    dotProduct += vecA[i] * vecB[i];
+    normA += vecA[i] * vecA[i];
+    normB += vecB[i] * vecB[i];
+  }
+
+  normA = Math.sqrt(normA);
+  normB = Math.sqrt(normB);
+
+  if (normA === 0 || normB === 0) {
+    return 0;
+  }
+
+  return dotProduct / (normA * normB);
+}
+
+/**
+ * Get pre-computed category embeddings from Context Engine
+ * No more on-demand embedding - all categories are embedded at startup!
+ */
+async function getCategoryEmbeddings() {
+  if (!window.ContextEngineAPI?.isReady) {
+    console.warn('[Context Selector] Context Engine not ready');
+    return {};
+  }
+
+  try {
+    const embeddings = await window.ContextEngineAPI.getCategoryEmbeddings();
+    return embeddings;
+  } catch (error) {
+    console.error('[Context Selector] Failed to get category embeddings:', error);
+    return {};
+  }
+}
+
+/**
+ * Extract budget from query text
+ * @param {string} queryLower - Lowercase query text
+ * @returns {number|null} Budget amount or null
+ */
+function extractBudget(queryLower) {
+  const budgetMatch = queryLower.match(/(\d+)\s*€|under\s*(\d+)|max\s*(\d+)|budget.*?(\d+)/i);
+  return budgetMatch ? parseInt(budgetMatch[1] || budgetMatch[2] || budgetMatch[3] || budgetMatch[4]) : null;
+}
+
+/**
+ * Get critical constraints for a domain/type combination
+ * @param {string} domain - Domain name
+ * @param {string} type - Query type
+ * @returns {Array<string>} Critical constraints
+ */
+function getCriticalConstraints(domain, type) {
+  if (type !== 'shopping' && type !== 'recommendation') {
+    return [];
+  }
+
+  const constraintMap = {
+    'Fashion': ['budget', 'size'],
+    'Technology': ['budget'],
+    'Nutrition': ['budget', 'dietary', 'location'],
+    'Travel': ['budget', 'location'],
+    'Pets': ['budget'],
+    'Work': ['budget']
+  };
+
+  return constraintMap[domain] || [];
+}
+
+/**
+ * Detect relevant categories using embedding similarity
+ * @param {string} query - Query text (for type inference)
+ * @param {Array<number>} queryEmbedding - Query embedding vector
+ * @param {Array<string>} availableCategories - Available category names
+ * @param {number} topK - Maximum categories to return
+ * @returns {Promise<Object>} Intent object with primary and related domains
+ */
+async function detectCategoriesFromEmbedding(query, queryEmbedding, availableCategories = [], topK = 3) {
+  // Get pre-computed category embeddings from Context Engine
+  const categoryEmbeddings = await getCategoryEmbeddings();
+
+  if (!categoryEmbeddings || Object.keys(categoryEmbeddings).length === 0) {
+    console.warn('[Context Selector] No category embeddings available');
+    return { type: 'information', domain: null, relatedDomains: [] };
+  }
+
+  // Filter to only available categories (in case embeddings contain old/unused categories)
+  const filteredEmbeddings = {};
+  for (const cat of availableCategories) {
+    if (categoryEmbeddings[cat]) {
+      filteredEmbeddings[cat] = categoryEmbeddings[cat];
+    }
+  }
+
+  // Calculate similarity scores for available categories only
+  const similarities = Object.entries(filteredEmbeddings).map(([category, embedding]) => ({
+    category,
+    score: cosineSimilarity(queryEmbedding, embedding)
+  }));
+
+  // Sort by score and take top-K
+  const topCategories = similarities
+    .sort((a, b) => b.score - a.score)
+    .filter(s => s.score > 0.4) // Relevance threshold
+    .slice(0, topK);
+
+  if (topCategories.length === 0) {
+    return { type: 'information', domain: null, relatedDomains: [] };
+  }
+
+  // Primary domain is top match, related domains are 2nd and 3rd
+  const domain = topCategories[0].category;
+  const relatedDomains = topCategories.slice(1, 3).map(c => c.category);
+
+  // Infer query type based on keywords (simple heuristic)
+  let type = 'information';
+  const queryLower = query.toLowerCase();
+  if (queryLower.match(/find|looking for|need|want|buy|shop|purchase/i)) {
+    type = 'shopping';
+  } else if (queryLower.match(/recommend|suggest|best|top/i)) {
+    type = 'recommendation';
+  } else if (queryLower.match(/plan|schedule|organize|prepare/i)) {
+    type = 'planning';
+  }
+
+  return { type, domain, relatedDomains };
+}
+
+/**
+ * Analyze query using embedding-based category detection (fast!)
+ * Falls back to AI if embeddings unavailable
  * @param {string} query - User's query
  * @returns {Promise<Object>} Query intent object
  */
@@ -109,38 +247,66 @@ async function analyzeQueryIntent(query, availableCategories = []) {
   // Default intent (fallback)
   let type = 'information';
   let domain = null;
+  let relatedDomains = [];
 
   try {
-    // Use AI to analyze query intent
+    // TRY METHOD 1: Embedding-based category detection (FAST - ~0.1s)
+    if (window.ContextEngineAPI?.isReady && availableCategories.length > 0) {
+      // Check if category embeddings are ready
+      const embeddingsReady = await window.ContextEngineAPI.areCategoryEmbeddingsReady();
+
+      if (embeddingsReady) {
+
+        // Generate query embedding
+        const queryEmbedding = await window.ContextEngineAPI.generateEmbedding(query);
+
+        // Detect categories using cosine similarity
+        const result = await detectCategoriesFromEmbedding(query, queryEmbedding, availableCategories);
+
+        return {
+          ...result,
+          budget: extractBudget(lowerQuery),
+          needsConstraints: result.type === 'shopping' || result.type === 'recommendation',
+          criticalConstraints: getCriticalConstraints(result.domain, result.type)
+        };
+      } else {
+      }
+    }
+
+    // FALLBACK METHOD 2: Use Language Model API (SLOW - ~4.8s)
     const session = await LanguageModel.create({
       language: 'en',
       systemPrompt: `You are a query classifier. Select the best matching type and domain from the provided lists.
 
 CRITICAL RULES:
 1. ONLY use EXACT values from the lists provided - DO NOT invent, modify, or generalize values
-2. Return EXACTLY this format: {"type": "VALUE_FROM_TYPE_LIST", "domain": "VALUE_FROM_DOMAIN_LIST"}
+2. Return EXACTLY this format: {"type": "VALUE_FROM_TYPE_LIST", "domain": "PRIMARY_DOMAIN", "relatedDomains": ["RELATED_1", "RELATED_2"]}
 3. DO NOT add extra fields, DO NOT modify field names
 4. Match case-sensitively - use exact capitalization from the list
 5. For domain selection:
-   - First, try to find a category that genuinely matches the query topic
-   - If a good match exists, use it (e.g., "running" → "Fitness")
-   - If NO category is a good match, use null (e.g., "tell a joke" → null)
-   - NEVER invent new categories (e.g., "running", "workout", "exercise" are INVALID)
+   - "domain": The PRIMARY category most relevant to the query (required)
+   - "relatedDomains": Up to 2 additional categories that might contain useful context (optional, can be empty array)
+   - If NO category is a good match, use null for domain
+   - NEVER invent new categories
 
 Examples showing correct selection:
-- "Find me a café" → {"type": "recommendation", "domain": "Nutrition"}
-- "I need sneakers" → {"type": "shopping", "domain": "Fashion"}
-- "Plan running workout" → {"type": "planning", "domain": "Fitness"} (running relates to Fitness)
-- "What is React?" → {"type": "information", "domain": "Technology"}
-- "Tell me a joke" → {"type": "information", "domain": null} (no relevant category)
+- "Find me new shoes" → {"type": "shopping", "domain": "Fashion", "relatedDomains": ["Personal"]}
+  (Personal might have shoe size, body measurements)
+- "Find me a café" → {"type": "recommendation", "domain": "Nutrition", "relatedDomains": []}
+- "Plan running workout" → {"type": "planning", "domain": "Fitness", "relatedDomains": ["Health", "Nutrition"]}
+  (Health for fitness level, Nutrition for diet)
+- "What is React?" → {"type": "information", "domain": "Technology", "relatedDomains": []}
+- "Tell me a joke" → {"type": "information", "domain": null, "relatedDomains": []}
 
 IMPORTANT:
 - Sports/running/exercise → "Fitness" (if available)
 - Food/restaurants/recipes → "Nutrition" (if available)
 - Clothes/shoes/style → "Fashion" (if available)
 - If unsure or no clear match → use null
+- Only include relatedDomains if they genuinely might contain relevant context
+- Maximum 2 related domains
 
-Output JSON only: {"type": "...", "domain": "..."}`
+Output JSON only: {"type": "...", "domain": "...", "relatedDomains": [...]}`
     });
 
     const typeList = 'shopping, recommendation, planning, information';
@@ -158,14 +324,12 @@ Return JSON only:`);
 
     await session.destroy();
 
-    console.log('[Context Selector] AI raw response:', response);
 
     // Parse JSON response
     const cleaned = response.trim().replace(/```json\n?/g, '').replace(/```\n?/g, '');
     const jsonMatch = cleaned.match(/\{[^}]+\}/);
 
     if (jsonMatch) {
-      console.log('[Context Selector] Extracted JSON:', jsonMatch[0]);
       const result = JSON.parse(jsonMatch[0]);
 
       // Check if required fields exist
@@ -197,7 +361,6 @@ Return JSON only:`);
 
         if (matchedDomain) {
           domain = matchedDomain;
-          console.log('[Context Selector] Domain matched (case-insensitive):', result.domain, '→', matchedDomain);
         } else {
           // AI returned invalid domain - log warning but continue with null instead of failing
           console.warn('[Context Selector] AI returned invalid domain:', result.domain);
@@ -207,7 +370,6 @@ Return JSON only:`);
         }
       }
 
-      console.log('[Context Selector] ✓ AI detected intent:', { type, domain });
     } else {
       console.warn('[Context Selector] AI response not JSON, using fallback. Response:', response.substring(0, 200));
       throw new Error('Invalid JSON response');
@@ -266,7 +428,6 @@ Return JSON only:`);
     criticalConstraints: (type === 'shopping' || type === 'recommendation') ? criticalConstraints : []
   };
 
-  console.log('[Context Selector] Final intent:', JSON.stringify(intent));
 
   return intent;
 }
@@ -347,7 +508,6 @@ Available categories: ${categoriesStr}
 Select relevant categories with confidence scores (1-10). Include both direct and supportive connections.
 Respond with JSON array only:`;
 
-    console.log('[Context Selector] Asking AI for relevant categories...');
 
     const response = await session.prompt(prompt);
     await session.destroy();
@@ -358,15 +518,6 @@ Respond with JSON array only:`;
 
     if (match) {
       const categories = JSON.parse(match[0]);
-      console.log('[Context Selector] AI raw response:', categories);
-      console.log('[Context Selector] AI raw response type check:', categories.map(item => ({
-        item,
-        type: typeof item,
-        hasCategory: item?.category !== undefined,
-        hasScore: item?.score !== undefined,
-        categoryType: typeof item?.category,
-        scoreType: typeof item?.score
-      })));
 
       // Validate and normalize format - expecting [{category, score}] or [{category, confidence}]
       const normalized = categories
@@ -418,7 +569,6 @@ Respond with JSON array only:`;
         return exists;
       });
 
-      console.log('[Context Selector] AI selected categories with confidence:', validCategories);
       return validCategories;
     }
 
@@ -472,12 +622,10 @@ For each question above, select relevant categories with confidence scores (1-10
 Return a JSON array of arrays - one inner array per question, in order.
 Respond with JSON only:`;
 
-    console.log('[Context Selector] 🚀 Batch: Asking AI for categories for', subQuestions.length, 'sub-questions...');
 
     const response = await session.prompt(prompt);
     await session.destroy();
 
-    console.log('[Context Selector] Batch AI raw response:', response);
 
     // Parse response - expecting array of arrays
     const cleaned = response.trim().replace(/```json\n?/g, '').replace(/```\n?/g, '');
@@ -495,7 +643,6 @@ Respond with JSON only:`;
       if (Array.isArray(parsed) && parsed.length === 1 && Array.isArray(parsed[0])) {
         // Check if first element has {question, categories} structure
         if (parsed[0][0] && typeof parsed[0][0] === 'object' && 'categories' in parsed[0][0]) {
-          console.log('[Context Selector] Detected nested question/categories format, extracting...');
           // Extract categories from each question object
           parsed = parsed[0].map(item => item.categories || []);
         }
@@ -574,7 +721,6 @@ Respond with JSON only:`;
         return validated;
       });
 
-      console.log('[Context Selector] ✓ Batch: Processed categories for', normalized.length, 'questions');
       return normalized;
     }
 
@@ -653,7 +799,6 @@ Only include SubCategories that are DIRECTLY related to the query topic.
 Respond with JSON array only:`;
     }
 
-    console.log('[Context Selector] Asking AI for relevant SubCategories...');
 
     const response = await session.prompt(prompt);
     await session.destroy();
@@ -664,9 +809,6 @@ Respond with JSON array only:`;
 
     if (match) {
       const subCategories = JSON.parse(match[0]);
-      console.log('[Context Selector] AI raw SubCategory response:', subCategories);
-      console.log('[Context Selector] DEBUG: First item structure:', JSON.stringify(subCategories[0]));
-      console.log('[Context Selector] DEBUG: Available SubCategories:', availableSubCategories);
 
       // Validate and normalize
       const normalized = subCategories
@@ -711,7 +853,6 @@ Respond with JSON array only:`;
           };
         });
 
-      console.log('[Context Selector] AI selected SubCategories with confidence:', normalized);
       return normalized;
     }
 
@@ -769,7 +910,6 @@ Rules:
 
 Return JSON array with related categories and scores (5-6):`;
 
-    console.log('[Context Selector] Asking AI for semantically related categories...');
 
     const response = await session.prompt(prompt);
     await session.destroy();
@@ -794,13 +934,11 @@ Return JSON array with related categories and scores (5-6):`;
           score: Math.max(1, Math.min(10, item.score))
         }));
 
-      console.log('[Context Selector] Semantically related categories:', validRelated);
 
       // Combine original + related
       return [...selectedCategories, ...validRelated];
     }
 
-    console.log('[Context Selector] No related categories found');
     return selectedCategories;
 
   } catch (error) {
@@ -816,17 +954,13 @@ Return JSON array with related categories and scores (5-6):`;
  * @returns {Array} Filtered gems
  */
 function filterGemsByCategories(dataGems, categoriesWithScores) {
-  console.log('[Context Selector] Filtering gems by categories:', categoriesWithScores);
-  console.log('[Context Selector] Total gems before filter:', dataGems.length);
 
   if (!categoriesWithScores || categoriesWithScores.length === 0) {
-    console.log('[Context Selector] No categories provided, returning all gems');
     return dataGems;
   }
 
   // Extract category names (lowercase) for matching
   const categoriesLower = categoriesWithScores.map(item => item.category.toLowerCase());
-  console.log('[Context Selector] Categories (lowercase):', categoriesLower);
 
   const filtered = dataGems.filter(gem => {
     if (!gem.collections || gem.collections.length === 0) {
@@ -841,7 +975,6 @@ function filterGemsByCategories(dataGems, categoriesWithScores) {
     return matches;
   });
 
-  console.log('[Context Selector] Total gems after filter:', filtered.length);
 
   // Log sample of filtered gems
   if (filtered.length > 0) {
@@ -849,7 +982,6 @@ function filterGemsByCategories(dataGems, categoriesWithScores) {
       collections: g.collections,
       value: g.value.substring(0, 50) + '...'
     }));
-    console.log('[Context Selector] Sample filtered gems:', samples);
   }
 
   return filtered;
@@ -862,17 +994,13 @@ function filterGemsByCategories(dataGems, categoriesWithScores) {
  * @returns {Array} Filtered gems
  */
 function filterGemsBySubCategories(dataGems, subCategoriesWithScores) {
-  console.log('[Context Selector] Filtering gems by SubCategories:', subCategoriesWithScores);
-  console.log('[Context Selector] Total gems before SubCategory filter:', dataGems.length);
 
   if (!subCategoriesWithScores || subCategoriesWithScores.length === 0) {
-    console.log('[Context Selector] No SubCategories provided, returning all gems');
     return dataGems;
   }
 
   // Extract SubCategory keys
   const subCategoryKeys = subCategoriesWithScores.map(item => item.subCategory);
-  console.log('[Context Selector] SubCategories:', subCategoryKeys);
 
   const filtered = dataGems.filter(gem => {
     // Safety check: ensure subCollections exists and is an array
@@ -888,7 +1016,6 @@ function filterGemsBySubCategories(dataGems, subCategoriesWithScores) {
     return matches;
   });
 
-  console.log('[Context Selector] Total gems after SubCategory filter:', filtered.length);
 
   // Log sample of filtered gems
   if (filtered.length > 0) {
@@ -897,7 +1024,6 @@ function filterGemsBySubCategories(dataGems, subCategoriesWithScores) {
       subCollections: g.subCollections,
       value: g.value.substring(0, 50) + '...'
     }));
-    console.log('[Context Selector] Sample SubCategory-filtered gems:', samples);
   }
 
   return filtered;
@@ -919,14 +1045,12 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, pr
   try {
     // Check if AI Helper is available
     if (typeof aiHelper === 'undefined' || !aiHelper) {
-      console.log('[Context Selector] AI Helper not available, falling back to keyword matching');
       return selectRelevantGemsByKeywords(promptText, dataGems, maxResults);
     }
 
     // Initialize AI if needed
     const available = await aiHelper.checkAvailability();
     if (!available) {
-      console.log('[Context Selector] AI not available, falling back to keyword matching');
       return selectRelevantGemsByKeywords(promptText, dataGems, maxResults);
     }
 
@@ -936,17 +1060,6 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, pr
     // Use provided intent if available (from fan-out), otherwise analyze
     if (!queryIntent) {
       queryIntent = await analyzeQueryIntent(originalQuery || promptText);
-      console.log('[Context Selector] Stage 0: Query intent analysis:', {
-        type: queryIntent.type,
-        domain: queryIntent.domain,
-        requiredTypes: queryIntent.requiredSemanticTypes,
-        needsConstraints: queryIntent.needsConstraints
-      });
-    } else {
-      console.log('[Context Selector] Stage 0: Using pre-analyzed query intent:', {
-        type: queryIntent.type,
-        domain: queryIntent.domain
-      });
     }
 
     let semanticFilteredGems = dataGems;
@@ -956,13 +1069,10 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, pr
         !gem.semanticType || // Include gems without semantic type (backward compatibility)
         queryIntent.requiredSemanticTypes.includes(gem.semanticType)
       );
-      console.log(`[Context Selector] Stage 0: Semantic filter ${beforeCount} → ${semanticFilteredGems.length} gems (kept: ${queryIntent.requiredSemanticTypes.join(', ')})`);
     } else {
-      console.log('[Context Selector] Stage 0: No semantic filtering applied (all types allowed)');
     }
 
     // STAGE 1: Identify relevant categories using AI
-    console.log(`[Context Selector] Stage 1: Analyzing ${semanticFilteredGems.length} gems`);
 
     // Extract all unique categories from gems
     const allCategories = [...new Set(
@@ -971,7 +1081,6 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, pr
         .filter(Boolean)
     )];
 
-    console.log(`[Context Selector] Found ${allCategories.length} unique categories`);
 
     let candidateGems = semanticFilteredGems;
     let stage15Applied = false; // Track if Stage 1.5 filtering was successfully applied
@@ -987,12 +1096,9 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, pr
 
         if (highConfidenceCategories.length > 0) {
           relevantCategories = highConfidenceCategories;
-          console.log(`[Context Selector] Selected ${relevantCategories.length} high-confidence categories (≥7):`,
-            relevantCategories.map(c => `${c.category}(${c.score})`).join(', '));
         } else {
           // Fallback: If no category scored ≥7, take top 1
           relevantCategories = [relevantCategories[0]];
-          console.log(`[Context Selector] No high-confidence categories, using TOP 1: ${relevantCategories[0].category} (${relevantCategories[0].score})`);
         }
       }
 
@@ -1007,17 +1113,13 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, pr
           );
 
           if (expandedCategories.length > relevantCategories.length) {
-            console.log(`[Context Selector] Semantically expanded ${relevantCategories.length} → ${expandedCategories.length} categories:`,
-              expandedCategories.map(c => `${c.category}(${c.score})`).join(', '));
             relevantCategories = expandedCategories;
           }
         } else {
-          console.log(`[Context Selector] Skipping semantic expansion for sub-query (using direct matches only)`);
         }
 
         // Filter gems by relevant (possibly expanded) categories
         candidateGems = filterGemsByCategories(semanticFilteredGems, relevantCategories);
-        console.log(`[Context Selector] Filtered to ${candidateGems.length} gems in ${relevantCategories.length} relevant categories`);
 
         // STAGE 1.5: SubCategory Filtering (ALL categories)
         if (profile?.subCategoryRegistry && candidateGems.length > 0) {
@@ -1028,7 +1130,6 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, pr
             return selectedCategoryNames.includes(subCatInfo.parent);
           });
 
-          console.log(`[Context Selector] Stage 1.5: Found ${availableSubCategories.length} SubCategories for selected categories`);
 
           if (availableSubCategories.length > 0) {
             // Ask AI which SubCategories are relevant
@@ -1045,9 +1146,6 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, pr
               const highConfidenceSubCategories = relevantSubCategories.filter(sub => sub.score >= 6);
 
               if (highConfidenceSubCategories.length > 0) {
-                console.log(`[Context Selector] Stage 1.5: Selected ${highConfidenceSubCategories.length} high-confidence SubCategories (≥6):`,
-                  highConfidenceSubCategories.map(s => `${s.subCategory}(${s.score})`).join(', '));
-
                 // Filter gems by selected SubCategories
                 const subCategoryFiltered = filterGemsBySubCategories(candidateGems, highConfidenceSubCategories);
 
@@ -1055,15 +1153,11 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, pr
                 if (subCategoryFiltered.length > 0) {
                   candidateGems = subCategoryFiltered;
                   stage15Applied = true; // Mark that Stage 1.5 successfully filtered
-                  console.log(`[Context Selector] Stage 1.5: Reduced to ${candidateGems.length} gems (${((1 - candidateGems.length / filterGemsByCategories(semanticFilteredGems, relevantCategories).length) * 100).toFixed(1)}% reduction)`);
                 } else {
-                  console.log(`[Context Selector] Stage 1.5: No gems after SubCategory filter, keeping all ${candidateGems.length} category-filtered gems`);
                 }
               } else {
-                console.log(`[Context Selector] Stage 1.5: No high-confidence SubCategories (all < 6), skipping SubCategory filter`);
               }
             } else {
-              console.log(`[Context Selector] Stage 1.5: AI returned no relevant SubCategories`);
             }
           }
         }
@@ -1088,34 +1182,18 @@ async function selectRelevantGemsWithAI(promptText, dataGems, maxResults = 5, pr
             _categoryConfidence: bestMatch.score
           };
         });
-
-        // Log sample enrichment
-        console.log('[Context Selector] Sample enriched gems:', candidateGems.slice(0, 3).map(g => ({
-          collections: g.collections,
-          subCollections: g.subCollections,
-          matchedCategory: g._matchedCategory,
-          confidence: g._categoryConfidence,
-          value: g.value.substring(0, 50) + '...'
-        })));
-      } else {
-        console.log('[Context Selector] AI returned no categories, using all gems');
       }
     } else {
-      console.log('[Context Selector] No categories found, processing all gems');
     }
 
     // Score ALL filtered gems with batch scoring (no artificial limit)
-    console.log(`[Context Selector] Will score all ${candidateGems.length} ${stage15Applied ? 'SubCategory-' : 'category-'}filtered gems with AI using batch scoring`);
 
     // If no candidates, fall back to keyword matching on all gems
     if (candidateGems.length === 0) {
-      console.log('[Context Selector] No candidates after filtering, using keyword matching on all gems');
       return selectRelevantGemsByKeywords(promptText, dataGems, maxResults);
     }
 
     // STAGE 2: Score filtered gems with AI
-    console.log(`[Context Selector] Stage 2: Scoring ${candidateGems.length} filtered gems with AI`);
-    console.log(`[Context Selector] Sample gems to score:`, candidateGems.slice(0, 3).map(g => g.value.substring(0, 60) + '...'));
 
     // Create AI session for relevance scoring
     const session = await LanguageModel.create({
@@ -1139,7 +1217,6 @@ Provide your rating and optionally a brief reason.`
     const BATCH_SIZE = 10; // Score 10 gems per AI call
     const totalBatches = Math.ceil(candidateGems.length / BATCH_SIZE);
 
-    console.log(`[Context Selector] Scoring ${candidateGems.length} gems in ${totalBatches} batches of ${BATCH_SIZE}`);
 
     for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
       const startIdx = batchIndex * BATCH_SIZE;
@@ -1229,7 +1306,6 @@ IMPORTANT: Return exactly ${batch.length} scores, one for each item above.`;
 
             // Log high-scoring gems
             if (score >= 7) {
-              console.log(`[Context Selector] ✓ HIGH SCORE ${score}: "${gem.value.substring(0, 80)}..."`);
             }
 
             scoredGems.push({ gem, score });
@@ -1252,10 +1328,8 @@ IMPORTANT: Return exactly ${batch.length} scores, one for each item above.`;
     // Clean up session
     await session.destroy();
 
-    console.log('[Context Selector] AI scoring complete');
 
     // Apply semantic boosting
-    console.log('[Context Selector] Applying semantic type boosting...');
     scoredGems.forEach(item => {
       const baseScore = item.score;
       const semanticBoost = getSemanticBoost(item.gem.semanticType, queryIntent);
@@ -1264,7 +1338,6 @@ IMPORTANT: Return exactly ${batch.length} scores, one for each item above.`;
       if (item.gem.semanticType === 'activity') {
         const isRelevant = isActivityRelevantToQuery(item.gem, originalQuery || promptText, queryIntent);
         if (!isRelevant) {
-          console.log(`[Context Selector] 🚫 Filtering irrelevant activity: "${item.gem.value.substring(0, 60)}..."`);
           item.score = 0; // Set to 0 to remove it
           return;
         }
@@ -1272,7 +1345,6 @@ IMPORTANT: Return exactly ${batch.length} scores, one for each item above.`;
 
       if (semanticBoost > 0) {
         item.score = baseScore + semanticBoost;
-        console.log(`[Context Selector] 📈 Boost ${item.gem.semanticType || 'none'}: ${baseScore} → ${item.score} (+${semanticBoost}) | "${item.gem.value.substring(0, 60)}..."`);
       }
     });
 
@@ -1280,7 +1352,6 @@ IMPORTANT: Return exactly ${batch.length} scores, one for each item above.`;
     const beforeFilterCount = scoredGems.length;
     const filteredScoredGems = scoredGems.filter(item => item.score > 0);
     if (filteredScoredGems.length < beforeFilterCount) {
-      console.log(`[Context Selector] Removed ${beforeFilterCount - filteredScoredGems.length} irrelevant activities`);
     }
 
     // Sort by score (highest first)
@@ -1292,7 +1363,6 @@ IMPORTANT: Return exactly ${batch.length} scores, one for each item above.`;
       acc[bucket] = (acc[bucket] || 0) + 1;
       return acc;
     }, {});
-    console.log('[Context Selector] Score distribution:', scoreDistribution);
 
     // NO MATCH DETECTION: If no gems scored ≥7, the query is likely irrelevant
     // Return empty to avoid adding random context
@@ -1323,7 +1393,6 @@ IMPORTANT: Return exactly ${batch.length} scores, one for each item above.`;
     const beforeDedup = results.length;
     results = results.filter(gem => {
       if (seenIds.has(gem.id)) {
-        console.log(`[Context Selector] Skipping duplicate gem: ${gem.value.substring(0, 40)}...`);
         return false;
       }
       seenIds.add(gem.id);
@@ -1331,7 +1400,6 @@ IMPORTANT: Return exactly ${batch.length} scores, one for each item above.`;
     });
 
     if (beforeDedup !== results.length) {
-      console.log(`[Context Selector] Removed ${beforeDedup - results.length} duplicate gems`);
     }
 
     console.log(`[Context Selector] Selected ${results.length} unique gems (scores: ${filteredScoredGems.slice(0, 5).map(s => s.score).join(', ')}...)`);
@@ -1352,7 +1420,6 @@ IMPORTANT: Return exactly ${batch.length} scores, one for each item above.`;
  * @returns {Array} Array of selected data gems
  */
 function selectRelevantGemsByKeywords(promptText, dataGems, maxResults = 5) {
-  console.log(`[Context Selector] Keyword matching on ${dataGems.length} gems for prompt: "${promptText}"`);
 
   if (!dataGems || dataGems.length === 0) {
     return [];
@@ -1368,7 +1435,6 @@ function selectRelevantGemsByKeywords(promptText, dataGems, maxResults = 5) {
     .split(/\W+/)
     .filter(word => word.length > 2 && !commonWords.has(word));
 
-  console.log('[Context Selector] Extracted keywords:', keywords);
 
   // Score each gem based on keyword matches
   const scoredGems = dataGems.map(gem => {
@@ -1405,14 +1471,6 @@ function selectRelevantGemsByKeywords(promptText, dataGems, maxResults = 5) {
     .filter(item => item.score > 0) // Only include items with some relevance
     .sort((a, b) => b.score - a.score)
     .slice(0, maxResults); // IMPORTANT: Respect maxResults limit
-
-  console.log(`[Context Selector] Keyword matching found ${results.length} gems (limit: ${maxResults}) with scores:`,
-    results.slice(0, 5).map(r => ({
-      score: r.score,
-      collections: r.gem.collections,
-      value: r.gem.value.substring(0, 40) + '...'
-    }))
-  );
 
   return results.map(item => item.gem);
 }
@@ -1580,14 +1638,6 @@ function shouldDecomposePrompt(promptText) {
                           (wordCount > 6 && (hasMultipleConcepts || hasModifiers)) ||
                           (wordCount > 5 && hasComplexVerbs);
 
-  console.log('[Context Selector] Complexity check:', {
-    wordCount,
-    hasMultipleConcepts,
-    hasModifiers,
-    hasComplexVerbs,
-    shouldDecompose
-  });
-
   return shouldDecompose;
 }
 
@@ -1688,12 +1738,10 @@ Now decompose this request:
 
 Return ONLY a JSON array of 2-5 sub-prompts: ["prompt 1", "prompt 2", ...]`;
 
-    console.log('[Context Selector] Asking AI to decompose into sub-prompts...');
 
     const response = await session.prompt(prompt);
     await session.destroy();
 
-    console.log('[Context Selector] AI raw decomposition response:', response);
 
     // Parse JSON array - find complete array from first [ to last ]
     const cleaned = response.trim().replace(/```json\n?/g, '').replace(/```\n?/g, '');
@@ -1704,7 +1752,6 @@ Return ONLY a JSON array of 2-5 sub-prompts: ["prompt 1", "prompt 2", ...]`;
 
     if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
       const jsonStr = cleaned.substring(firstBracket, lastBracket + 1);
-      console.log('[Context Selector] Extracted JSON string:', jsonStr);
 
       const subPrompts = JSON.parse(jsonStr);
 
@@ -1713,7 +1760,6 @@ Return ONLY a JSON array of 2-5 sub-prompts: ["prompt 1", "prompt 2", ...]`;
           subPrompts.length >= 2 &&
           subPrompts.length <= 5 &&
           subPrompts.every(p => typeof p === 'string')) {
-        console.log('[Context Selector] ✓ Decomposed into', subPrompts.length, 'sub-prompts:', subPrompts);
         return subPrompts;
       } else {
         console.warn('[Context Selector] Invalid decomposition format - not an array of 2-5 strings:', {
@@ -1890,7 +1936,6 @@ async function mergeGemResults(subQueryResults, maxGems, originalQuery = null, p
 
     // Skip if already added (diversity filter for duplicates)
     if (seenGemIds.has(entry.gem.id)) {
-      console.log(`[Context Selector] Skipping duplicate gem: ${entry.gem.value.substring(0, 60)}...`);
       continue;
     }
 
@@ -1971,18 +2016,14 @@ async function optimizePromptWithContext(promptText, profile, useAI = true, maxG
     logTiming('Get categories');
 
     // STEP 1: Analyze intent ONCE before decomposition
-    // DISABLED FOR TESTING: Intent analysis not needed with AI-scoring (saves ~1.2s)
-    /*
     const queryIntent = await analyzeQueryIntent(promptText, availableCategories);
     console.log('[Context Selector] Pre-analyzed query intent:', {
       type: queryIntent.type,
       domain: queryIntent.domain,
+      relatedDomains: queryIntent.relatedDomains || [],
       availableCategories: availableCategories.join(', ')
     });
     logTiming('Intent analysis');
-    */
-    const queryIntent = null; // Skip intent analysis
-    console.log('[Context Selector] ⚡ Skipping intent analysis - AI-scoring will handle relevance');
 
     // DISABLED: Decomposition into sub-prompts (testing direct search)
     // const subQuestions = await decomposeIntoSubPrompts(promptText);
@@ -2296,8 +2337,14 @@ async function searchSubQuestionWithContextEngine(subQuestion, queryIntent, limi
  */
 async function singleQueryWithContextEngine(promptText, queryIntent, maxGems) {
   const filters = {};
-  if (queryIntent.domain) {
-    filters.collections = [queryIntent.domain];
+  if (queryIntent?.domain) {
+    // Include primary domain + up to 2 related domains
+    const collections = [queryIntent.domain];
+    if (queryIntent.relatedDomains && Array.isArray(queryIntent.relatedDomains)) {
+      collections.push(...queryIntent.relatedDomains.slice(0, 2));
+    }
+    filters.collections = collections;
+    console.log(`[Context Selector] Searching in collections: ${collections.join(', ')}`);
   }
 
   const results = await window.ContextEngineAPI.search(promptText, filters, maxGems);
@@ -2311,6 +2358,7 @@ async function singleQueryWithContextEngine(promptText, queryIntent, maxGems) {
     state: 'default'
   }));
 
+  console.log(`[Context Selector] Returning ${plainGems.length} gems from search`);
   return formatPromptWithContext(promptText, plainGems);
 }
 

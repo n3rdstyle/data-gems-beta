@@ -1,0 +1,67 @@
+{
+  "health_identity": {
+    "overall_health_focus": "",
+    "current_health_status": "",
+    "age_group": "",
+    "sex": "",
+    "height_cm": "",
+    "weight_kg": "",
+    "body_type_description": ""
+  },
+  "physical_baselines": {
+    "resting_heart_rate": "",
+    "average_sleep_hours": "",
+    "average_daily_steps": "",
+    "training_load_average": "",
+    "typical_energy_pattern": "",
+    "circadian_rhythm_preference": ""
+  },
+  "fitness_metrics": {
+    "strength_level": "",
+    "endurance_level": "",
+    "mobility_level": "",
+    "balance_coordination_focus": "",
+    "injury_limitations": [],
+    "recovery_score_average": ""
+  },
+  "sleep_and_recovery": {
+    "bedtime_routine": "",
+    "wake_time_pattern": "",
+    "sleep_quality_focus": "",
+    "sleep_environment": "",
+    "recovery_methods": [],
+    "dream_recall_or_sleep_mood": ""
+  },
+  "mental_and_emotional_health": {
+    "stress_management_strategies": [],
+    "mental_recharge_activities": [],
+    "mood_tracking_method": "",
+    "social_energy_type": "",
+    "emotional_triggers": [],
+    "restoration_needs": ""
+  },
+  "preventive_and_care_habits": {
+    "medical_checkup_frequency": "",
+    "preferred_healthcare_approach": "",
+    "supplement_intake": [],
+    "preventive_routines": [],
+    "doctor_or_specialist_visits": "",
+    "vaccination_or_allergy_notes": ""
+  },
+  "biometric_devices_and_tracking": {
+    "wearable_devices_used": [],
+    "tracking_goals": [],
+    "data_sync_preferences": "",
+    "privacy_preference": "",
+    "app_integrations": [],
+    "health_data_sharing_comfort": ""
+  },
+  "emotional_connection_to_health": {
+    "definition_of_wellbeing": "",
+    "relationship_with_body": "",
+    "motivations_for_health_improvement": [],
+    "biggest_health_challenge": "",
+    "most_proud_health_moment": "",
+    "health_aspect_to_focus_next": ""
+  }
+}

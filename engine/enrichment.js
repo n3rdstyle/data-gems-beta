@@ -17,6 +17,9 @@ export class Enrichment {
   constructor() {
     this.languageSession = null;
     this.embedderSession = null;
+    this.categoryEmbeddings = null;
+    this.categoryEmbeddingsReady = false;
+    this.categoryEmbeddingsInitializing = false;
     this.isAvailable = {
       languageModel: false,
       embedder: false
@@ -27,7 +30,6 @@ export class Enrichment {
    * Initialize enrichment engine
    */
   async init() {
-    console.log('[Enrichment] Initializing...');
 
     // Check LanguageModel availability
     await this.initLanguageModel();
@@ -35,7 +37,9 @@ export class Enrichment {
     // Check Embedder availability
     await this.initEmbedder();
 
-    console.log('[Enrichment] Initialized:', this.isAvailable);
+    // Load pre-computed category embeddings
+    await this.loadCategoryEmbeddings();
+
     return this;
   }
 
@@ -58,7 +62,6 @@ export class Enrichment {
         });
 
         this.isAvailable.languageModel = true;
-        console.log('[Enrichment] LanguageModel ready');
         return true;
       } else {
         console.warn('[Enrichment] LanguageModel not readily available:', availability);
@@ -77,7 +80,6 @@ export class Enrichment {
    */
   async initEmbedder() {
     try {
-      console.log('[Enrichment] Checking embedder availability...');
 
       // Service Workers can't run WASM due to CSP
       // We'll use message passing to offscreen document instead
@@ -85,7 +87,6 @@ export class Enrichment {
         // Check if offscreen document is available
         this.embedderSession = 'offscreen'; // Marker that we're using offscreen
         this.isAvailable.embedder = true;
-        console.log('[Enrichment] Using offscreen document for embeddings');
         return true;
       } else {
         console.warn('[Enrichment] No embedding method available');
@@ -105,8 +106,6 @@ export class Enrichment {
    * @returns {Promise<number[]|null>} 768-dim vector or null
    */
   async generateEmbedding(text) {
-    console.log('[Enrichment] generateEmbedding() called, embedderSession:', this.embedderSession);
-    console.log('[Enrichment] Text length:', text?.length || 0);
 
     if (!this.embedderSession) {
       console.warn('[Enrichment] Embedder not available, skipping embedding');
@@ -116,7 +115,6 @@ export class Enrichment {
     try {
       // Use offscreen document for embedding generation
       if (this.embedderSession === 'offscreen') {
-        console.log('[Enrichment] Sending message to offscreen document via background.js...');
 
         // Send message to background.js, which forwards to offscreen document
         // This works from popup context (unlike direct function call)
@@ -140,7 +138,6 @@ export class Enrichment {
                 return;
               }
 
-              console.log('[Enrichment] Embedding result:', response?.embedding ? `${response.embedding.length}-dim vector` : 'null');
               resolve(response?.embedding || null);
             }
           );
@@ -235,11 +232,6 @@ IMPORTANT:
 
       const parsed = JSON.parse(cleanedResponse);
 
-      console.log('[Enrichment] AI extraction successful:', {
-        topic: parsed.topic,
-        attributeCount: parsed.attributes?.length || 0
-      });
-
       return parsed;
     } catch (error) {
       console.error('[Enrichment] AI extraction failed:', error);
@@ -254,7 +246,6 @@ IMPORTANT:
    * @returns {Object} { topic: null, attributes: Array }
    */
   fallbackExtraction(text, existingCategories = []) {
-    console.log('[Enrichment] Using fallback extraction');
 
     // Simple pattern matching for common attributes
     const attributes = [];
@@ -307,7 +298,6 @@ IMPORTANT:
    * @returns {Promise<Object>} Enriched gem with metadata
    */
   async enrichGem(gem, options = {}) {
-    console.log(`[Enrichment] Enriching gem: ${gem.id}`);
 
     const enriched = { ...gem };
     const { value } = gem;
@@ -352,14 +342,12 @@ IMPORTANT:
       const vector = await this.generateEmbedding(value);
       if (vector) {
         enriched.vector = vector;
-        console.log(`[Enrichment] Generated 768-dim embedding for: ${gem.id}`);
       }
     }
 
     // 3. Extract keywords for BM25 (always do this, no AI needed)
     if (options.extractKeywords !== false) {
       enriched.keywords = this.extractKeywords(value);
-      console.log(`[Enrichment] Extracted ${Object.keys(enriched.keywords).length} keywords for: ${gem.id}`);
     }
 
     // 5. Create child gems if multiple attributes extracted (NEW!)
@@ -367,7 +355,6 @@ IMPORTANT:
       enriched.isPrimary = true;
       enriched.childGems = [];
 
-      console.log(`[Enrichment] Creating ${extraction.attributes.length} child gems for: ${gem.id}`);
 
       for (const attr of extraction.attributes) {
         const childValue = attr.unit ? `${attr.value} ${attr.unit}` : attr.value;
@@ -421,26 +408,12 @@ IMPORTANT:
           enriched._childGemsToInsert = [];
         }
         enriched._childGemsToInsert.push(childGem);
-
-        console.log(`[Enrichment] Created child gem: ${childGem.id}`, {
-          subTopic: childGem.subTopic,
-          value: childGem.value,
-          category: childGem.collections[0]
-        });
       }
     }
 
     // 6. Add enrichment metadata
     enriched.enrichmentVersion = 'v2.1';  // Updated version for child gem support
     enriched.enrichmentTimestamp = Date.now();
-
-    console.log(`[Enrichment] Enrichment complete for: ${gem.id}`, {
-      hasVector: !!enriched.vector,
-      hasSemanticType: !!enriched.semanticType,
-      keywordCount: enriched.keywords ? Object.keys(enriched.keywords).length : 0,
-      hasTopic: !!enriched.topic,
-      childGemCount: enriched.childGems?.length || 0
-    });
 
     return enriched;
   }
@@ -453,7 +426,6 @@ IMPORTANT:
    * @returns {Promise<Array<Object>>} Enriched gems
    */
   async enrichBatch(gems, options = {}, onProgress = null) {
-    console.log(`[Enrichment] Batch enriching ${gems.length} gems...`);
 
     const enriched = [];
 
@@ -474,7 +446,6 @@ IMPORTANT:
       }
     }
 
-    console.log(`[Enrichment] Batch enrichment complete: ${enriched.length}/${gems.length}`);
     return enriched;
   }
 
@@ -498,11 +469,104 @@ IMPORTANT:
   /**
    * Destroy sessions to free resources
    */
+  /**
+   * Load pre-computed category embeddings from storage
+   */
+  async loadCategoryEmbeddings() {
+    try {
+      const storage = await chrome.storage.local.get(['category_embeddings']);
+      if (storage.category_embeddings) {
+        this.categoryEmbeddings = JSON.parse(storage.category_embeddings);
+        this.categoryEmbeddingsReady = true;
+      } else {
+        this.categoryEmbeddings = {};
+        this.categoryEmbeddingsReady = false;
+      }
+    } catch (error) {
+      console.error('[Enrichment] Error loading category embeddings:', error);
+      this.categoryEmbeddings = {};
+      this.categoryEmbeddingsReady = false;
+    }
+  }
+
+  /**
+   * Save category embeddings to storage
+   */
+  async saveCategoryEmbeddings() {
+    try {
+      const serialized = JSON.stringify(this.categoryEmbeddings);
+      await chrome.storage.local.set({ category_embeddings: serialized });
+      const sizeKB = Math.round(serialized.length / 1024);
+    } catch (error) {
+      console.error('[Enrichment] Error saving category embeddings:', error);
+    }
+  }
+
+  /**
+   * Initialize or update category embeddings
+   * @param {Array<string>} categories - List of category names
+   * @param {boolean} background - Run in background (non-blocking)
+   */
+  async initializeCategoryEmbeddings(categories, background = false) {
+    if (this.categoryEmbeddingsInitializing) {
+      return;
+    }
+
+    if (!this.isAvailable.embedder) {
+      console.warn('[Enrichment] Embedder not available, cannot initialize category embeddings');
+      return;
+    }
+
+    const newCategories = categories.filter(cat => !this.categoryEmbeddings[cat]);
+
+    if (newCategories.length === 0) {
+      this.categoryEmbeddingsReady = true;
+      return;
+    }
+
+    this.categoryEmbeddingsInitializing = true;
+
+    if (background) {
+    } else {
+    }
+
+    for (const category of newCategories) {
+      try {
+        const embedding = await this.generateEmbedding(category);
+        if (embedding) {
+          this.categoryEmbeddings[category] = embedding;
+        }
+      } catch (error) {
+        console.error(`[Enrichment] Failed to embed category ${category}:`, error);
+      }
+    }
+
+    // Save to storage
+    await this.saveCategoryEmbeddings();
+    this.categoryEmbeddingsReady = true;
+    this.categoryEmbeddingsInitializing = false;
+  }
+
+  /**
+   * Get category embeddings
+   * @returns {Object} Map of category name to embedding vector
+   */
+  getCategoryEmbeddings() {
+    return this.categoryEmbeddings || {};
+  }
+
+  /**
+   * Check if category embeddings are ready
+   * @returns {boolean} True if ready
+   */
+  areCategoryEmbeddingsReady() {
+    return this.categoryEmbeddingsReady;
+  }
+
   async destroy() {
     if (this.languageSession) {
       try {
         await this.languageSession.destroy();
-        console.log('[Enrichment] LanguageModel session destroyed');
       } catch (error) {
         console.error('[Enrichment] Error destroying LanguageModel:', error);
       }
@@ -512,7 +576,6 @@ IMPORTANT:
     if (this.embedderSession) {
       try {
         await this.embedderSession.destroy();
-        console.log('[Enrichment] Embedder session destroyed');
       } catch (error) {
         console.error('[Enrichment] Error destroying Embedder:', error);
       }

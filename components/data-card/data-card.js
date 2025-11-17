@@ -39,6 +39,11 @@ class DataCard {
       this.setValue(this.value);
     }
 
+    // Set topic if present
+    if (this.topic) {
+      this.setTopicDisplay(this.topic);
+    }
+
     // Add source info icon if source is present
     this.addSourceInfo();
 
@@ -371,6 +376,18 @@ class DataCard {
    */
   setTopic(topic) {
     this.topic = topic;
+    this.setTopicDisplay(topic);
+  }
+
+  /**
+   * Set topic display in DOM
+   * @param {string} topic - Topic text to display
+   */
+  setTopicDisplay(topic) {
+    const topicElement = this.element.querySelector('.data-card__topic');
+    if (topicElement) {
+      topicElement.textContent = topic || '';
+    }
   }
 
   /**
@@ -448,7 +465,10 @@ function createDataCard(options = {}) {
 
   card.innerHTML = `
     <div class="data-card__content">
-      <p class="data-card__text text-style-body-medium">${options.value || options.data || 'Preference Data'}</p>
+      <div class="data-card__text-container">
+        <p class="data-card__topic"></p>
+        <p class="data-card__text text-style-body-medium">${options.value || options.data || 'Preference Data'}</p>
+      </div>
     </div>
   `;
 

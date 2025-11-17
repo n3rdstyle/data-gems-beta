@@ -1,0 +1,66 @@
+{
+  "learning_identity": {
+    "learning_mindset": "",
+    "curiosity_keywords": [],
+    "motivation_for_learning": "",
+    "preferred_learning_pace": "",
+    "confidence_in_learning": "",
+    "most_recent_skill_learned": ""
+  },
+  "learning_style": {
+    "dominant_learning_mode": "",
+    "secondary_learning_mode": "",
+    "preferred_content_format": [],
+    "best_learning_environment": "",
+    "note_taking_style": "",
+    "knowledge_retention_strategies": []
+  },
+  "education_and_background": {
+    "highest_formal_education": "",
+    "fields_of_study": [],
+    "institutions_or_platforms": [],
+    "certifications_or_courses": [],
+    "languages_learned": [],
+    "educational_philosophy": ""
+  },
+  "current_focus": {
+    "subjects_of_interest": [],
+    "skills_currently_developing": [],
+    "learning_projects_in_progress": [],
+    "frequency_of_learning_sessions": "",
+    "time_allocated_to_learning_weekly": "",
+    "sources_of_inspiration": []
+  },
+  "tools_and_resources": {
+    "learning_platforms_used": [],
+    "favorite_content_creators": [],
+    "podcasts_or_channels_followed": [],
+    "apps_or_software_for_learning": [],
+    "preferred_learning_devices": [],
+    "AI_or_tutor_usage": ""
+  },
+  "knowledge_application": {
+    "ways_you_apply_learning": [],
+    "knowledge_sharing_habits": [],
+    "personal_projects_linked_to_learning": [],
+    "feedback_methods": [],
+    "learning_success_markers": [],
+    "biggest_barrier_to_application": ""
+  },
+  "community_and_influence": {
+    "learning_communities_participated_in": [],
+    "mentorship_roles": [],
+    "learning_partners": [],
+    "collaborative_learning_style": "",
+    "social_influence_on_learning": "",
+    "role_models_or_inspirations": []
+  },
+  "emotional_connection_to_learning": {
+    "feelings_associated_with_learning": [],
+    "most_inspiring_learning_experience": "",
+    "most_challenging_subject": "",
+    "learning_milestones": [],
+    "personal_definition_of_growth": "",
+    "what_learning_means_to_you": ""
+  }
+}

@@ -100,7 +100,6 @@ export async function migrateToContextEngine({
     console.log(`[Migration] Converted ${gems.length} gems`);
 
     // 3. Initialize Context Engine
-    console.log('[Migration] Initializing Context Engine v2...');
     const engine = await getContextEngine();
 
     // 4. Bulk import with auto-enrichment
@@ -137,7 +136,6 @@ export async function migrateToContextEngine({
       clearedOldData: clearOldData
     };
 
-    console.log('[Migration] Migration complete:', results);
 
     return results;
 

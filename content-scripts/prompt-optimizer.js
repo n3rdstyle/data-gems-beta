@@ -146,24 +146,12 @@ function getPromptValue() {
 function setPromptValue(text) {
   if (!promptElement) return;
 
-  console.log('[Data Gems] Setting prompt value:', {
-    isContentEditable: currentPlatform.isContentEditable,
-    textLength: text.length,
-    hasNewlines: text.includes('\n'),
-    newlineCount: (text.match(/\n/g) || []).length
-  });
-
   if (currentPlatform.isContentEditable) {
     // Clear existing content
     promptElement.innerHTML = '';
 
     // Split text into lines and create proper DOM structure
     const lines = text.split('\n');
-    console.log('[Data Gems] Converted to HTML:', {
-      htmlLength: text.length,
-      lineCount: lines.length,
-      preview: text.substring(0, 200)
-    });
 
     // Create text nodes and br elements
     lines.forEach((line, index) => {
@@ -211,7 +199,6 @@ async function checkContextEngineStatus() {
   try {
     // Check if ContextEngineAPI is available in MAIN world
     if (typeof window.ContextEngineAPI === 'undefined') {
-      console.log('[Data Gems Prompt Optimizer] ContextEngineAPI not yet available');
       return false;
     }
 
@@ -258,17 +245,12 @@ function createOptimizeButton() {
  */
 function showOptimizeButton() {
   if (optimizeButton || !promptElement) {
-    console.log('[Data Gems Prompt Optimizer] Cannot show button:', {
-      buttonAlreadyExists: !!optimizeButton,
-      hasPromptElement: !!promptElement
-    });
     return;
   }
 
   // Check if there's text in the prompt
   const promptText = getPromptValue().trim();
   if (!promptText) {
-    console.log('[Data Gems Prompt Optimizer] No prompt text, not showing button');
     return;
   }
 
@@ -294,7 +276,6 @@ function showOptimizeButton() {
   if (formElement && formElement.parentElement) {
     formElement.parentElement.insertBefore(wrapper, formElement);
     optimizeButton._wrapper = wrapper;
-    console.log('[Data Gems Prompt Optimizer] ✓ Button inserted (Strategy 1: form parent)');
     return;
   }
 
@@ -304,7 +285,6 @@ function showOptimizeButton() {
     if (container) {
       container.insertBefore(wrapper, container.firstChild);
       optimizeButton._wrapper = wrapper;
-      console.log('[Data Gems Prompt Optimizer] ✓ Button inserted (Strategy 2: input container)');
       return;
     }
   }
@@ -313,7 +293,6 @@ function showOptimizeButton() {
   if (promptElement.parentElement) {
     promptElement.parentElement.insertBefore(wrapper, promptElement);
     optimizeButton._wrapper = wrapper;
-    console.log('[Data Gems Prompt Optimizer] ✓ Button inserted (Strategy 3: before prompt)');
     return;
   }
 
@@ -378,12 +357,10 @@ async function handleOptimization() {
 
   const promptText = getPromptValue().trim();
   if (!promptText) {
-    console.log('[Data Gems] No prompt text to optimize');
     return;
   }
 
   if (!hspProfile) {
-    console.log('[Data Gems] No profile available');
     alert('Please set up your Data Gems profile first');
     return;
   }
@@ -392,7 +369,6 @@ async function handleOptimization() {
   setOptimizeButtonLoading(true);
 
   try {
-    console.log('[Data Gems] Optimizing prompt locally with context selector');
 
     // ========================================
     // NEW: Local optimization with context selector
@@ -402,7 +378,6 @@ async function handleOptimization() {
     // Request up to 5 gems for rich context (fan-out decomposition will explore broadly)
     const optimizedPrompt = await optimizePromptWithContext(promptText, hspProfile, true, 5);
 
-    console.log('[Data Gems] Optimized prompt:', optimizedPrompt.substring(0, 200) + '...');
 
     // Set the optimized prompt in the input field
     setPromptValue(optimizedPrompt);
@@ -463,7 +438,6 @@ async function handleOptimization() {
         // Check if we're getting too large
         const currentSize = JSON.stringify(filtered).length;
         if (currentSize > MAX_PROFILE_SIZE) {
-          console.log('[Data Gems] Profile size limit reached, stopping at key:', key);
           break;
         }
       }
@@ -492,7 +466,6 @@ async function handleOptimization() {
     const minimalProfileStr = JSON.stringify(minimalProfile);
     const originalProfileStr = JSON.stringify(hspProfile);
 
-    console.log('[Data Gems] Sending to context engineer:', {
       prompt: promptText,
       originalProfileSize: originalProfileStr.length,
       minimalProfileSize: minimalProfileStr.length,
@@ -524,7 +497,6 @@ async function handleOptimization() {
 
     // Get raw response text first
     const responseText = await response.text();
-    console.log('[Data Gems] Raw response:', responseText.substring(0, 500));
 
     // Try to parse as JSON
     let result;
@@ -536,7 +508,6 @@ async function handleOptimization() {
       throw new Error('Failed to parse response as JSON');
     }
 
-    console.log('[Data Gems] Context engineer response:', result);
 
     // Handle response - n8n returns array format: [{"optimized_prompt":"..."}]
     const responseData = Array.isArray(result) ? result[0] : result;
@@ -578,7 +549,6 @@ async function handleOptimization() {
  */
 /*
 function handleAdditionalDataRequest(output, originalPrompt) {
-  console.log('[Data Gems] Additional data needed:', output);
 
   // TODO: Create a modal to show questions and collect answers
   // For now, just notify the user
@@ -586,7 +556,6 @@ function handleAdditionalDataRequest(output, originalPrompt) {
 
   if (questions.length > 0) {
     showNotification(`The context engineer needs ${questions.length} more piece(s) of information. Check the console for questions.`, 'info');
-    console.log('[Data Gems] Questions to answer:', questions);
   }
 }
 */
@@ -613,27 +582,14 @@ function showNotification(message, type = 'info') {
  */
 function updateButtonVisibility() {
   if (!currentPlatform || !promptElement || isOptimizing) {
-    console.log('[Data Gems Prompt Optimizer] Button visibility check failed:', {
-      hasPlatform: !!currentPlatform,
-      hasPromptElement: !!promptElement,
-      isOptimizing: isOptimizing
-    });
     return;
   }
 
   const promptText = getPromptValue().trim();
 
-  console.log('[Data Gems Prompt Optimizer] Button visibility check:', {
-    hasPromptText: !!promptText,
-    promptTextLength: promptText.length,
-    hasProfile: !!hspProfile
-  });
-
   if (promptText && hspProfile) {
-    console.log('[Data Gems Prompt Optimizer] → Showing button');
     showOptimizeButton();
   } else {
-    console.log('[Data Gems Prompt Optimizer] → Hiding button');
     hideOptimizeButton();
   }
 }
@@ -645,11 +601,9 @@ async function initializePromptOptimizer() {
   // Detect platform
   currentPlatform = detectPlatform();
   if (!currentPlatform) {
-    console.log('[Data Gems] Platform not supported for prompt optimization');
     return;
   }
 
-  console.log('[Data Gems] Prompt optimizer initializing on:', currentPlatform.name);
 
   // Load profile from storage
   try {
@@ -658,12 +612,9 @@ async function initializePromptOptimizer() {
 
     if (!hspProfile) {
       console.warn('[Data Gems Prompt Optimizer] No profile found in storage. Please set up your profile first.');
-      console.log('[Data Gems Prompt Optimizer] Checked storage key: hspProfile');
-      console.log('[Data Gems Prompt Optimizer] Storage result:', result);
       return;
     }
 
-    console.log('[Data Gems Prompt Optimizer] Profile loaded successfully:', Object.keys(hspProfile));
   } catch (error) {
     console.error('[Data Gems Prompt Optimizer] Failed to load profile:', error);
     return;
@@ -675,8 +626,6 @@ async function initializePromptOptimizer() {
 
     if (promptElement) {
       clearInterval(waitForPrompt);
-      console.log('[Data Gems Prompt Optimizer] ✓ Prompt element found:', promptElement.tagName);
-      console.log('[Data Gems Prompt Optimizer] ✓ Setting up monitoring');
 
       // Setup input monitoring
       setupInputMonitoring();
@@ -757,7 +706,6 @@ function startContextEnginePolling() {
     if (isReady) {
       clearInterval(contextEnginePollingInterval);
       contextEnginePollingInterval = null;
-      console.log('[Data Gems Prompt Optimizer] Context Engine polling stopped (ready)');
     }
   }, 500);
 
@@ -766,7 +714,6 @@ function startContextEnginePolling() {
     if (contextEnginePollingInterval) {
       clearInterval(contextEnginePollingInterval);
       contextEnginePollingInterval = null;
-      console.log('[Data Gems Prompt Optimizer] Context Engine polling stopped (timeout)');
     }
   }, 30000);
 }
@@ -780,7 +727,6 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 });
 
 // Initialize when DOM is ready
-console.log('[Data Gems Prompt Optimizer] Script loaded, document state:', document.readyState);
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initializePromptOptimizer);

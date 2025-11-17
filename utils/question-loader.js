@@ -1,13 +1,21 @@
 /**
  * Question Loader Utility
- * Loads and manages random questions from CSV catalog
+ * Loads and manages random questions from JSON templates
+ *
+ * =============================================================================
+ * LEGACY CSV-BASED SYSTEM (DEPRECATED)
+ * The code below is commented out and replaced with JSON template-based system
+ * =============================================================================
  */
+
+/* ===== LEGACY CODE START =====
 
 /**
  * Parse CSV data into question objects
  * @param {string} csvText - Raw CSV text
  * @returns {Array<Object>} Array of question objects
  */
+/*
 function parseQuestionCSV(csvText) {
   const lines = csvText.split('\n');
   const questions = [];
@@ -47,6 +55,7 @@ function parseQuestionCSV(csvText) {
  * @param {string} line - CSV line
  * @returns {Array<string>} Array of column values
  */
+/*
 function parseCSVLine(line) {
   const columns = [];
   let currentColumn = '';
@@ -81,23 +90,10 @@ function parseCSVLine(line) {
 }
 
 /**
- * Shuffle array using Fisher-Yates algorithm
- * @param {Array} array - Array to shuffle
- * @returns {Array} Shuffled array (new copy)
- */
-function shuffleArray(array) {
-  const shuffled = [...array];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
-}
-
-/**
  * Load questions from CSV file
  * @returns {Promise<Array<Object>>} Promise resolving to array of shuffled question objects
  */
+/*
 async function loadRandomQuestions() {
   try {
     const response = await fetch(chrome.runtime.getURL('complete-questions-catalog.csv'));
@@ -124,6 +120,7 @@ async function loadRandomQuestions() {
  * Get fallback questions if CSV loading fails
  * @returns {Array<Object>} Array of fallback questions
  */
+/*
 function getFallbackQuestions() {
   return [
     { id: 1, question: 'What is your favorite food?', tag: 'Nutrition', category: 'Nutrition', subCategory: 'Preferences', subCategoryKey: 'nutrition_preferences' },
@@ -140,6 +137,7 @@ function getFallbackQuestions() {
  * @param {string} category - Category to filter by
  * @returns {Array<Object>} Filtered questions
  */
+/*
 function filterQuestionsByCategory(questions, category) {
   return questions.filter(q => q.category === category || q.tag === category);
 }
@@ -150,19 +148,36 @@ function filterQuestionsByCategory(questions, category) {
  * @param {number} count - Number of questions to return
  * @returns {Array<Object>} Random subset of questions
  */
+/*
 function getRandomSubset(questions, count) {
   const shuffled = shuffleArray(questions);
   return shuffled.slice(0, count);
 }
 
+===== LEGACY CODE END ===== */
+
+// =============================================================================
+// NEW JSON TEMPLATE-BASED SYSTEM
+// =============================================================================
+
+/**
+ * Shuffle array using Fisher-Yates algorithm
+ * @param {Array} array - Array to shuffle
+ * @returns {Array} Shuffled array (new copy)
+ */
+function shuffleArray(array) {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
-    loadRandomQuestions,
-    parseQuestionCSV,
-    shuffleArray,
-    filterQuestionsByCategory,
-    getRandomSubset,
-    getFallbackQuestions
+    shuffleArray
+    // New functions will be added here as we build the JSON template system
   };
 }

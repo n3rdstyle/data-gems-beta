@@ -10,10 +10,8 @@ if (typeof window === 'undefined') {
 }
 
 // Load Context Engine v2
-console.log('[Background] Loading Context Engine v2 bundle...');
 try {
   importScripts('engine-bridge.bundle.js');
-  console.log('[Background] ✓ Context Engine bundle loaded');
 } catch (error) {
   console.error('[Background] ✗ Failed to load Context Engine bundle:', error);
 }
@@ -49,7 +47,6 @@ async function ensureOffscreenDocument() {
 
     if (existingContexts.length > 0) {
       offscreenDocumentCreated = true;
-      console.log('[Background] Offscreen document already exists');
       return;
     }
 
@@ -108,7 +105,6 @@ let contextEngineInitializing = false;
  * Called lazily on first Context Engine API call
  */
 async function ensureContextEngine() {
-  console.log('[Background] ensureContextEngine() called, ready:', contextEngineReady, 'initializing:', contextEngineInitializing);
 
   if (contextEngineReady) {
     return;
@@ -128,7 +124,6 @@ async function ensureContextEngine() {
   }
 
   contextEngineInitializing = true;
-  console.log('[Background] Initializing Context Engine v2...');
 
   try {
     // Check if ContextEngineAPI is available
@@ -136,7 +131,6 @@ async function ensureContextEngine() {
       throw new Error('[Background] ContextEngineAPI not found after bundle load');
     }
 
-    console.log('[Background] ContextEngineAPI available, calling initialize()...');
     await self.ContextEngineAPI.initialize();
     contextEngineReady = true;
     console.log('[Background] ✓ Context Engine v2 ready');
@@ -151,7 +145,6 @@ async function ensureContextEngine() {
  * Destroy Context Engine (for clean database deletion)
  */
 async function destroyContextEngine() {
-  console.log('[Background] Destroying Context Engine...');
 
   try {
     if (self.ContextEngineAPI && self.ContextEngineAPI.engine) {
@@ -163,7 +156,6 @@ async function destroyContextEngine() {
     }
     contextEngineReady = false;
     contextEngineInitializing = false;
-    console.log('[Background] ✓ Context Engine destroyed and reset');
   } catch (error) {
     console.error('[Background] Error destroying Context Engine:', error);
     // Reset flags anyway
@@ -210,11 +202,9 @@ chrome.runtime.onStartup.addListener(async () => {
 
 // Handle messages from popup or content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log('[Background] Received message:', request.action, 'from:', sender.tab ? 'content script' : 'popup');
 
   // Handle Context Engine API calls
   if (request.action?.startsWith('contextEngine.')) {
-    console.log('[Background] → Routing to Context Engine handler');
     handleContextEngineMessage(request, sender, sendResponse);
     return true; // Keep channel open for async response
   }
@@ -277,7 +267,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return true;
 
     case 'log':
-      console.log(request.message);
       sendResponse({ success: true });
       return false;
 
@@ -300,14 +289,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
  * Handle Context Engine API messages from content scripts
  */
 async function handleContextEngineMessage(request, sender, sendResponse) {
-  console.log('[Background] Received Context Engine message:', request.action);
 
   try {
     // Ensure Context Engine is initialized
     await ensureContextEngine();
 
     const action = request.action.replace('contextEngine.', '');
-    console.log('[Background] Handling action:', action);
 
     switch (action) {
       case 'search':
@@ -328,7 +315,6 @@ async function handleContextEngineMessage(request, sender, sendResponse) {
             score: gemData.score || result.score || 0
           };
         });
-        console.log('[Background] Returning', plainResults.length, 'search results');
         sendResponse({ success: true, results: plainResults });
         break;
 
@@ -344,7 +330,6 @@ async function handleContextEngineMessage(request, sender, sendResponse) {
             keywords: gemData.keywords || gemData._data?.keywords
           };
         });
-        console.log('[Background] Returning', plainGems.length, 'gems');
         sendResponse({ success: true, gems: plainGems });
         break;
 
@@ -369,13 +354,26 @@ async function handleContextEngineMessage(request, sender, sendResponse) {
 
       case 'getStats':
         const stats = await self.ContextEngineAPI.getStats();
-        console.log('[Background] Returning stats:', stats);
         sendResponse({ success: true, stats });
+        break;
+
+      case 'generateEmbedding':
+        const embedding = await self.ContextEngineAPI.generateEmbedding(request.text);
+        sendResponse({ success: true, embedding });
+        break;
+
+      case 'getCategoryEmbeddings':
+        const embeddings = await self.ContextEngineAPI.getCategoryEmbeddings();
+        sendResponse({ success: true, embeddings });
+        break;
+
+      case 'areCategoryEmbeddingsReady':
+        const embeddingsReady = await self.ContextEngineAPI.areCategoryEmbeddingsReady();
+        sendResponse({ success: true, ready: embeddingsReady });
         break;
 
       case 'isReady':
         const isReady = self.ContextEngineAPI?.isReady || false;
-        console.log('[Background] Context Engine ready?', isReady);
         sendResponse({ success: true, isReady });
         break;
 
@@ -410,37 +408,29 @@ chrome.runtime.onStartup.addListener(() => {
 async function checkBetaReminderConditions() {
   return new Promise((resolve) => {
     chrome.storage.local.get(['betaUser', 'hspProfile'], (result) => {
-      console.log('🔍 [Beta Check-In] Storage data:', result);
 
       const betaUser = result.betaUser || {};
       const profile = result.hspProfile || {};
 
-      console.log('🔍 [Beta Check-In] betaUser:', betaUser);
-      console.log('🔍 [Beta Check-In] profile exists:', !!profile);
 
       // Don't show if already checked in
       if (betaUser.checkedIn) {
-        console.log('❌ [Beta Check-In] Already checked in');
         resolve(false);
         return;
       }
 
       // Don't show automatically if user has skipped at all (only show via settings)
       if (betaUser.skipped) {
-        console.log('❌ [Beta Check-In] User has skipped, only show via settings');
         resolve(false);
         return;
       }
 
       // Get preferences count from HSP format
       const preferencesCount = profile?.content?.preferences?.items?.length || 0;
-      console.log('🔍 [Beta Check-In] Preferences count:', preferencesCount);
 
       // Show if 5+ preferences saved
       const hasEnoughGems = preferencesCount >= 5;
 
-      console.log('🔍 [Beta Check-In] Has enough gems (5+):', hasEnoughGems);
-      console.log('🔍 [Beta Check-In] Should show?', hasEnoughGems);
 
       resolve(hasEnoughGems);
     });
@@ -587,7 +577,6 @@ function generateUUID() {
  * @param {Object} importedData - Data to import
  */
 async function handleImportData(importedData) {
-  console.log('[Background] Starting import...');
 
   // Reset import status
   importStatus = {
@@ -603,14 +592,12 @@ async function handleImportData(importedData) {
   try {
     // Ensure Context Engine is ready
     const engine = await ensureContextEngine();
-    console.log('[Background] Context Engine ready for import');
 
     // Extract preferences and child gems
     const preferences = importedData.content?.preferences?.items || [];
     const childGems = importedData.content?.childGems || [];
 
     importStatus.totalItems = preferences.length + childGems.length;
-    console.log(`[Background] Importing ${preferences.length} primary gems and ${childGems.length} child gems`);
 
     const BATCH_SIZE = 5; // Update status every 5 items
 
@@ -645,7 +632,6 @@ async function handleImportData(importedData) {
         importStatus.importedCount++;
 
         if (importStatus.importedCount % BATCH_SIZE === 0) {
-          console.log(`[Background] Progress: ${importStatus.importedCount}/${importStatus.totalItems}`);
         }
       } catch (error) {
         importStatus.errorCount++;
@@ -656,7 +642,6 @@ async function handleImportData(importedData) {
     // Import child gems
     if (childGems.length > 0) {
       importStatus.phase = 'child';
-      console.log(`[Background] Importing ${childGems.length} child gems...`);
 
       for (let i = 0; i < childGems.length; i++) {
         const child = childGems[i];
@@ -674,7 +659,6 @@ async function handleImportData(importedData) {
           importStatus.importedCount++;
 
           if (importStatus.importedCount % BATCH_SIZE === 0) {
-            console.log(`[Background] Progress: ${importStatus.importedCount}/${importStatus.totalItems}`);
           }
         } catch (error) {
           importStatus.errorCount++;
@@ -701,15 +685,11 @@ async function handleImportData(importedData) {
 // This prevents "Could not establish connection" errors during migration
 (async () => {
   try {
-    console.log('[Background] Initializing Context Engine v2...');
 
     // Step 1: Ensure offscreen document exists FIRST
-    console.log('[Background] Step 1/2: Creating offscreen document...');
     await ensureOffscreenDocument();
-    console.log('[Background] ✓ Offscreen document ready');
 
     // Step 2: Now manually initialize Context Engine (safe to generate embeddings)
-    console.log('[Background] Step 2/2: Initializing Context Engine...');
     await window.ContextEngineAPI.initialize();
     console.log('[Background] ✓ Context Engine v2 fully initialized and ready!');
   } catch (error) {

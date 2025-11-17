@@ -1,0 +1,67 @@
+{
+  "home_identity": {
+    "living_situation": "",
+    "home_type": "",
+    "household_size": 0,
+    "pets": [],
+    "home_vibe_keywords": [],
+    "favorite_room": "",
+    "design_inspirations": []
+  },
+  "aesthetic_preferences": {
+    "interior_style_words": [],
+    "color_palette": [],
+    "material_preferences": [],
+    "avoid_styles": [],
+    "lighting_preferences": "",
+    "decor_favorites": []
+  },
+  "functional_needs": {
+    "daily_routines_at_home": [],
+    "work_from_home_setup": "",
+    "tech_ecosystem": [],
+    "storage_needs": "",
+    "cleaning_habits": "",
+    "energy_efficiency_priority": ""
+  },
+  "comfort_environment": {
+    "temperature_preference": "",
+    "sound_sensitivity": "",
+    "smell_preferences": [],
+    "favorite_home_textures": [],
+    "lighting_mood_preferences": [],
+    "clutter_tolerance_level": ""
+  },
+  "location_context": {
+    "current_city": "",
+    "neighborhood_vibe": "",
+    "proximity_priorities": [],
+    "commute_pattern": "",
+    "local_favorites": [],
+    "future_living_dream": ""
+  },
+  "lifestyle_rhythm": {
+    "morning_ritual": "",
+    "evening_ritual": "",
+    "weekend_pattern": "",
+    "social_frequency": "",
+    "fitness_routine_location": "",
+    "relaxation_activities": []
+  },
+  "shopping_behavior_home": {
+    "home_item_purchase_frequency": "",
+    "preferred_brands_home": [],
+    "sustainability_priority": "",
+    "DIY_interest_level": "",
+    "online_vs_instore_preference": "",
+    "trusted_home_recommendation_sources": []
+  },
+  "emotional_connection": {
+    "feeling_home_should_evoke": [],
+    "most_memorable_home_item": "",
+    "design_pet_peeves": [],
+    "wishlist_items": [],
+    "symbolic_objects": [],
+    "definition_of_home": ""
+  }
+}

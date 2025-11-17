@@ -1,0 +1,66 @@
+{
+  "civic_identity": {
+    "definition_of_citizenship": "",
+    "relationship_with_politics": "",
+    "trust_in_institutions": "",
+    "civic_duty_priorities": [],
+    "relationship_with_government_and_policy": "",
+    "degree_of_political_engagement": ""
+  },
+  "values_and_principles": {
+    "core_social_values": [],
+    "views_on_freedom_and_responsibility": "",
+    "perspective_on_equality_and_fairness": "",
+    "moral_drivers_of_decision_making": [],
+    "views_on_progress_vs_tradition": "",
+    "topics_you_care_most_about": []
+  },
+  "information_behavior": {
+    "preferred_news_sources": [],
+    "fact_checking_habits": "",
+    "approach_to_conflicting_information": "",
+    "role_of_social_media_in_political_understanding": "",
+    "frequency_of_staying_informed": "",
+    "trusted_public_figures_or_thinkers": []
+  },
+  "civic_participation": {
+    "forms_of_involvement": [],
+    "voting_habits": "",
+    "participation_in_protests_or_causes": "",
+    "community_activism_level": "",
+    "volunteering_or_public_service": "",
+    "charities_or_movements_supported": []
+  },
+  "policy_and_governance_views": {
+    "most_important_policy_areas": [],
+    "relationship_with_local_government": "",
+    "attitude_toward_global_institutions": "",
+    "views_on_technology_and_regulation": "",
+    "environmental_policy_interest": "",
+    "preferred_modes_of_civic_influence": []
+  },
+  "philosophical_outlook": {
+    "worldview_keywords": [],
+    "definition_of_justice": "",
+    "views_on_leadership_and_power": "",
+    "belief_in_collective_action": "",
+    "relationship_between_ethics_and_politics": "",
+    "role_of_empathy_in_public_life": ""
+  },
+  "social_discourse_behavior": {
+    "discussion_comfort_level": "",
+    "approach_to_debate": "",
+    "tolerance_for_differing_views": "",
+    "influence_of_social_circle": "",
+    "conflict_resolution_style_in_political_contexts": "",
+    "preferred_medium_for_civic_conversation": ""
+  },
+  "future_civic_vision": {
+    "hopes_for_future_society": "",
+    "personal_role_in_civic_change": "",
+    "causes_to_advocate_for": [],
+    "visions_of_global_cooperation": "",
+    "technological_influence_on_democracy": "",
+    "definition_of_responsible_citizenship": ""
+  }
+}

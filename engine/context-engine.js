@@ -34,28 +34,22 @@ export class ContextEngine {
    * Sets up all components: database, vector store, BM25, hybrid search, enrichment
    */
   async init() {
-    console.log('[ContextEngine] Initializing Context Engine v2...');
 
     try {
       // 1. Initialize database
-      console.log('[ContextEngine] Step 1/5: Initialize database');
       this.db = await initDatabase();
       this.collection = getGemsCollection();
 
       // 2. Initialize vector store
-      console.log('[ContextEngine] Step 2/5: Initialize vector store');
       this.vectorStore = await getVectorStore();
 
       // 3. Initialize BM25
-      console.log('[ContextEngine] Step 3/5: Initialize BM25');
       this.bm25 = await getBM25();
 
       // 4. Initialize hybrid search
-      console.log('[ContextEngine] Step 4/5: Initialize hybrid search');
       this.hybridSearch = await getHybridSearch();
 
       // 5. Initialize enrichment
-      console.log('[ContextEngine] Step 5/5: Initialize enrichment');
       this.enrichment = await getEnrichment();
 
       this.isReady = true;
@@ -63,9 +57,47 @@ export class ContextEngine {
       const stats = await getDatabaseStats();
       console.log('[ContextEngine] Context Engine v2 ready!', stats);
 
+      // 6. Start background task: Pre-compute category embeddings (non-blocking)
+      this._initializeCategoryEmbeddingsBackground().catch(error => {
+        console.error('[ContextEngine] Background category embedding failed:', error);
+      });
+
       return this;
     } catch (error) {
       console.error('[ContextEngine] Failed to initialize:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Background task: Initialize category embeddings
+   * Runs async after Context Engine is ready
+   * @private
+   */
+  async _initializeCategoryEmbeddingsBackground() {
+    try {
+      // Extract all unique categories from gems
+      const allGems = await this.vectorStore.getAllGems();
+      const categories = [...new Set(
+        allGems
+          .flatMap(gem => {
+            const gemData = gem.toJSON ? gem.toJSON() : gem;
+            return gemData.collections || gemData._data?.collections || [];
+          })
+          .filter(Boolean)
+      )];
+
+      if (categories.length === 0) {
+        return;
+      }
+
+
+      // Initialize embeddings in background (non-blocking)
+      await this.enrichment.initializeCategoryEmbeddings(categories, true);
+
+      console.log('[ContextEngine] ✅ Background category embedding complete');
+    } catch (error) {
+      console.error('[ContextEngine] Background category embedding error:', error);
       throw error;
     }
   }
@@ -81,7 +113,6 @@ export class ContextEngine {
       throw new Error('[ContextEngine] Engine not initialized');
     }
 
-    console.log(`[ContextEngine] Adding gem: ${gem.id}`);
 
     // Enrich gem if requested
     let enrichedGem = gem;
@@ -98,7 +129,6 @@ export class ContextEngine {
 
     // Insert child gems
     if (childGems.length > 0) {
-      console.log(`[ContextEngine] Inserting ${childGems.length} child gems for: ${gem.id}`);
       for (const childGem of childGems) {
         await this.vectorStore.insert(childGem);
 
@@ -114,9 +144,16 @@ export class ContextEngine {
       await this.bm25.updateIndex(enrichedGem);
     }
 
-    console.log(`[ContextEngine] Gem added successfully: ${gem.id}`, {
-      childGems: childGems.length
-    });
+    // Auto-embed new categories
+    if (enrichedGem.collections && enrichedGem.collections.length > 0) {
+      const existingEmbeddings = this.enrichment.getCategoryEmbeddings();
+      const newCategories = enrichedGem.collections.filter(cat => !existingEmbeddings[cat]);
+
+      if (newCategories.length > 0) {
+        await this.enrichment.initializeCategoryEmbeddings(newCategories);
+      }
+    }
+
     return enrichedGem;
   }
 
@@ -132,7 +169,6 @@ export class ContextEngine {
       throw new Error('[ContextEngine] Engine not initialized');
     }
 
-    console.log(`[ContextEngine] Updating gem: ${id}`);
 
     // Get current gem
     const currentGem = await this.vectorStore.getGem(id);
@@ -155,7 +191,6 @@ export class ContextEngine {
     // TODO: Optimize with incremental update
     await this.bm25.buildIndex();
 
-    console.log(`[ContextEngine] Gem updated successfully: ${id}`);
   }
 
   /**
@@ -168,7 +203,6 @@ export class ContextEngine {
       throw new Error('[ContextEngine] Engine not initialized');
     }
 
-    console.log(`[ContextEngine] Deleting gem: ${id}`);
 
     // Get gem before deletion (for BM25 index update)
     const gem = await this.vectorStore.getGem(id);
@@ -196,25 +230,20 @@ export class ContextEngine {
       throw new Error('[ContextEngine] Engine not initialized');
     }
 
-    console.log(`[ContextEngine] Bulk importing ${gems.length} gems...`);
 
     let enrichedGems = gems;
 
     // Enrich all gems if requested
     if (autoEnrich) {
-      console.log('[ContextEngine] Enriching gems...');
       enrichedGems = await this.enrichment.enrichBatch(gems, {}, onProgress);
     }
 
     // Bulk insert
-    console.log('[ContextEngine] Inserting gems...');
     const results = await this.vectorStore.bulkInsert(enrichedGems);
 
     // Rebuild BM25 index
-    console.log('[ContextEngine] Rebuilding BM25 index...');
     await this.bm25.buildIndex();
 
-    console.log('[ContextEngine] Bulk import complete:', results);
     return results;
   }
 
@@ -237,12 +266,10 @@ export class ContextEngine {
       throw new Error('[ContextEngine] Engine not initialized');
     }
 
-    console.log('[ContextEngine] Searching for context:', { query, filters, limit });
 
     // Generate query embedding
     let queryVector = null;
     if (this.enrichment.isAvailable.embedder) {
-      console.log('[ContextEngine] Generating query embedding...');
       queryVector = await this.enrichment.generateEmbedding(query);
     }
 
@@ -261,7 +288,6 @@ export class ContextEngine {
       score: result.score
     }));
 
-    console.log(`[ContextEngine] Search complete: ${plainResults.length} results`);
     return plainResults;
   }
 
@@ -289,6 +315,48 @@ export class ContextEngine {
     }
 
     return this.vectorStore.getGem(id);
+  }
+
+  /**
+   * Generate embedding for text
+   * @param {string} text - Text to embed
+   * @returns {Promise<Array<number>|null>} Embedding vector or null
+   */
+  async generateEmbedding(text) {
+    if (!this.isReady) {
+      throw new Error('[ContextEngine] Engine not initialized');
+    }
+
+    if (!this.enrichment.isAvailable.embedder) {
+      console.warn('[ContextEngine] Embedder not available');
+      return null;
+    }
+
+    return this.enrichment.generateEmbedding(text);
+  }
+
+  /**
+   * Get pre-computed category embeddings
+   * @returns {Object} Map of category name to embedding vector
+   */
+  getCategoryEmbeddings() {
+    if (!this.isReady) {
+      throw new Error('[ContextEngine] Engine not initialized');
+    }
+
+    return this.enrichment.getCategoryEmbeddings();
+  }
+
+  /**
+   * Check if category embeddings are ready
+   * @returns {boolean} True if ready
+   */
+  areCategoryEmbeddingsReady() {
+    if (!this.isReady) {
+      return false;
+    }
+
+    return this.enrichment.areCategoryEmbeddingsReady();
   }
 
   /**
@@ -356,7 +424,6 @@ export class ContextEngine {
     }
 
     // Rebuild BM25 index
-    console.log('[ContextEngine] Rebuilding BM25 index after re-enrichment...');
     await this.bm25.buildIndex();
 
     const results = {
@@ -378,19 +445,16 @@ export class ContextEngine {
       throw new Error('[ContextEngine] Engine not initialized');
     }
 
-    console.log('[ContextEngine] Rebuilding all indexes...');
 
     await this.vectorStore.rebuildIndex();
     await this.bm25.buildIndex();
 
-    console.log('[ContextEngine] Indexes rebuilt successfully');
   }
 
   /**
    * Destroy engine and clean up resources
    */
   async destroy() {
-    console.log('[ContextEngine] Destroying Context Engine...');
 
     // Destroy enrichment
     if (this.enrichment) {
@@ -401,7 +465,6 @@ export class ContextEngine {
     if (this.vectorStore) {
       this.vectorStore.hnswIndex = null;
       this.vectorStore.indexReady = false;
-      console.log('[ContextEngine] Vector store cleared from memory');
     }
 
     // CRITICAL: Close RxDB database connection
@@ -409,7 +472,6 @@ export class ContextEngine {
     try {
       const { closeDatabase } = await import('./database.js');
       await closeDatabase();
-      console.log('[ContextEngine] Database connection closed');
     } catch (error) {
       console.warn('[ContextEngine] Error closing database:', error);
     }
@@ -418,7 +480,6 @@ export class ContextEngine {
     contextEngineInstance = null;
 
     this.isReady = false;
-    console.log('[ContextEngine] Context Engine destroyed and singleton reset');
   }
 }
 

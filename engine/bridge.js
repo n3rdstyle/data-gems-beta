@@ -23,24 +23,18 @@ window.ContextEngineAPI = {
     this.isInitializing = true;
 
     try {
-      console.log('[Engine Bridge] Initializing Context Engine v2...');
 
       // Check if migration is needed
       const migrationStatus = await checkMigrationStatus();
-      console.log('[Engine Bridge] Migration status:', migrationStatus);
 
       if (migrationStatus.needsMigration) {
-        console.log('[Engine Bridge] Running migration...');
         const migrationResult = await migrateToContextEngine({
           autoEnrich: true, // Auto-enrich all gems with embeddings
           clearOldData: false, // Keep old data as backup
           onProgress: (current, total) => {
-            console.log(`[Engine Bridge] Migration progress: ${current}/${total}`);
           }
         });
-        console.log('[Engine Bridge] Migration complete:', migrationResult);
       } else {
-        console.log('[Engine Bridge] No migration needed');
       }
 
       // Initialize engine
@@ -49,7 +43,6 @@ window.ContextEngineAPI = {
 
       console.log('[Engine Bridge] Context Engine v2 ready!');
       const stats = await this.engine.getStats();
-      console.log('[Engine Bridge] Stats:', stats);
 
       return this.engine;
     } catch (error) {
@@ -160,9 +153,43 @@ window.ContextEngineAPI = {
       await this.initialize();
     }
     return this.engine.batchReEnrich(filters, onProgress);
+  },
+
+  /**
+   * Generate embedding for text
+   * @param {string} text - Text to embed
+   * @returns {Promise<Array<number>|null>}
+   */
+  async generateEmbedding(text) {
+    if (!this.isReady) {
+      await this.initialize();
+    }
+    return this.engine.generateEmbedding(text);
+  },
+
+  /**
+   * Get pre-computed category embeddings
+   * @returns {Object} Map of category name to embedding vector
+   */
+  getCategoryEmbeddings() {
+    if (!this.isReady) {
+      console.warn('[Engine Bridge] Engine not ready, returning empty embeddings');
+      return {};
+    }
+    return this.engine.getCategoryEmbeddings();
+  },
+
+  /**
+   * Check if category embeddings are ready
+   * @returns {boolean}
+   */
+  areCategoryEmbeddingsReady() {
+    if (!this.isReady) {
+      return false;
+    }
+    return this.engine.areCategoryEmbeddingsReady();
   }
 };
 
 // NOTE: Auto-initialization removed to prevent race condition
 // background.js will manually initialize AFTER offscreen document is ready
-console.log('[Engine Bridge] Loaded (manual initialization required)');

@@ -1,0 +1,66 @@
+{
+  "habit_identity": {
+    "relationship_with_routine": "",
+    "discipline_vs_spontaneity_balance": "",
+    "habit_forming_tendencies": "",
+    "habit_breaking_struggles": [],
+    "rituals_that_define_you": [],
+    "attitude_toward_change": ""
+  },
+  "daily_routines": {
+    "morning_routine": [],
+    "evening_routine": [],
+    "workday_pattern": [],
+    "weekend_pattern": [],
+    "sleep_and_wake_schedule": "",
+    "time_management_style": ""
+  },
+  "health_and_body_habits": {
+    "exercise_routines": [],
+    "hydration_habits": "",
+    "nutrition_patterns": [],
+    "supplement_or_medication_routines": [],
+    "posture_or_movement_awareness": "",
+    "recovery_or_rest_habits": []
+  },
+  "mental_and_emotional_habits": {
+    "reflection_or_journaling_practices": [],
+    "gratitude_or_mindfulness_habits": [],
+    "stress_response_patterns": [],
+    "social_media_usage_patterns": "",
+    "self_talk_patterns": "",
+    "ways_you_reset_mentally": []
+  },
+  "work_and_productivity_habits": {
+    "focus_blocks_or_sprints": "",
+    "procrastination_triggers": [],
+    "organization_systems": [],
+    "digital_workspace_cleanliness": "",
+    "break_habits": [],
+    "end_of_day_shutdown_process": ""
+  },
+  "learning_and_growth_habits": {
+    "reading_or_learning_routines": [],
+    "creative_or_side_projects": [],
+    "goal_review_frequency": "",
+    "accountability_methods": [],
+    "mentorship_orfeedback_habits": "",
+    "curiosity_triggers": []
+  },
+  "social_and_environmental_habits": {
+    "social_check_in_routines": [],
+    "communication_habits": [],
+    "environmental_care_habits": [],
+    "volunteering_or_giving_patterns": [],
+    "community_participation_rhythm": "",
+    "celebration_or_restoration_habits": []
+  },
+  "habit_reflection": {
+    "habits_you_want_to_build": [],
+    "habits_you_want_to_break": [],
+    "keystone_habits": [],
+    "recent_habit_successes": [],
+    "barriers_to_consistency": [],
+    "definition_of_a_good_day": ""
+  }
+}

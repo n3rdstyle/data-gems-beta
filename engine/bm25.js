@@ -88,9 +88,7 @@ export class BM25 {
       throw new Error('[BM25] Database not initialized');
     }
 
-    console.log('[BM25] Initializing...');
     await this.buildIndex();
-    console.log('[BM25] Initialized successfully');
 
     return this;
   }
@@ -100,7 +98,6 @@ export class BM25 {
    * Calculates document frequencies and average document length
    */
   async buildIndex() {
-    console.log('[BM25] Building index...');
 
     const docs = await this.collection.find().exec();
     const docLengths = [];
@@ -135,13 +132,6 @@ export class BM25 {
     }
 
     this.stats.lastUpdate = Date.now();
-
-    console.log('[BM25] Index built:', {
-      totalDocs: this.stats.totalDocs,
-      avgDocLength: this.stats.avgDocLength.toFixed(1),
-      uniqueTerms: Object.keys(this.stats.docFrequencies).length,
-      lastUpdate: new Date(this.stats.lastUpdate).toISOString()
-    });
   }
 
   /**
@@ -200,11 +190,9 @@ export class BM25 {
    * @returns {Promise<Array>} Sorted search results
    */
   async sparseSearch(query, filters = {}, limit = 20) {
-    console.log('[BM25] Sparse search started:', { query, filters, limit });
 
     // Rebuild index if stale (older than 5 minutes)
     if (!this.stats.lastUpdate || Date.now() - this.stats.lastUpdate > 5 * 60 * 1000) {
-      console.log('[BM25] Index stale, rebuilding...');
       await this.buildIndex();
     }
 
@@ -216,7 +204,6 @@ export class BM25 {
       return [];
     }
 
-    console.log('[BM25] Query tokens:', queryTokens);
 
     // Build filtered query
     let rxQuery = this.collection.find();
@@ -237,7 +224,6 @@ export class BM25 {
     // Execute query
     const docs = await rxQuery.exec();
 
-    console.log(`[BM25] Found ${docs.length} candidates`);
 
     // Calculate BM25 scores
     const results = docs
@@ -258,13 +244,6 @@ export class BM25 {
     const sorted = results
       .sort((a, b) => b.score - a.score)
       .slice(0, limit);
-
-    console.log(`[BM25] Sparse search complete:`, {
-      candidates: docs.length,
-      matches: results.length,
-      returned: sorted.length,
-      topScore: sorted[0]?.score.toFixed(3)
-    });
 
     return sorted;
   }
@@ -287,7 +266,6 @@ export class BM25 {
     this.stats.totalDocs += 1;
     this.stats.avgDocLength = (oldTotal + tokens.length) / this.stats.totalDocs;
 
-    console.log(`[BM25] Index updated for gem: ${gem.id}`);
   }
 
   /**
@@ -319,7 +297,6 @@ export class BM25 {
       this.stats.avgDocLength = 0;
     }
 
-    console.log(`[BM25] Removed gem from index: ${gem.id}`);
   }
 
   /**
