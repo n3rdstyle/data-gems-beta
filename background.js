@@ -21,6 +21,17 @@ try {
 // Offscreen Document Management (for WASM embedding generation)
 let offscreenDocumentCreated = false;
 
+// Import Status (global state for background import)
+let importStatus = {
+  isImporting: false,
+  currentItem: 0,
+  totalItems: 0,
+  importedCount: 0,
+  errorCount: 0,
+  phase: '', // 'primary' or 'child'
+  error: null
+};
+
 /**
  * Create offscreen document for embedding generation
  * Offscreen documents support WASM unlike Service Workers
@@ -268,6 +279,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     case 'log':
       console.log(request.message);
       sendResponse({ success: true });
+      return false;
+
+    case 'importData':
+      handleImportData(request.importedData)
+        .then(() => sendResponse({ success: true }))
+        .catch(error => sendResponse({ success: false, error: error.message }));
+      return true;
+
+    case 'getImportStatus':
+      sendResponse({ status: importStatus });
       return false;
 
     default:
@@ -560,6 +581,121 @@ function generateUUID() {
 }
 
 // CRITICAL: Initialize Context Engine v2 with proper sequencing
+/**
+ * Handle data import in background
+ * Runs independently of popup (continues even if popup closes)
+ * @param {Object} importedData - Data to import
+ */
+async function handleImportData(importedData) {
+  console.log('[Background] Starting import...');
+
+  // Reset import status
+  importStatus = {
+    isImporting: true,
+    currentItem: 0,
+    totalItems: 0,
+    importedCount: 0,
+    errorCount: 0,
+    phase: 'preparing',
+    error: null
+  };
+
+  try {
+    // Ensure Context Engine is ready
+    const engine = await ensureContextEngine();
+    console.log('[Background] Context Engine ready for import');
+
+    // Extract preferences and child gems
+    const preferences = importedData.content?.preferences?.items || [];
+    const childGems = importedData.content?.childGems || [];
+
+    importStatus.totalItems = preferences.length + childGems.length;
+    console.log(`[Background] Importing ${preferences.length} primary gems and ${childGems.length} child gems`);
+
+    const BATCH_SIZE = 5; // Update status every 5 items
+
+    // Import primary gems
+    importStatus.phase = 'primary';
+    for (let i = 0; i < preferences.length; i++) {
+      const pref = preferences[i];
+      importStatus.currentItem = i + 1;
+
+      try {
+        const gem = {
+          id: pref.id,
+          value: pref.value,
+          collections: pref.collections || [],
+          subCollections: pref.subCollections || [],
+          timestamp: pref.created_at ? new Date(pref.created_at).getTime() : Date.now(),
+          state: pref.state || 'default',
+          assurance: pref.assurance || 'self_declared',
+          reliability: pref.reliability || 'authoritative',
+          source_url: pref.source_url,
+          mergedFrom: pref.mergedFrom,
+          created_at: pref.created_at || new Date().toISOString(),
+          updated_at: pref.updated_at || new Date().toISOString(),
+          topic: pref.topic || '',
+          isPrimary: true,
+          parentGem: '',
+          childGems: [],
+          isVirtual: false
+        };
+
+        await window.ContextEngineAPI.addGem(gem, true); // true = generate embeddings
+        importStatus.importedCount++;
+
+        if (importStatus.importedCount % BATCH_SIZE === 0) {
+          console.log(`[Background] Progress: ${importStatus.importedCount}/${importStatus.totalItems}`);
+        }
+      } catch (error) {
+        importStatus.errorCount++;
+        console.error(`[Background] Failed to import gem ${i + 1}:`, error);
+      }
+    }
+
+    // Import child gems
+    if (childGems.length > 0) {
+      importStatus.phase = 'child';
+      console.log(`[Background] Importing ${childGems.length} child gems...`);
+
+      for (let i = 0; i < childGems.length; i++) {
+        const child = childGems[i];
+        importStatus.currentItem = preferences.length + i + 1;
+
+        try {
+          const childGem = {
+            ...child,
+            isPrimary: false,
+            parentGem: child.parentGem || '',
+            isVirtual: false
+          };
+
+          await window.ContextEngineAPI.addGem(childGem, true);
+          importStatus.importedCount++;
+
+          if (importStatus.importedCount % BATCH_SIZE === 0) {
+            console.log(`[Background] Progress: ${importStatus.importedCount}/${importStatus.totalItems}`);
+          }
+        } catch (error) {
+          importStatus.errorCount++;
+          console.error(`[Background] Failed to import child gem ${i + 1}:`, error);
+        }
+      }
+    }
+
+    console.log(`[Background] ✅ Import complete: ${importStatus.importedCount} imported, ${importStatus.errorCount} errors`);
+    importStatus.isImporting = false;
+    importStatus.phase = 'complete';
+
+  } catch (error) {
+    console.error('[Background] Import failed:', error);
+    importStatus.error = error.message;
+    importStatus.isImporting = false;
+    importStatus.phase = 'error';
+    throw error;
+  }
+}
+
 // 1. Create offscreen document first (for embedding generation)
 // 2. Then manually initialize Context Engine (which may trigger migration)
 // This prevents "Could not establish connection" errors during migration

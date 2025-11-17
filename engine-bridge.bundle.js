@@ -25300,12 +25300,21 @@ var ContextEngineBridge = (() => {
       if (!doc) {
         throw new Error(`[VectorStore] Gem ${id} not found`);
       }
+      const hasChanged = this._hasGemChanged(doc, updates);
+      if (!hasChanged) {
+        console.log(`[VectorStore] Gem ${id} unchanged, skipping update`);
+        return;
+      }
       await doc.update({
         $set: updates
       });
       if (updates.vector && this.indexReady) {
         try {
-          this.hnswIndex.remove(id);
+          if (this.hnswIndex.vectors.has(id)) {
+            this.hnswIndex.vectors.delete(id);
+            this.hnswIndex.layers.delete(id);
+            this.hnswIndex.graph.delete(id);
+          }
           this.hnswIndex.add(id, updates.vector);
           await this._saveHNSW();
         } catch (error) {
@@ -25313,6 +25322,31 @@ var ContextEngineBridge = (() => {
         }
       }
       console.log(`[VectorStore] Updated gem: ${id}`);
+    }
+    /**
+     * Check if gem data has changed
+     * @param {Object} existingDoc - Existing RxDB document
+     * @param {Object} updates - New data
+     * @returns {boolean} True if data has changed
+     */
+    _hasGemChanged(existingDoc, updates) {
+      const fieldsToCompare = ["value", "collections", "state", "topic", "isPrimary", "parentGem"];
+      for (const field of fieldsToCompare) {
+        const existingValue = existingDoc[field];
+        const newValue = updates[field];
+        if (!(field in updates)) continue;
+        if (Array.isArray(existingValue) && Array.isArray(newValue)) {
+          if (existingValue.length !== newValue.length) return true;
+          const sortedExisting = [...existingValue].sort();
+          const sortedNew = [...newValue].sort();
+          if (JSON.stringify(sortedExisting) !== JSON.stringify(sortedNew)) return true;
+          continue;
+        }
+        if (existingValue !== newValue) {
+          return true;
+        }
+      }
+      return false;
     }
     /**
      * Delete a gem
@@ -25327,7 +25361,14 @@ var ContextEngineBridge = (() => {
       await doc.remove();
       if (this.indexReady) {
         try {
-          this.hnswIndex.remove(id);
+          if (this.hnswIndex.vectors.has(id)) {
+            this.hnswIndex.vectors.delete(id);
+            this.hnswIndex.layers.delete(id);
+            this.hnswIndex.graph.delete(id);
+            if (this.hnswIndex.entryPoint === id) {
+              this.hnswIndex.entryPoint = null;
+            }
+          }
           await this._saveHNSW();
         } catch (error) {
           console.warn(`[VectorStore] Failed to remove from HNSW index: ${id}`, error.message);
@@ -26232,18 +26273,30 @@ var ContextEngineBridge = (() => {
       }
       try {
         if (this.embedderSession === "offscreen") {
-          console.log("[Enrichment] Checking for global function...");
-          console.log("[Enrichment] typeof self.generateEmbeddingOffscreen:", typeof self.generateEmbeddingOffscreen);
-          if (typeof self.generateEmbeddingOffscreen === "function") {
-            console.log("[Enrichment] Calling self.generateEmbeddingOffscreen()...");
-            const embedding = await self.generateEmbeddingOffscreen(text);
-            console.log("[Enrichment] Embedding result:", embedding ? `${embedding.length}-dim vector` : "null");
-            return embedding;
-          } else {
-            console.error("[Enrichment] generateEmbeddingOffscreen not found on global scope!");
-            console.error("[Enrichment] Available on self:", Object.keys(self).filter((k) => k.includes("Embedding")));
-            return null;
-          }
+          console.log("[Enrichment] Sending message to offscreen document via background.js...");
+          return new Promise((resolve2, reject) => {
+            chrome.runtime.sendMessage(
+              {
+                target: "offscreen",
+                type: "generateEmbedding",
+                text
+              },
+              (response) => {
+                if (chrome.runtime.lastError) {
+                  console.error("[Enrichment] Chrome runtime error:", chrome.runtime.lastError);
+                  reject(chrome.runtime.lastError);
+                  return;
+                }
+                if (response?.success === false) {
+                  console.error("[Enrichment] Embedding generation failed:", response.error);
+                  resolve2(null);
+                  return;
+                }
+                console.log("[Enrichment] Embedding result:", response?.embedding ? `${response.embedding.length}-dim vector` : "null");
+                resolve2(response?.embedding || null);
+              }
+            );
+          });
         }
         console.warn("[Enrichment] Unknown embedder session type:", this.embedderSession);
         return null;

@@ -116,21 +116,35 @@ export class Enrichment {
     try {
       // Use offscreen document for embedding generation
       if (this.embedderSession === 'offscreen') {
-        console.log('[Enrichment] Checking for global function...');
-        console.log('[Enrichment] typeof self.generateEmbeddingOffscreen:', typeof self.generateEmbeddingOffscreen);
+        console.log('[Enrichment] Sending message to offscreen document via background.js...');
 
-        // Call global function exposed by background.js
-        // (Service Workers can't message themselves!)
-        if (typeof self.generateEmbeddingOffscreen === 'function') {
-          console.log('[Enrichment] Calling self.generateEmbeddingOffscreen()...');
-          const embedding = await self.generateEmbeddingOffscreen(text);
-          console.log('[Enrichment] Embedding result:', embedding ? `${embedding.length}-dim vector` : 'null');
-          return embedding;
-        } else {
-          console.error('[Enrichment] generateEmbeddingOffscreen not found on global scope!');
-          console.error('[Enrichment] Available on self:', Object.keys(self).filter(k => k.includes('Embedding')));
-          return null;
-        }
+        // Send message to background.js, which forwards to offscreen document
+        // This works from popup context (unlike direct function call)
+        return new Promise((resolve, reject) => {
+          chrome.runtime.sendMessage(
+            {
+              target: 'offscreen',
+              type: 'generateEmbedding',
+              text
+            },
+            (response) => {
+              if (chrome.runtime.lastError) {
+                console.error('[Enrichment] Chrome runtime error:', chrome.runtime.lastError);
+                reject(chrome.runtime.lastError);
+                return;
+              }
+
+              if (response?.success === false) {
+                console.error('[Enrichment] Embedding generation failed:', response.error);
+                resolve(null);
+                return;
+              }
+
+              console.log('[Enrichment] Embedding result:', response?.embedding ? `${response.embedding.length}-dim vector` : 'null');
+              resolve(response?.embedding || null);
+            }
+          );
+        });
       }
 
       console.warn('[Enrichment] Unknown embedder session type:', this.embedderSession);

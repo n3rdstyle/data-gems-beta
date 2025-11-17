@@ -1092,129 +1092,49 @@ function importData() {
           return;
         }
 
-        // Use Context Engine API for importing
-        console.log('[Import] Ready to import preferences via Context Engine...');
-
-        let importedCount = 0;
-        let errorCount = 0;
-        for (let i = 0; i < preferences.length; i++) {
-          const pref = preferences[i];
-
-          if (i === 0) {
-            console.log('[Import] First preference to import:', {
-              id: pref.id,
-              value: pref.value,
-              collections: pref.collections,
-              hasAllFields: !!(pref.id && pref.value)
-            });
-          }
-
-          try {
-            // Prepare gem for import
-            const gem = {
-              id: pref.id,
-              value: pref.value,
-              collections: pref.collections || [],
-              subCollections: pref.subCollections || [],
-              timestamp: pref.created_at ? new Date(pref.created_at).getTime() : Date.now(),
-
-              // HSP fields
-              state: pref.state || 'default',
-              assurance: pref.assurance || 'self_declared',
-              reliability: pref.reliability || 'authoritative',
-              source_url: pref.source_url,
-              mergedFrom: pref.mergedFrom,
-              created_at: pref.created_at || new Date().toISOString(),
-              updated_at: pref.updated_at || new Date().toISOString(),
-              topic: pref.topic || '',
-
-              // Primary gem fields
-              isPrimary: true,
-              parentGem: '',
-              childGems: [],
-              isVirtual: false
-            };
-
-            // Use Context Engine API to add gem (with auto-enrichment for fresh embeddings)
-            await engine.addGem(gem, true);  // true = generate fresh embeddings
-            importedCount++;
-
-            // Log progress every 10 items
-            if (importedCount % 10 === 0 || importedCount === preferences.length) {
-              console.log(`[Import] Progress: ${importedCount}/${preferences.length}`);
-            }
-          } catch (error) {
-            errorCount++;
-            console.error(`[Import] Failed to import preference ${i + 1}/${preferences.length} (ID: ${pref.id}):`, error);
-            if (errorCount === 1) {
-              // Log full error details for first failure
-              console.error('[Import] Full error details:', error.stack || error);
-            }
-          }
-        }
-
-        console.log(`[Import] Primary gems import complete: ${importedCount} succeeded, ${errorCount} failed`);
-
-        // Import child gems (if any)
-        let childImportedCount = 0;
-        let childErrorCount = 0;
-
-        if (childGems.length > 0) {
-          console.log(`[Import] Importing ${childGems.length} child gems...`);
-
-          for (let i = 0; i < childGems.length; i++) {
-            const child = childGems[i];
-
-            try {
-              // Ensure child gem has correct isPrimary flag
-              const childGem = {
-                ...child,
-                isPrimary: false,
-                parentGem: child.parentGem || '',
-                isVirtual: false
-              };
-
-              // Import child gem (with auto-enrichment for fresh embeddings)
-              await engine.addGem(childGem, true);  // true = generate fresh embeddings
-              childImportedCount++;
-
-              if (childImportedCount % 10 === 0 || childImportedCount === childGems.length) {
-                console.log(`[Import] Child gems progress: ${childImportedCount}/${childGems.length}`);
-              }
-            } catch (error) {
-              childErrorCount++;
-              console.error(`[Import] Failed to import child gem ${i + 1}/${childGems.length}:`, error);
-            }
-          }
-
-          console.log(`[Import] Child gems import complete: ${childImportedCount} succeeded, ${childErrorCount} failed`);
-        }
-
-        console.log(`[Import] ✅ Total imported: ${importedCount} primary gems, ${childImportedCount} child gems`);
-
-        // Reload data from RxDB and navigate to home screen
-        console.log('[Import] Reloading data from RxDB...');
-        await loadData();
-        console.log('[Import] ✅ Data reloaded, AppState now has', AppState?.content?.preferences?.items?.length, 'items');
+        // IMMEDIATE UI FEEDBACK: Show progress bar and navigate to home
+        const totalItems = preferences.length + childGems.length;
+        console.log('[Import] Creating progress bar for', totalItems, 'items...');
+        const progressBar = createImportProgressBar({ total: totalItems });
+        console.log('[Import] Progress bar created:', progressBar);
+        progressBar.show();
+        console.log('[Import] Progress bar shown');
+        progressBar.setProgress(0, totalItems);
+        console.log('[Import] Progress bar initial progress set');
 
         console.log('[Import] Navigating to home screen...');
         AppState.metadata.currentScreen = 'home';
         renderCurrentScreen();
-        console.log('[Import] ✅ UI rendered');
+        console.log('[Import] ✅ UI shown, delegating import to background service worker...');
 
-        await checkBetaCheckinModal();
-        await checkBackupReminder();
+        // DELEGATE TO BACKGROUND: Send import to background service worker
+        // This allows import to continue even if popup is closed
+        chrome.runtime.sendMessage(
+          {
+            action: 'importData',
+            importedData: importedData
+          },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              console.error('[Import] Failed to start background import:', chrome.runtime.lastError);
+              progressBar.setLabel('❌ Import failed to start');
+              progressBar.complete();
+              return;
+            }
 
-        const totalExpected = preferences.length + childGems.length;
-        const totalImported = importedCount + childImportedCount;
+            if (response?.success === false) {
+              console.error('[Import] Background import failed:', response.error);
+              progressBar.setLabel('❌ Import failed');
+              progressBar.complete();
+              return;
+            }
 
-        if (totalImported === totalExpected && errorCount === 0 && childErrorCount === 0) {
-          alert(`✅ Data imported successfully!\n\n${importedCount} primary gems\n${childImportedCount} child gems\n\nYour data is fully restored!`);
-        } else if (totalImported > 0) {
-          alert(`⚠️ Partial import:\n${importedCount}/${preferences.length} primary gems\n${childImportedCount}/${childGems.length} child gems\n\nCheck console for errors.`);
-        } else {
-          alert(`❌ Import failed!\nNo gems imported.\n\nCheck console for errors.`);
-        }
+            console.log('[Import] Background import started successfully');
+          }
+        );
+
+        // Start polling for import status updates
+        startImportPolling(progressBar);
       } else {
         // Fallback: Use Chrome Storage (old behavior)
         const mergeResult = await mergeImportedData(importedData);
@@ -2443,6 +2363,109 @@ async function checkBetaCheckinModal() {
   }
 }
 
+/**
+ * Check if import is running and restore progress bar
+ */
+async function checkAndRestoreImportProgress() {
+  try {
+    console.log('[Import] Checking for running import...');
+    const statusResponse = await chrome.runtime.sendMessage({ action: 'getImportStatus' });
+    const status = statusResponse?.status;
+
+    if (!status) {
+      console.log('[Import] No import status available');
+      return;
+    }
+
+    console.log('[Import] Import status:', status);
+
+    // If import is running, restore progress bar
+    if (status.isImporting) {
+      console.log('[Import] 🔄 Import is running, restoring progress bar...');
+
+      // Create and show progress bar
+      const progressBar = createImportProgressBar({ total: status.totalItems });
+      progressBar.show();
+      progressBar.setProgress(status.importedCount, status.totalItems);
+
+      // Start polling for updates
+      startImportPolling(progressBar);
+    }
+  } catch (error) {
+    console.error('[Import] Error checking import status:', error);
+  }
+}
+
+/**
+ * Start polling import status and updating progress bar
+ * @param {Object} progressBar - Progress bar instance
+ */
+function startImportPolling(progressBar) {
+  console.log('[Import] Starting status polling...');
+  const pollInterval = setInterval(async () => {
+    try {
+      const statusResponse = await chrome.runtime.sendMessage({ action: 'getImportStatus' });
+      const status = statusResponse?.status;
+
+      if (!status) {
+        console.warn('[Import] No status received');
+        return;
+      }
+
+      console.log('[Import] 📊 Status update:', status);
+
+      // Update progress bar
+      if (status.isImporting && status.totalItems > 0) {
+        console.log('[Import] 🔄 Updating progress bar:', status.importedCount, '/', status.totalItems);
+        progressBar.setProgress(status.importedCount, status.totalItems);
+      }
+
+      // Check if import is complete
+      if (!status.isImporting) {
+        clearInterval(pollInterval);
+
+        if (status.phase === 'complete') {
+          console.log(`[Import] ✅ Import complete: ${status.importedCount} items, ${status.errorCount} errors`);
+
+          // Reload data from RxDB
+          await loadData();
+          console.log('[Import] ✅ Data reloaded');
+
+          // Re-render UI
+          AppState.metadata.currentScreen = 'home';
+          renderCurrentScreen();
+
+          // Show completion message
+          const totalExpected = status.totalItems;
+          const totalImported = status.importedCount;
+          const totalErrors = status.errorCount;
+
+          if (totalImported === totalExpected && totalErrors === 0) {
+            progressBar.setLabel(`✓ Import complete! ${totalImported} items imported`);
+          } else if (totalImported > 0) {
+            progressBar.setLabel(`⚠️ Partial import: ${totalImported}/${totalExpected} items`);
+          } else {
+            progressBar.setLabel('❌ Import failed - check console');
+          }
+
+          progressBar.complete();
+
+          // Check for modals
+          await checkBetaCheckinModal();
+          await checkBackupReminder();
+
+        } else if (status.phase === 'error') {
+          console.error('[Import] Import failed:', status.error);
+          progressBar.setLabel('❌ Import failed - check console');
+          progressBar.complete();
+        }
+      }
+    } catch (error) {
+      console.error('[Import] Error polling import status:', error);
+    }
+  }, 500); // Poll every 500ms
+}
+
 // Initialize
 async function init() {
   await loadData();
@@ -2465,6 +2488,9 @@ async function init() {
 
   // Initialize merge FAB
   initializeMergeFAB();
+
+  // Check if import is running and restore progress bar if needed
+  await checkAndRestoreImportProgress();
 
   // Check if beta check-in modal should be shown
   await checkBetaCheckinModal();

@@ -219,6 +219,14 @@ export class VectorStore {
       throw new Error(`[VectorStore] Gem ${id} not found`);
     }
 
+    // Check if data has actually changed
+    const hasChanged = this._hasGemChanged(doc, updates);
+
+    if (!hasChanged) {
+      console.log(`[VectorStore] Gem ${id} unchanged, skipping update`);
+      return;
+    }
+
     await doc.update({
       $set: updates
     });
@@ -226,7 +234,15 @@ export class VectorStore {
     // If vector was updated, update HNSW index
     if (updates.vector && this.indexReady) {
       try {
-        this.hnswIndex.remove(id);
+        // HNSW doesn't have remove(), just overwrite by adding again
+        // First delete from internal maps to avoid duplicates
+        if (this.hnswIndex.vectors.has(id)) {
+          this.hnswIndex.vectors.delete(id);
+          this.hnswIndex.layers.delete(id);
+          this.hnswIndex.graph.delete(id);
+        }
+
+        // Now add the updated vector
         this.hnswIndex.add(id, updates.vector);
         await this._saveHNSW();
       } catch (error) {
@@ -235,6 +251,42 @@ export class VectorStore {
     }
 
     console.log(`[VectorStore] Updated gem: ${id}`);
+  }
+
+  /**
+   * Check if gem data has changed
+   * @param {Object} existingDoc - Existing RxDB document
+   * @param {Object} updates - New data
+   * @returns {boolean} True if data has changed
+   */
+  _hasGemChanged(existingDoc, updates) {
+    // Compare important fields (ignore timestamp, vector might change slightly due to re-embedding)
+    const fieldsToCompare = ['value', 'collections', 'state', 'topic', 'isPrimary', 'parentGem'];
+
+    for (const field of fieldsToCompare) {
+      const existingValue = existingDoc[field];
+      const newValue = updates[field];
+
+      // Skip if field not in updates
+      if (!(field in updates)) continue;
+
+      // Handle arrays (collections)
+      if (Array.isArray(existingValue) && Array.isArray(newValue)) {
+        if (existingValue.length !== newValue.length) return true;
+        const sortedExisting = [...existingValue].sort();
+        const sortedNew = [...newValue].sort();
+        if (JSON.stringify(sortedExisting) !== JSON.stringify(sortedNew)) return true;
+        continue;
+      }
+
+      // Handle simple values
+      if (existingValue !== newValue) {
+        return true;
+      }
+    }
+
+    // No changes detected
+    return false;
   }
 
   /**
@@ -254,7 +306,18 @@ export class VectorStore {
     // Remove from HNSW index
     if (this.indexReady) {
       try {
-        this.hnswIndex.remove(id);
+        // HNSW doesn't have remove(), manually delete from internal maps
+        if (this.hnswIndex.vectors.has(id)) {
+          this.hnswIndex.vectors.delete(id);
+          this.hnswIndex.layers.delete(id);
+          this.hnswIndex.graph.delete(id);
+
+          // If this was the entry point, reset it
+          if (this.hnswIndex.entryPoint === id) {
+            this.hnswIndex.entryPoint = null;
+          }
+        }
+
         await this._saveHNSW();
       } catch (error) {
         console.warn(`[VectorStore] Failed to remove from HNSW index: ${id}`, error.message);
