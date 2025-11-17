@@ -1201,28 +1201,42 @@ function importData() {
 }
 
 async function clearAllData() {
+  console.log('[Clear] ========================================');
+  console.log('[Clear] clearAllData() function called!');
+  console.log('[Clear] ========================================');
+
   const confirmed = confirm('⚠️ Are you sure you want to clear all data? This cannot be undone.');
-  if (!confirmed) return;
+  if (!confirmed) {
+    console.log('[Clear] User cancelled deletion');
+    return;
+  }
 
   try {
     console.log('[Clear] Starting data cleanup...');
     chrome.runtime.sendMessage({ action: 'log', message: '[Clear] User initiated data cleanup' });
 
     // Step 1: Destroy Context Engine and close all DB connections
+    console.log('[Clear] Step 1: Destroying Context Engine...');
     try {
-      await chrome.runtime.sendMessage({ action: 'destroyEngine' });
-      console.log('[Clear] Context Engine destroyed');
+      const destroyResponse = await chrome.runtime.sendMessage({ action: 'destroyEngine' });
+      console.log('[Clear] Destroy response:', destroyResponse);
+      console.log('[Clear] ✅ Context Engine destroyed');
       chrome.runtime.sendMessage({ action: 'log', message: '[Clear] Context Engine destroyed' });
 
       // Wait for all connections to close
+      console.log('[Clear] Waiting 500ms for connections to close...');
       await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('[Clear] ✅ Wait complete');
     } catch (error) {
-      console.warn('[Clear] Could not destroy engine:', error);
+      console.error('[Clear] ❌ Could not destroy engine:', error);
       chrome.runtime.sendMessage({ action: 'log', message: `[Clear] Could not destroy engine: ${error.message}` });
     }
 
     // Step 2: Delete RxDB database (retry if blocked)
-    chrome.runtime.sendMessage({ action: 'log', message: '[Clear] Attempting to delete IndexedDB data-gems-db-v3...' });
+    // IMPORTANT: Database name is 'rxdb-datagems-context' NOT 'data-gems-db-v3'
+    console.log('[Clear] Step 2: Deleting IndexedDB...');
+    const dbName = 'rxdb-datagems-context';
+    chrome.runtime.sendMessage({ action: 'log', message: `[Clear] Attempting to delete IndexedDB ${dbName}...` });
 
     let deleteAttempt = 0;
     const maxAttempts = 3;
@@ -1230,11 +1244,11 @@ async function clearAllData() {
 
     while (deleteAttempt < maxAttempts && !deleted) {
       deleteAttempt++;
-      console.log(`[Clear] Delete attempt ${deleteAttempt}/${maxAttempts}...`);
+      console.log(`[Clear] 🔄 Delete attempt ${deleteAttempt}/${maxAttempts} for ${dbName}...`);
 
       try {
         await new Promise((resolve, reject) => {
-          const request = indexedDB.deleteDatabase('data-gems-db-v3');
+          const request = indexedDB.deleteDatabase(dbName);
 
           request.onsuccess = () => {
             console.log('[Clear] RxDB database deleted successfully');
