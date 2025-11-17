@@ -977,31 +977,63 @@ async function mergeImportedData(importedData) {
 }
 
 function importData() {
-  console.log('[Import] Import button clicked, creating file picker...');
+  console.log('[Import] ========================================');
+  console.log('[Import] importData() function called!');
+  console.log('[Import] ========================================');
+  console.log('[Import] Creating file picker...');
+
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = 'application/json';
+
+  // Add error handler
+  input.onerror = (e) => {
+    console.error('[Import] ❌ File picker error:', e);
+  };
+
   input.onchange = async (e) => {
-    console.log('[Import] File selected:', e.target.files[0]?.name);
+    console.log('[Import] ========================================');
+    console.log('[Import] File selected!');
+    console.log('[Import] File name:', e.target.files[0]?.name);
+    console.log('[Import] File size:', e.target.files[0]?.size, 'bytes');
+    console.log('[Import] ========================================');
+
     const file = e.target.files[0];
-    if (!file) return;
+    if (!file) {
+      console.error('[Import] No file selected!');
+      return;
+    }
 
     try {
+      console.log('[Import] Reading file...');
       const text = await file.text();
+      console.log('[Import] ✅ File read, size:', text.length, 'chars');
+
+      console.log('[Import] Parsing JSON...');
       const data = JSON.parse(text);
+      console.log('[Import] ✅ JSON parsed successfully');
+      console.log('[Import] Data structure:', {
+        hasHSP: !!data.hsp,
+        hasHAS: !!data.has,
+        hasContent: !!data.content,
+        hasBeta: !!data.beta
+      });
 
       let importedData;
 
       // Check if it's HSP format (accept both 'hsp' and legacy 'has')
       if ((data.hsp || data.has) && data.content) {
+        console.log('[Import] ✅ Valid HSP format detected');
         importedData = data;
 
         // Migrate 'has' to 'hsp' if needed
         if (importedData.has && !importedData.hsp) {
+          console.log('[Import] Migrating legacy "has" to "hsp"');
           importedData.hsp = importedData.has;
           delete importedData.has;
         }
       } else {
+        console.error('[Import] ❌ Invalid format!');
         alert('Unknown format. Please import a valid HSP v0.1 profile.');
         return;
       }
@@ -1194,10 +1226,15 @@ function importData() {
         alert('✅ Data imported successfully!');
       }
     } catch (error) {
+      console.error('[Import] ❌ FATAL ERROR:', error);
+      console.error('[Import] Error stack:', error.stack);
       alert('❌ Error importing data: ' + error.message);
     }
   };
+
+  console.log('[Import] Clicking file picker...');
   input.click();
+  console.log('[Import] ✅ File picker triggered (waiting for user selection)');
 }
 
 async function clearAllData() {
