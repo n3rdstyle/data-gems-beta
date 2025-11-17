@@ -980,9 +980,9 @@ async function mergeImportedData(importedData) {
 }
 
 function importData() {
-  alert('🔥 importData() CALLED! 🔥');
+  // IMPORTANT: No alert() here! Alert consumes user activation and breaks file picker
   console.log('[Import] ========================================');
-  console.log('[Import] importData() function called!');
+  console.log('[Import] 🔥 importData() function called!');
   console.log('[Import] ========================================');
   console.log('[Import] Creating file picker...');
 
@@ -2340,20 +2340,6 @@ async function renderCurrentScreen() {
         };
 
         screenComponent = createSettings(settingsOptions);
-
-        // DEBUG: Add a test button that DEFINITELY works
-        const testButton = document.createElement('button');
-        testButton.textContent = '🧪 TEST IMPORT BUTTON';
-        testButton.style.cssText = 'position: fixed; bottom: 20px; left: 20px; z-index: 9999; padding: 20px; background: red; color: white; font-size: 16px; border: none; cursor: pointer;';
-        testButton.onclick = () => {
-          alert('🧪 TEST BUTTON CLICKED!');
-          importData();
-        };
-        setTimeout(() => {
-          document.body.appendChild(testButton);
-          console.log('🧪 Test button added to DOM');
-        }, 100);
-
         break;
 
       case 'third-party-data':
