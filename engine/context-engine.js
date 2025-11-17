@@ -392,6 +392,7 @@ export class ContextEngine {
   async destroy() {
     console.log('[ContextEngine] Destroying Context Engine...');
 
+    // Destroy enrichment
     if (this.enrichment) {
       await this.enrichment.destroy();
     }
@@ -403,8 +404,21 @@ export class ContextEngine {
       console.log('[ContextEngine] Vector store cleared from memory');
     }
 
+    // CRITICAL: Close RxDB database connection
+    // This ensures IndexedDB can be deleted without being blocked
+    try {
+      const { closeDatabase } = await import('./database.js');
+      await closeDatabase();
+      console.log('[ContextEngine] Database connection closed');
+    } catch (error) {
+      console.warn('[ContextEngine] Error closing database:', error);
+    }
+
+    // Reset singleton instance so fresh engine is created on next init
+    contextEngineInstance = null;
+
     this.isReady = false;
-    console.log('[ContextEngine] Context Engine destroyed');
+    console.log('[ContextEngine] Context Engine destroyed and singleton reset');
   }
 }
 

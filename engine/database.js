@@ -310,13 +310,15 @@ export function getDatabase() {
 
 /**
  * Close database connection
+ * CRITICAL for allowing IndexedDB deletion without blocking
  */
 export async function closeDatabase() {
   if (dbInstance) {
     console.log('[Database] Closing database...');
     await dbInstance.destroy();
     dbInstance = null;
-    console.log('[Database] Database closed');
+    initPromise = null; // Reset init promise so database can be recreated
+    console.log('[Database] Database closed and reset');
   }
 }
 

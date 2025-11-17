@@ -1208,37 +1208,78 @@ async function clearAllData() {
     console.log('[Clear] Starting data cleanup...');
     chrome.runtime.sendMessage({ action: 'log', message: '[Clear] User initiated data cleanup' });
 
-    // Always try to destroy Context Engine (works whether using RxDB or not)
+    // Step 1: Destroy Context Engine and close all DB connections
     try {
       await chrome.runtime.sendMessage({ action: 'destroyEngine' });
       console.log('[Clear] Context Engine destroyed');
       chrome.runtime.sendMessage({ action: 'log', message: '[Clear] Context Engine destroyed' });
+
+      // Wait for all connections to close
+      await new Promise(resolve => setTimeout(resolve, 500));
     } catch (error) {
       console.warn('[Clear] Could not destroy engine:', error);
       chrome.runtime.sendMessage({ action: 'log', message: `[Clear] Could not destroy engine: ${error.message}` });
     }
 
-    // Always try to delete RxDB database (harmless if doesn't exist)
+    // Step 2: Delete RxDB database (retry if blocked)
     chrome.runtime.sendMessage({ action: 'log', message: '[Clear] Attempting to delete IndexedDB data-gems-db-v3...' });
-    await new Promise((resolve, reject) => {
-      const request = indexedDB.deleteDatabase('data-gems-db-v3');
-      request.onsuccess = () => {
-        console.log('[Clear] RxDB database deleted');
-        chrome.runtime.sendMessage({ action: 'log', message: '[Clear] ✅ RxDB database deleted successfully' });
-        resolve();
-      };
-      request.onerror = () => {
-        console.error('[Clear] Failed to delete RxDB database:', request.error);
-        chrome.runtime.sendMessage({ action: 'log', message: `[Clear] ❌ Failed to delete RxDB: ${request.error}` });
-        reject(request.error);
-      };
-      request.onblocked = () => {
-        console.warn('[Clear] Database deletion blocked - close all tabs using this extension');
-        chrome.runtime.sendMessage({ action: 'log', message: '[Clear] ⚠️  Database deletion BLOCKED' });
-        // Continue anyway after timeout
-        setTimeout(resolve, 1000);
-      };
-    });
+
+    let deleteAttempt = 0;
+    const maxAttempts = 3;
+    let deleted = false;
+
+    while (deleteAttempt < maxAttempts && !deleted) {
+      deleteAttempt++;
+      console.log(`[Clear] Delete attempt ${deleteAttempt}/${maxAttempts}...`);
+
+      try {
+        await new Promise((resolve, reject) => {
+          const request = indexedDB.deleteDatabase('data-gems-db-v3');
+
+          request.onsuccess = () => {
+            console.log('[Clear] RxDB database deleted successfully');
+            chrome.runtime.sendMessage({ action: 'log', message: '[Clear] ✅ RxDB database deleted successfully' });
+            deleted = true;
+            resolve();
+          };
+
+          request.onerror = () => {
+            console.error('[Clear] Failed to delete RxDB database:', request.error);
+            chrome.runtime.sendMessage({ action: 'log', message: `[Clear] ❌ Failed to delete RxDB: ${request.error}` });
+            reject(request.error);
+          };
+
+          request.onblocked = () => {
+            console.warn('[Clear] Database deletion blocked - retrying...');
+            chrome.runtime.sendMessage({ action: 'log', message: `[Clear] ⚠️  Database deletion BLOCKED (attempt ${deleteAttempt}/${maxAttempts})` });
+
+            // If this was last attempt, give up
+            if (deleteAttempt >= maxAttempts) {
+              chrome.runtime.sendMessage({ action: 'log', message: '[Clear] ⚠️  CRITICAL: Could not delete database after 3 attempts. Extension reload required.' });
+              alert('⚠️ Database deletion blocked!\n\nPlease:\n1. Close ALL tabs using Data Gems\n2. Click "Delete" again\n\nIf problem persists, manually reload the extension.');
+              reject(new Error('Database deletion blocked'));
+            } else {
+              // Wait and retry
+              setTimeout(() => reject(new Error('Blocked, retrying...')), 1000);
+            }
+          };
+        });
+
+        break; // Success, exit loop
+
+      } catch (error) {
+        if (deleteAttempt < maxAttempts) {
+          console.log(`[Clear] Retrying after error: ${error.message}`);
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } else {
+          throw error; // Last attempt failed, propagate error
+        }
+      }
+    }
+
+    if (!deleted) {
+      throw new Error('Failed to delete database after multiple attempts');
+    }
 
     // Always clear HNSW index (harmless if doesn't exist)
     await chrome.storage.local.remove(['hnsw_index']);
