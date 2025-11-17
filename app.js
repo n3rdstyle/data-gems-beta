@@ -3,6 +3,9 @@
  * Main application logic - HSP Protocol v0.1
  */
 
+console.log('🚀🚀🚀 APP.JS LOADED - TIMESTAMP:', new Date().toISOString());
+console.log('🚀🚀🚀 This log proves app.js is executing!');
+
 // State management - HSP Protocol v0.1
 let AppState = null;
 
@@ -977,6 +980,7 @@ async function mergeImportedData(importedData) {
 }
 
 function importData() {
+  alert('🔥 importData() CALLED! 🔥');
   console.log('[Import] ========================================');
   console.log('[Import] importData() function called!');
   console.log('[Import] ========================================');
