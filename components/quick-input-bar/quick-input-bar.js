@@ -42,8 +42,20 @@ function createQuickInputBar(options = {}) {
   });
   refreshButton.element.classList.add('quick-input-bar__refresh');
 
+  const openTabButton = createTertiaryButton({
+    icon: 'arrowUpRight',
+    ariaLabel: 'Open random questions in new tab',
+    size: 'small',
+    onClick: () => {
+      // Open random questions page in new tab
+      chrome.tabs.create({ url: chrome.runtime.getURL('random-questions.html') });
+    }
+  });
+  openTabButton.element.classList.add('quick-input-bar__open-tab');
+
   tagsRow.appendChild(tagsContainer);
   tagsRow.appendChild(refreshButton.element);
+  tagsRow.appendChild(openTabButton.element);
 
   // Input row
   const inputRow = document.createElement('div');

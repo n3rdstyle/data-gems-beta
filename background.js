@@ -153,6 +153,18 @@ async function ensureContextEngine() {
     }
 
     await self.ContextEngineAPI.initialize();
+
+    // Wait for isReady flag to be true
+    let readyWaitCount = 0;
+    while (!self.ContextEngineAPI.isReady && readyWaitCount < 100) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      readyWaitCount++;
+    }
+
+    if (!self.ContextEngineAPI.isReady) {
+      throw new Error('[Background] Context Engine isReady timeout');
+    }
+
     contextEngineReady = true;
     console.log('[Background] ✓ Context Engine v2 ready');
   } catch (error) {
@@ -346,9 +358,12 @@ async function handleContextEngineMessage(request, sender, sendResponse) {
           return {
             id: gemData.id || gemData._data?.id,
             value: gemData.value || gemData._data?.value,
+            topic: gemData.topic || gemData._data?.topic,
             collections: gemData.collections || gemData._data?.collections,
             subCollections: gemData.subCollections || gemData._data?.subCollections,
-            keywords: gemData.keywords || gemData._data?.keywords
+            keywords: gemData.keywords || gemData._data?.keywords,
+            metadata: gemData.metadata || gemData._data?.metadata,
+            created_at: gemData.created_at || gemData._data?.created_at
           };
         });
         sendResponse({ success: true, gems: plainGems });
@@ -391,6 +406,21 @@ async function handleContextEngineMessage(request, sender, sendResponse) {
       case 'areCategoryEmbeddingsReady':
         const embeddingsReady = await self.ContextEngineAPI.areCategoryEmbeddingsReady();
         sendResponse({ success: true, ready: embeddingsReady });
+        break;
+
+      case 'addGem':
+        const addedGem = await self.ContextEngineAPI.addGem(request.gem, request.autoEnrich !== false);
+        const addedGemData = addedGem.toJSON ? addedGem.toJSON() : addedGem;
+        sendResponse({
+          success: true,
+          gem: {
+            id: addedGemData.id || addedGemData._data?.id,
+            value: addedGemData.value || addedGemData._data?.value,
+            collections: addedGemData.collections || addedGemData._data?.collections,
+            subCollections: addedGemData.subCollections || addedGemData._data?.subCollections,
+            keywords: addedGemData.keywords || addedGemData._data?.keywords
+          }
+        });
         break;
 
       case 'isReady':

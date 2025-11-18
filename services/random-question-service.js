@@ -122,47 +122,61 @@ async function saveAnswer(questionData, answer) {
     // Track the inserted gem for return value
     let insertedGem = null;
 
-    // 1. Save to RxDB (for UI display) using ContextEngineAPI
-    if (typeof self.ContextEngineAPI !== 'undefined' && self.ContextEngineAPI.isReady) {
-      try {
-        // Transform to ContextEngineAPI format
-        const gemForAPI = {
-          id: generateId('rq'), // Generate unique ID for random question
-          value: answer,
-          collections: [categoryName],
-          subCollections: [],
-          state: 'default',
-          timestamp: Date.now(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          topic: question,
+    // 1. Save to RxDB (for UI display) via Background message passing
+    try {
+      // Transform to ContextEngineAPI format
+      const gemForAPI = {
+        id: generateId('rq'), // Generate unique ID for random question
+        value: answer,
+        collections: [categoryName],
+        subCollections: [],
+        state: 'default',
+        timestamp: Date.now(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        topic: question,
 
-          // Primary gem fields
-          isPrimary: true,
-          parentGem: '',
-          childGems: [],
-          isVirtual: false,
+        // Primary gem fields
+        isPrimary: true,
+        parentGem: '',
+        childGems: [],
+        isVirtual: false,
 
-          // Metadata
-          metadata: {
-            source: 'random_question',
-            template: category,
-            field: fieldName,
-            subcategory: subcategoryKey,
-            answeredAt: new Date().toISOString()
+        // Metadata
+        metadata: {
+          source: 'random_question',
+          template: category,
+          field: fieldName,
+          subcategory: subcategoryKey,
+          answeredAt: new Date().toISOString()
+        }
+      };
+
+      // Send message to background to add gem
+      const response = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({
+          action: 'contextEngine.addGem',
+          gem: gemForAPI,
+          autoEnrich: false // Don't auto-enrich random questions
+        }, (response) => {
+          if (chrome.runtime.lastError) {
+            reject(chrome.runtime.lastError);
+          } else {
+            resolve(response);
           }
-        };
+        });
+      });
 
-        await self.ContextEngineAPI.addGem(gemForAPI, false); // false = don't auto-enrich
-        insertedGem = gemForAPI;
-        console.log('✅ Gem saved to RxDB via ContextEngineAPI:', gemForAPI.id);
-      } catch (rxdbError) {
-        console.error('❌ Failed to save to RxDB:', rxdbError);
-        console.error('   Error details:', rxdbError.message);
-        // Continue anyway to save to profile
+      if (response.success) {
+        insertedGem = response.gem;
+        console.log('✅ Gem saved to RxDB via Background:', insertedGem.id);
+      } else {
+        console.error('❌ Failed to save to RxDB:', response.error);
       }
-    } else {
-      console.warn('⚠️ ContextEngineAPI not available, gem will only be saved to profile');
+    } catch (rxdbError) {
+      console.error('❌ Failed to save to RxDB:', rxdbError);
+      console.error('   Error details:', rxdbError.message);
+      // Continue anyway to save to profile
     }
 
     // 2. Save to hspProfile (for export)

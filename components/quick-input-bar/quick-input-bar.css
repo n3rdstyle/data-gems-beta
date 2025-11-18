@@ -107,7 +107,8 @@
   border: 1px solid rgba(0, 0, 0, 0);
 }
 
-.quick-input-bar__refresh {
+.quick-input-bar__refresh,
+.quick-input-bar__open-tab {
   flex-shrink: 0;
 }
 
