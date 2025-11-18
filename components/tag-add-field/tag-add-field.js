@@ -98,13 +98,7 @@ function createTagAddField(options = {}) {
           }
         });
 
-        // Update previously typed tags
-        previouslyTypedTags = [...currentTypedTags];
-
-        if (onInput) {
-          onInput(input.value);
-        }
-        return;
+        // Don't return early - continue to check if current tags match
       }
 
       // Check if a new tag matches an existing one
