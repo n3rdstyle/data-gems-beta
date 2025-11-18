@@ -21,14 +21,10 @@ function createSettings(options = {}) {
     onInstagram = null,
     onLinkedIn = null,
     onReddit = null,
-    autoInjectEnabled = false,
-    onAutoInjectToggle = null,
     autoBackupEnabled = false,
     onAutoBackupToggle = null,
     autoCategorizeEnabled = true,
     onAutoCategorizeToggle = null,
-    onBulkAutoCategorize = null,
-    onMigrateSubCategories = null,  // NEW: SubCategory migration
     isBetaUser = false,
     onJoinBeta = null,
     onRevokeBeta = null
@@ -96,20 +92,6 @@ function createSettings(options = {}) {
   });
   configurationHeader.element.classList.add('settings__section-header');
   configurationSection.appendChild(configurationHeader.element);
-
-  // Auto-inject toggle as action button with toggle variant
-  const autoInject = createActionButton({
-    label: 'Auto-inject profile',
-    caption: 'Automatically inject your profile when opening a new chat in supported AI platforms',
-    variant: 'toggle',
-    toggleActive: autoInjectEnabled,
-    onToggleChange: (isActive) => {
-      if (onAutoInjectToggle) {
-        onAutoInjectToggle(isActive);
-      }
-    }
-  });
-  configurationSection.appendChild(autoInject.element);
 
   // Auto-categorization toggle
   const autoCategorize = createActionButton({
@@ -187,33 +169,6 @@ function createSettings(options = {}) {
     onClick: onThirdPartyData || (() => {})
   });
   dataCenterSection.appendChild(thirdPartyData.element);
-
-  const bulkAutoCategorize = createActionButton({
-    label: 'Auto-categorize all cards',
-    caption: 'Apply AI category suggestions to all existing cards without collections',
-    variant: 'cta',
-    ctaLabel: 'Run',
-    onClick: () => {
-      if (onBulkAutoCategorize) {
-        onBulkAutoCategorize();
-      }
-    }
-  });
-  dataCenterSection.appendChild(bulkAutoCategorize.element);
-
-  // NEW: SubCategory Migration Button
-  const migrateSubCategories = createActionButton({
-    label: 'Migrate to SubCategories (Beta)',
-    caption: 'Organize Fashion gems into granular subcategories (shoes, tshirts, etc.) for better AI context matching',
-    variant: 'cta',
-    ctaLabel: 'Migrate',
-    onClick: () => {
-      if (onMigrateSubCategories) {
-        onMigrateSubCategories();
-      }
-    }
-  });
-  dataCenterSection.appendChild(migrateSubCategories.element);
 
   const dataCenterDivider = createDivider();
   dataCenterSection.appendChild(dataCenterDivider.element);

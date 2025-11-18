@@ -596,6 +596,10 @@ async function loadData() {
         // Update AppState cache with RxDB data
         AppState.content.preferences.items = preferencesFromRxDB;
         AppState.metadata.total_preferences = preferencesFromRxDB.length;
+
+        // IMPORTANT: Save to Chrome Storage so content scripts get the updated data
+        await saveData();
+        console.log('[App] ✓ Synced RxDB data to Chrome Storage for content scripts');
       } catch (error) {
         console.error('[App] Failed to load preferences from RxDB:', error);
         console.log('[App] Using Chrome Storage fallback');
@@ -616,6 +620,13 @@ async function loadData() {
 async function saveData() {
   try {
     AppState.updated_at = getTimestamp();
+
+    // DEBUG: Log how many preferences are being saved
+    console.log('[App] Saving to Chrome Storage:', {
+      totalPreferences: AppState.content.preferences.items.length,
+      preferencesWithCollections: AppState.content.preferences.items.filter(p => p.collections && p.collections.length > 0).length,
+      preferencesWithoutCollections: AppState.content.preferences.items.filter(p => !p.collections || p.collections.length === 0).length
+    });
 
     // Save profile identity to Chrome Storage
     // Preferences are stored in RxDB after migration
@@ -1801,20 +1812,6 @@ async function renderCurrentScreen() {
             AppState = updateUserIdentityState(AppState, 'location', state);
             await saveData();
           },
-          getAutoInjectEnabled: () => AppState?.settings?.injection?.auto_inject || false,
-          onAutoInjectToggle: async (isEnabled) => {
-            // Ensure settings.injection exists
-            if (!AppState.settings) {
-              AppState.settings = {};
-            }
-            if (!AppState.settings.injection) {
-              AppState.settings.injection = {};
-            }
-
-            // Update the setting
-            AppState.settings.injection.auto_inject = isEnabled;
-            await saveData();
-          },
           getAutoBackupEnabled: () => BackupState.autoBackupEnabled,
           onAutoBackupToggle: async (isEnabled) => {
             BackupState.autoBackupEnabled = isEnabled;
@@ -1833,120 +1830,6 @@ async function renderCurrentScreen() {
             // Update the setting
             AppState.settings.categorization.auto_categorize = isEnabled;
             await saveData();
-          },
-          onBulkAutoCategorize: async () => {
-            // Get all preferences without collections
-            const items = AppState?.content?.preferences?.items || [];
-            const itemsWithoutCollections = items.filter(item =>
-              !item.collections || item.collections.length === 0
-            );
-
-            if (itemsWithoutCollections.length === 0) {
-              alert('No cards without collections found.');
-              return;
-            }
-
-            // Get all existing collections for context (predefined + user-created)
-            const existingCollections = [...new Set(items.flatMap(item => item.collections || []))];
-            const predefinedCategories = aiHelper.getPredefinedCategories();
-            const allCollections = [...new Set([...predefinedCategories, ...existingCollections])];
-
-            // Confirm with user
-            const confirmed = confirm(`Auto-categorize ${itemsWithoutCollections.length} cards without collections?`);
-            if (!confirmed) return;
-
-            let categorizedCount = 0;
-
-            // Process each item
-            for (const item of itemsWithoutCollections) {
-              try {
-                const suggestions = await aiHelper.suggestCategories(item.value, allCollections);
-                if (suggestions.length > 0) {
-                  item.collections = suggestions;
-                  categorizedCount++;
-                }
-              } catch (error) {
-                console.error('[Bulk Auto-Categorize] Error for item:', item.id, error);
-              }
-            }
-
-            // Save updated data
-            await saveData();
-
-            // Show result
-            alert(`✓ ${categorizedCount} cards auto-categorized`);
-
-            // Refresh UI
-            renderCurrentScreen();
-          },
-          onMigrateSubCategories: async () => {
-            // Confirm with user
-            const confirmed = confirm('Migrate Fashion gems to SubCategories?\n\nThis will organize your Fashion gems into granular categories (shoes, tshirts, etc.) for better AI context matching.\n\nThis may take 1-2 minutes.');
-            if (!confirmed) return;
-
-            // Create progress overlay
-            const progressOverlay = document.createElement('div');
-            progressOverlay.style.cssText = `
-              position: fixed;
-              top: 0;
-              left: 0;
-              right: 0;
-              bottom: 0;
-              background: rgba(0, 0, 0, 0.8);
-              z-index: 10000;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-              color: white;
-              font-family: system-ui;
-            `;
-
-            const progressTitle = document.createElement('div');
-            progressTitle.textContent = 'Migrating to SubCategories...';
-            progressTitle.style.cssText = 'font-size: 20px; font-weight: 600; margin-bottom: 16px;';
-
-            const progressText = document.createElement('div');
-            progressText.style.cssText = 'font-size: 16px; margin-bottom: 8px;';
-            progressText.textContent = 'Starting...';
-
-            const progressDetail = document.createElement('div');
-            progressDetail.style.cssText = 'font-size: 12px; color: #aaa; max-width: 300px; text-align: center;';
-
-            progressOverlay.appendChild(progressTitle);
-            progressOverlay.appendChild(progressText);
-            progressOverlay.appendChild(progressDetail);
-            document.body.appendChild(progressOverlay);
-
-            try {
-              // Run migration with progress updates
-              const results = await migrateToSubCategories(AppState, (current, total, message) => {
-                progressText.textContent = `Processing ${current} of ${total} gems`;
-                progressDetail.textContent = message;
-                console.log(`[Migration Progress] ${current}/${total}: ${message}`);
-              });
-
-              // Save updated profile
-              await saveData();
-
-              // Remove progress overlay
-              progressOverlay.remove();
-
-              // Show results
-              const message = `✓ Migration Complete!\n\nProcessed: ${results.processed}\nMigrated: ${results.migrated}\nSkipped: ${results.skipped}\nErrors: ${results.errors}\n\nNew SubCategories: ${results.subCategoriesCreated.length}\n(${results.subCategoriesCreated.join(', ')})\n\nDuration: ${(results.duration / 1000).toFixed(1)}s`;
-              alert(message);
-
-              // Refresh UI
-              renderCurrentScreen();
-
-            } catch (error) {
-              // Remove progress overlay
-              if (progressOverlay.parentNode) {
-                progressOverlay.remove();
-              }
-              console.error('[Migration] Error:', error);
-              alert(`Migration failed: ${error.message}`);
-            }
           },
           isBetaUser: homeIsBetaUser,
           onJoinBeta: () => {
@@ -2146,20 +2029,6 @@ async function renderCurrentScreen() {
             clearAllData();
           },
           onThirdPartyData: () => importThirdPartyData(),
-          autoInjectEnabled: AppState?.settings?.injection?.auto_inject || false,
-          onAutoInjectToggle: async (isEnabled) => {
-            // Ensure settings.injection exists
-            if (!AppState.settings) {
-              AppState.settings = {};
-            }
-            if (!AppState.settings.injection) {
-              AppState.settings.injection = {};
-            }
-
-            // Update the setting
-            AppState.settings.injection.auto_inject = isEnabled;
-            await saveData();
-          },
           autoBackupEnabled: BackupState.autoBackupEnabled,
           onAutoBackupToggle: async (isEnabled) => {
             BackupState.autoBackupEnabled = isEnabled;
@@ -2178,120 +2047,6 @@ async function renderCurrentScreen() {
             // Update the setting
             AppState.settings.categorization.auto_categorize = isEnabled;
             await saveData();
-          },
-          onBulkAutoCategorize: async () => {
-            // Get all preferences without collections
-            const items = AppState?.content?.preferences?.items || [];
-            const itemsWithoutCollections = items.filter(item =>
-              !item.collections || item.collections.length === 0
-            );
-
-            if (itemsWithoutCollections.length === 0) {
-              alert('No cards without collections found.');
-              return;
-            }
-
-            // Get all existing collections for context (predefined + user-created)
-            const existingCollections = [...new Set(items.flatMap(item => item.collections || []))];
-            const predefinedCategories = aiHelper.getPredefinedCategories();
-            const allCollections = [...new Set([...predefinedCategories, ...existingCollections])];
-
-            // Confirm with user
-            const confirmed = confirm(`Auto-categorize ${itemsWithoutCollections.length} cards without collections?`);
-            if (!confirmed) return;
-
-            let categorizedCount = 0;
-
-            // Process each item
-            for (const item of itemsWithoutCollections) {
-              try {
-                const suggestions = await aiHelper.suggestCategories(item.value, allCollections);
-                if (suggestions.length > 0) {
-                  item.collections = suggestions;
-                  categorizedCount++;
-                }
-              } catch (error) {
-                console.error('[Bulk Auto-Categorize] Error for item:', item.id, error);
-              }
-            }
-
-            // Save updated data
-            await saveData();
-
-            // Show result
-            alert(`✓ ${categorizedCount} cards auto-categorized`);
-
-            // Refresh UI
-            renderCurrentScreen();
-          },
-          onMigrateSubCategories: async () => {
-            // Confirm with user
-            const confirmed = confirm('Migrate Fashion gems to SubCategories?\n\nThis will organize your Fashion gems into granular categories (shoes, tshirts, etc.) for better AI context matching.\n\nThis may take 1-2 minutes.');
-            if (!confirmed) return;
-
-            // Create progress overlay
-            const progressOverlay = document.createElement('div');
-            progressOverlay.style.cssText = `
-              position: fixed;
-              top: 0;
-              left: 0;
-              right: 0;
-              bottom: 0;
-              background: rgba(0, 0, 0, 0.8);
-              z-index: 10000;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-              color: white;
-              font-family: system-ui;
-            `;
-
-            const progressTitle = document.createElement('div');
-            progressTitle.textContent = 'Migrating to SubCategories...';
-            progressTitle.style.cssText = 'font-size: 20px; font-weight: 600; margin-bottom: 16px;';
-
-            const progressText = document.createElement('div');
-            progressText.style.cssText = 'font-size: 16px; margin-bottom: 8px;';
-            progressText.textContent = 'Starting...';
-
-            const progressDetail = document.createElement('div');
-            progressDetail.style.cssText = 'font-size: 12px; color: #aaa; max-width: 300px; text-align: center;';
-
-            progressOverlay.appendChild(progressTitle);
-            progressOverlay.appendChild(progressText);
-            progressOverlay.appendChild(progressDetail);
-            document.body.appendChild(progressOverlay);
-
-            try {
-              // Run migration with progress updates
-              const results = await migrateToSubCategories(AppState, (current, total, message) => {
-                progressText.textContent = `Processing ${current} of ${total} gems`;
-                progressDetail.textContent = message;
-                console.log(`[Migration Progress] ${current}/${total}: ${message}`);
-              });
-
-              // Save updated profile
-              await saveData();
-
-              // Remove progress overlay
-              progressOverlay.remove();
-
-              // Show results
-              const message = `✓ Migration Complete!\n\nProcessed: ${results.processed}\nMigrated: ${results.migrated}\nSkipped: ${results.skipped}\nErrors: ${results.errors}\n\nNew SubCategories: ${results.subCategoriesCreated.length}\n(${results.subCategoriesCreated.join(', ')})\n\nDuration: ${(results.duration / 1000).toFixed(1)}s`;
-              alert(message);
-
-              // Refresh UI
-              renderCurrentScreen();
-
-            } catch (error) {
-              // Remove progress overlay
-              if (progressOverlay.parentNode) {
-                progressOverlay.remove();
-              }
-              console.error('[Migration] Error:', error);
-              alert(`Migration failed: ${error.message}`);
-            }
           },
           isBetaUser: isBetaUser,
           onJoinBeta: () => {

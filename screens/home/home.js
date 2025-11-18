@@ -36,14 +36,10 @@ function createHome(options = {}) {
     onThirdPartyData = null,
     onDescriptionToggle = null,
     onPersonalInfoToggle = null,
-    getAutoInjectEnabled = null, // Changed to getter function
-    onAutoInjectToggle = null,
     getAutoBackupEnabled = null, // Changed to getter function
     onAutoBackupToggle = null,
     getAutoCategorizeEnabled = null, // Getter function for auto-categorize setting
     onAutoCategorizeToggle = null,
-    onBulkAutoCategorize = null,
-    onMigrateSubCategories = null,  // NEW: SubCategory migration callback
     onCardSelectionChange = null,  // NEW: Card selection callback for merge feature
     onMergedInfoClick = null,  // NEW: Merged info click callback
     onMergeClick = null,  // NEW: Merge button click callback
@@ -185,14 +181,10 @@ function createHome(options = {}) {
       onUpdateData: onUpdateData,
       onClearData: onClearData,
       onThirdPartyData: onThirdPartyData,
-      autoInjectEnabled: getAutoInjectEnabled ? getAutoInjectEnabled() : false,
-      onAutoInjectToggle: onAutoInjectToggle,
       autoBackupEnabled: getAutoBackupEnabled ? getAutoBackupEnabled() : false,
       onAutoBackupToggle: onAutoBackupToggle,
       autoCategorizeEnabled: getAutoCategorizeEnabled ? getAutoCategorizeEnabled() : true,
       onAutoCategorizeToggle: onAutoCategorizeToggle,
-      onBulkAutoCategorize: onBulkAutoCategorize,
-      onMigrateSubCategories: onMigrateSubCategories,
       isBetaUser: isBetaUser,
       onJoinBeta: onJoinBeta,
       onRevokeBeta: onRevokeBeta
