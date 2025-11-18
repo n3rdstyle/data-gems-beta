@@ -53,7 +53,7 @@
   flex-shrink: 0;
   cursor: pointer;
   transition: all 0.2s ease;
-  width: 240px; /* Fixed width */
+  max-width: 240px; /* Maximum width, but shrinks to fit content */
   overflow: hidden;
   height: 24px; /* Fixed height */
   font-size: 12px; /* Smaller font */
