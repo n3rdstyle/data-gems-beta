@@ -115,7 +115,7 @@ function createTagAddField(options = {}) {
           tag.getLabel().toLowerCase() === lastTypedTag.toLowerCase()
         );
 
-        console.log('[TagAddField] Matching tag found:', matchingTag ? matchingTag.getLabel() : 'none');
+        console.log('[TagAddField] Last typed:', lastTypedTag, 'Matching tag found:', matchingTag ? matchingTag.getLabel() : 'none', 'State:', matchingTag ? matchingTag.getState() : 'n/a');
 
         if (matchingTag && matchingTag.getState() !== 'active') {
           // Tag exists in the list - activate it and move to first position
@@ -140,20 +140,13 @@ function createTagAddField(options = {}) {
 
           console.log('[TagAddField] Tag activated and moved to first position:', tagLabel);
 
-          // Update input field to show selected tags + any other manually typed tags
-          const otherTypedTags = currentTypedTags.slice(0, -1); // All tags except the last one (which matched)
-          const manualTags = otherTypedTags.filter(t => !existingTags.includes(t));
+          // Don't update the input value immediately - let the user finish typing
+          // Just highlight the tag in the list for visual feedback
 
-          // Combine manual tags with selected tags
-          const allTagsList = [...manualTags, ...selectedTags];
+          // Update previously typed tags to include the matched tag
+          previouslyTypedTags = [...currentTypedTags];
 
-          // Update input with comma-separated list
-          input.value = allTagsList.join(', ');
-
-          // Update previously typed tags
-          previouslyTypedTags = allTagsList;
-
-          // Trigger onInput callback with updated value
+          // Trigger onInput callback with current value (unchanged)
           if (onInput) {
             onInput(input.value);
           }
