@@ -32,6 +32,9 @@ function createTagAddField(options = {}) {
   input.className = 'tag-add-field__input';
   input.placeholder = placeholder;
 
+  // Declare tagListInstance reference that will be set later
+  let tagListInstance = null;
+
   // Input event handler
   input.addEventListener('input', () => {
     // Check if typed value matches an existing tag
@@ -42,6 +45,8 @@ function createTagAddField(options = {}) {
       const tags = typedValue.split(',').map(t => t.trim()).filter(t => t);
       const lastTypedTag = tags.length > 0 ? tags[tags.length - 1] : '';
 
+      console.log('[TagAddField] Typed:', lastTypedTag, 'Available tags:', tagListInstance.getTags().map(t => t.getLabel()));
+
       if (lastTypedTag) {
         // Find matching tag (case-insensitive)
         const allTags = tagListInstance.getTags();
@@ -49,28 +54,30 @@ function createTagAddField(options = {}) {
           tag.getLabel().toLowerCase() === lastTypedTag.toLowerCase()
         );
 
+        console.log('[TagAddField] Matching tag found:', matchingTag ? matchingTag.getLabel() : 'none');
+
         if (matchingTag) {
           // Tag exists in the list - activate it and move to first position
           const tagLabel = matchingTag.getLabel();
-          const tagConfig = {
-            type: matchingTag.getType(),
-            label: tagLabel,
-            count: matchingTag.getCount(),
-            state: 'active',
-            size: matchingTag.getSize(),
-            variant: matchingTag.getVariant()
-          };
 
           // Remove the tag from its current position
           tagListInstance.removeTag(matchingTag);
 
-          // Add it at the first position with active state
-          tagListInstance.addTagAtIndex(tagConfig, 0);
+          // Add it at the first position with active state, with proper click handler
+          const newTag = tagListInstance.addTagAtIndex({
+            type: 'collection',
+            label: tagLabel,
+            count: 0,
+            state: 'active',
+            size: 'small'
+          }, 0);
 
           // Update selectedTags
           if (!selectedTags.includes(tagLabel)) {
             selectedTags.push(tagLabel);
           }
+
+          console.log('[TagAddField] Tag activated and moved to first position:', tagLabel);
 
           // Update input field to show selected tags + any other manually typed tags
           const otherTypedTags = tags.slice(0, -1); // All tags except the last one (which matched)
@@ -112,7 +119,6 @@ function createTagAddField(options = {}) {
   container.appendChild(input);
 
   // Create tag list if there are existing tags
-  let tagListInstance = null;
   if (existingTags.length > 0) {
     const filteredTags = existingTags.filter(tagName => {
       const lowerName = tagName.toLowerCase();
