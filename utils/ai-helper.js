@@ -166,14 +166,22 @@ DO NOT add any explanation, markdown, or extra text. ONLY the JSON array.`
       }
 
       // Build prompt with context about existing categories
-      let prompt = `Analyze this text and suggest relevant categories:\n\n"${text}"\n\n`;
+      let prompt = `Analyze this text and suggest the SINGLE MOST RELEVANT category:\n\n"${text}"\n\n`;
 
       if (existingCategories.length > 0) {
-        prompt += `EXISTING CATEGORIES (prefer these when relevant):\n${existingCategories.join(', ')}\n\n`;
-        prompt += `Choose from existing categories OR create new ones if none fit well.\n\n`;
+        prompt += `EXISTING CATEGORIES - YOU MUST CHOOSE FROM THESE FIRST:\n${existingCategories.join(', ')}\n\n`;
+        prompt += `RULES:\n`;
+        prompt += `1. If ANY existing category matches, use it (even if not perfect)\n`;
+        prompt += `2. Only create a NEW category if NONE of the existing ones fit at all\n`;
+        prompt += `3. New categories must be concise (1-2 words) and capitalized\n`;
+        prompt += `4. For food/drink preferences, use "Food" if it exists\n`;
+        prompt += `5. For sports/exercise, use "Sports" or "Fitness" if they exist\n\n`;
       }
 
-      prompt += `Respond with ONLY a JSON array containing exactly 1 MOST RELEVANT category name. Pick the single best fit.`;
+      prompt += `Respond with ONLY a JSON array containing exactly 1 category name. Examples: ["Food"] or ["Technology"]`;
+
+      console.log('[AI Helper] Prompt:', prompt);
+      console.log('[AI Helper] Existing categories:', existingCategories);
 
       // Create timeout promise
       const timeoutPromise = new Promise((_, reject) => {
@@ -186,10 +194,12 @@ DO NOT add any explanation, markdown, or extra text. ONLY the JSON array.`
         timeoutPromise
       ]);
 
+      console.log('[AI Helper] Raw AI response:', response);
+
       // Parse response
       const categories = this.parseCategories(response);
 
-      console.log('[AI Helper] Suggested categories:', categories, 'for text:', text.substring(0, 50) + '...');
+      console.log('[AI Helper] Parsed categories:', categories, 'for text:', text.substring(0, 50) + '...');
       return categories;
 
     } catch (error) {
@@ -205,11 +215,23 @@ DO NOT add any explanation, markdown, or extra text. ONLY the JSON array.`
   /**
    * Normalize category name to follow style guide
    * @param {string} category - Raw category name
-   * @returns {string} - Normalized category name
+   * @returns {string} - Normalized category name (or empty string if invalid)
    */
   normalizeCategory(category) {
     // Trim whitespace
     let normalized = category.trim();
+
+    // Remove invalid characters (keep only letters, spaces, and ampersands)
+    normalized = normalized.replace(/[^a-zA-Z\s&]/g, '');
+
+    // Remove trailing or leading special characters
+    normalized = normalized.replace(/^[&\s]+|[&\s]+$/g, '');
+
+    // If it's just special characters or empty, return empty
+    if (!normalized || normalized.length === 0) {
+      console.warn('[AI Helper] Invalid category after normalization:', category);
+      return '';
+    }
 
     // Capitalize first letter of each word
     normalized = normalized
