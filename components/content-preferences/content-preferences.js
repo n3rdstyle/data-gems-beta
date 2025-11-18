@@ -21,6 +21,11 @@ function calculateTagsFromData(data) {
   // Count hidden cards
   const hiddenCount = data.filter(item => item.state === 'hidden').length;
 
+  // Count unassigned cards (no collections or empty collections array)
+  const unassignedCount = data.filter(item =>
+    !item.collections || !Array.isArray(item.collections) || item.collections.length === 0
+  ).length;
+
   // Count collections
   const collectionCounts = {};
   data.forEach(item => {
@@ -61,6 +66,16 @@ function calculateTagsFromData(data) {
     });
   }
 
+  // Add "Unassigned" tag only if there are unassigned cards
+  if (unassignedCount > 0) {
+    mainTags.push({
+      type: 'unassigned',
+      label: 'Unassigned',
+      count: unassignedCount,
+      state: 'inactive'
+    });
+  }
+
   // Store collection tags separately (not displayed directly)
   Object.keys(collectionCounts).sort().forEach(collectionName => {
     collectionTags.push({
@@ -70,6 +85,16 @@ function calculateTagsFromData(data) {
       state: 'inactive'
     });
   });
+
+  // Add "Unassigned" to collection tags if there are unassigned cards
+  if (unassignedCount > 0) {
+    collectionTags.push({
+      type: 'unassigned',
+      label: 'Unassigned',
+      count: unassignedCount,
+      state: 'inactive'
+    });
+  }
 
   return {
     mainTags,
@@ -119,12 +144,17 @@ function createContentPreferences(options = {}) {
 
       // Calculate collection counts from search results only
       const collectionCounts = {};
+      let unassignedCount = 0;
+
       searchResults.forEach(card => {
         const collections = card.getCollections();
-        if (collections && Array.isArray(collections)) {
+        if (collections && Array.isArray(collections) && collections.length > 0) {
           collections.forEach(collection => {
             collectionCounts[collection] = (collectionCounts[collection] || 0) + 1;
           });
+        } else {
+          // Card has no collections - count as unassigned
+          unassignedCount++;
         }
       });
 
@@ -135,6 +165,16 @@ function createContentPreferences(options = {}) {
         count: collectionCounts[collectionName],
         state: 'inactive'
       }));
+
+      // Add "Unassigned" option if there are unassigned cards
+      if (unassignedCount > 0) {
+        availableCollections.push({
+          type: 'unassigned',
+          label: 'Unassigned',
+          count: unassignedCount,
+          state: 'inactive'
+        });
+      }
     }
 
     // Create and show collection filter modal
@@ -344,29 +384,31 @@ function createContentPreferences(options = {}) {
       if (matchingNewTag) {
         existingTag.setCount(matchingNewTag.count);
 
-        // Hide Favorites/Hidden tags if count is 0
-        if ((existingTag.getType() === 'favorites' || existingTag.getType() === 'hidden') &&
+        // Hide Favorites/Hidden/Unassigned tags if count is 0
+        if ((existingTag.getType() === 'favorites' || existingTag.getType() === 'hidden' || existingTag.getType() === 'unassigned') &&
             matchingNewTag.count === 0) {
           existingTag.hide();
-        } else if (existingTag.getType() === 'favorites' || existingTag.getType() === 'hidden') {
+        } else if (existingTag.getType() === 'favorites' || existingTag.getType() === 'hidden' || existingTag.getType() === 'unassigned') {
           existingTag.show();
         }
       } else {
         // Tag not found in newTags, set count to 0
         existingTag.setCount(0);
 
-        // Hide Favorites/Hidden tags if count is 0
-        if (existingTag.getType() === 'favorites' || existingTag.getType() === 'hidden') {
+        // Hide Favorites/Hidden/Unassigned tags if count is 0
+        if (existingTag.getType() === 'favorites' || existingTag.getType() === 'hidden' || existingTag.getType() === 'unassigned') {
           existingTag.hide();
         }
       }
     });
 
-    // Add Favorites/Hidden tags if they don't exist yet but have count > 0
+    // Add Favorites/Hidden/Unassigned tags if they don't exist yet but have count > 0
     const needsFavoritesTag = !existingTags.some(t => t.getType() === 'favorites') &&
                               newTagData.mainTags.some(nt => nt.type === 'favorites' && nt.count > 0);
     const needsHiddenTag = !existingTags.some(t => t.getType() === 'hidden') &&
                            newTagData.mainTags.some(nt => nt.type === 'hidden' && nt.count > 0);
+    const needsUnassignedTag = !existingTags.some(t => t.getType() === 'unassigned') &&
+                               newTagData.mainTags.some(nt => nt.type === 'unassigned' && nt.count > 0);
 
     if (needsFavoritesTag) {
       const favTag = newTagData.mainTags.find(nt => nt.type === 'favorites');
@@ -379,6 +421,15 @@ function createContentPreferences(options = {}) {
       // Insert after "All" and "Favorites" tags
       const insertIndex = existingTags.some(t => t.getType() === 'favorites') ? 2 : 1;
       tagList.addTagAtIndex({ ...hiddenTag, variant: 'card' }, insertIndex);
+    }
+
+    if (needsUnassignedTag) {
+      const unassignedTag = newTagData.mainTags.find(nt => nt.type === 'unassigned');
+      // Insert after "All", "Favorites", and "Hidden" tags
+      let insertIndex = 1;
+      if (existingTags.some(t => t.getType() === 'favorites')) insertIndex++;
+      if (existingTags.some(t => t.getType() === 'hidden')) insertIndex++;
+      tagList.addTagAtIndex({ ...unassignedTag, variant: 'card' }, insertIndex);
     }
 
     // If there's an active collection filter, update the "All" tag accordingly
@@ -587,6 +638,23 @@ function createContentPreferences(options = {}) {
           headline.setTagButtonLabel('Hidden', visibleCards.length);
 
           // Reset "All" tag to default when switching to Hidden
+          if (allTag) {
+            allTag.setLabel('All');
+            allTag.setCount(dataList.getCards().length);
+          }
+        } else if (tagLabel === 'unassigned') {
+          activeFilter = { type: 'unassigned', value: true };
+          dataList.filterByUnassigned();
+
+          // Count visible (unassigned) cards
+          const visibleCards = dataList.getCards().filter(card =>
+            card.element.style.display !== 'none'
+          );
+
+          // Update headline tag button
+          headline.setTagButtonLabel('Unassigned', visibleCards.length);
+
+          // Reset "All" tag to default when switching to Unassigned
           if (allTag) {
             allTag.setLabel('All');
             allTag.setCount(dataList.getCards().length);

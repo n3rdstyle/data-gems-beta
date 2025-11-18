@@ -442,7 +442,7 @@ async function handleMergeSelectedCards() {
     const allCards = items;
     const userCollections = allCards.flatMap(c => c.collections || []);
     const predefinedCategories = aiHelper.getPredefinedCategories();
-    const existingTags = [...new Set([...predefinedCategories, ...userCollections, ...allCollections])];
+    const existingTags = [...new Set([...predefinedCategories, ...userCollections, ...allCollections])].sort((a, b) => a.localeCompare(b));
 
     // Open Data Editor Modal in merge mode
     const modal = createDataEditorModal({
@@ -1446,22 +1446,22 @@ async function renderCurrentScreen() {
   try {
     const userData = getUserData();
 
-    // Load preferences from RxDB (fresh data) instead of AppState (stale cache)
+    // Load preferences from AppState (includes optimistic updates)
+    // AppState is kept in sync with RxDB and includes pending items
     let preferences;
     try {
-      const rxdbGems = await getPreferencesFromRxDB();
-      // Transform RxDB gems to UI format
-      preferences = rxdbGems.map(gem => ({
-        id: gem.id,
-        name: gem.value || gem.text,
-        state: gem.state || 'default',
-        collections: gem.collections || [],
-        topic: gem.topic,
-        source: gem.source
+      // Use AppState as source of truth (updated optimistically)
+      preferences = AppState.content.preferences.items.map(item => ({
+        id: item.id,
+        name: item.value || item.text,
+        state: item.state || 'default',
+        collections: item.collections || [],
+        topic: item.topic,
+        source: item.source_url
       }));
     } catch (error) {
-      console.error('[App] Failed to load from RxDB, falling back to AppState:', error);
-      preferences = getPreferences(); // Fallback to AppState
+      console.error('[App] Failed to load from AppState:', error);
+      preferences = []; // Empty fallback
     }
 
     switch (currentScreen) {
@@ -1544,26 +1544,73 @@ async function renderCurrentScreen() {
             const usesRxDB = true;
 
             if (usesRxDB) {
-              // Add to RxDB
+              // Create optimistic gem object immediately
+              const optimisticGem = {
+                id: generateId('pref'),
+                value,
+                collections: collections || [],
+                subCollections: [],
+                timestamp: Date.now(),
+                state: state || 'default',
+                assurance: 'self_declared',
+                reliability: 'authoritative',
+                source_url: null,
+                mergedFrom: null,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                topic: topic || '',
+                isPrimary: true,
+                parentGem: '',
+                childGems: [],
+                isVirtual: false
+              };
+
+              // Update AppState cache immediately
+              AppState.content.preferences.items.unshift(optimisticGem);
+              AppState.metadata.total_preferences = AppState.content.preferences.items.length;
+
+              // Render UI immediately (shows item right away)
+              renderCurrentScreen();
+
+              // Save to RxDB immediately WITHOUT embeddings (fast, ensures data persists)
               try {
-                const newPref = await addPreferenceToRxDB({
+                await addPreferenceToRxDB({
+                  id: optimisticGem.id,
                   value,
                   state,
                   collections,
                   topic
-                });
+                }, false); // autoEnrich = false for immediate save
 
-                console.log('[App] Preference added to RxDB:', newPref.id);
+                console.log('[App] Preference saved to RxDB (without embeddings):', optimisticGem.id);
 
-                // Update AppState cache
-                AppState.content.preferences.items.unshift(newPref);
-                AppState.metadata.total_preferences = AppState.content.preferences.items.length;
+                // Generate embeddings in background (non-blocking)
+                // This can take time, but data is already persisted
+                setTimeout(async () => {
+                  try {
+                    const engine = await ensureContextEngine();
+                    const savedGem = await engine.vectorStore.findById(optimisticGem.id);
+                    if (savedGem) {
+                      // Re-enrich the gem with embeddings
+                      await engine.updateGem(optimisticGem.id, {}, true);
+                      console.log('[App] Embeddings generated for:', optimisticGem.id);
+                    }
+                  } catch (error) {
+                    console.error('[App] Failed to generate embeddings (non-critical):', error);
+                  }
+                }, 0);
 
-                renderCurrentScreen();
+                // Check modals after save completes
                 await checkBetaCheckinModal();
                 await checkBackupReminder();
               } catch (error) {
                 console.error('[App] Failed to add preference to RxDB:', error);
+                // Remove optimistic item from UI if save failed
+                AppState.content.preferences.items = AppState.content.preferences.items.filter(
+                  item => item.id !== optimisticGem.id
+                );
+                AppState.metadata.total_preferences = AppState.content.preferences.items.length;
+                renderCurrentScreen();
                 alert('Failed to save preference. Please try again.');
               }
             } else {

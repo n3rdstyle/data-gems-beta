@@ -256,7 +256,7 @@ function createHome(options = {}) {
   // Track if any cards are selected (for scroll behavior)
   let hasSelectedCards = false;
 
-  // Helper function to update preference options based on list state
+  // Helper function to update quick input bar based on list state
   const updatePreferenceOptionsState = () => {
     if (!preferenceOptions) return;
 
@@ -264,7 +264,16 @@ function createHome(options = {}) {
     const cardCount = dataList.getCount();
     const isEmpty = cardCount === 0;
 
-    preferenceOptions.setEmptyState(isEmpty);
+    // Set state: 'empty', 'normal', or 'selection'
+    if (isEmpty) {
+      preferenceOptions.setState('empty');
+    } else if (hasSelectedCards) {
+      // Selection state is handled by onCardSelectionChange
+      // This just ensures we're in the right state initially
+      preferenceOptions.setState('normal');
+    } else {
+      preferenceOptions.setState('normal');
+    }
   };
 
   // Create content preferences
@@ -298,30 +307,23 @@ function createHome(options = {}) {
       const hadSelectedCards = hasSelectedCards;
       hasSelectedCards = cards.some(c => c.isSelected && c.isSelected());
 
-      // If deselecting last card and scrolled, hide buttons instantly BEFORE swapping them
+      // Count selected cards
+      const selectedCount = cards.filter(c => c.isSelected && c.isSelected()).length;
+
+      // If deselecting last card and scrolled, hide instantly before state change
       if (!hasSelectedCards && hadSelectedCards && preferenceOptions) {
         const scrollTop = contentWrapper.scrollTop;
         if (scrollTop > 100) {
-          // Hide buttons instantly with opacity
-          const bottomBar = preferenceOptions.element.querySelector('.preference-options__bottom-bar');
-          if (bottomBar) {
-            bottomBar.style.opacity = '0';
-          }
+          // Hide bar instantly
+          preferenceOptions.hide();
 
-          // Update buttons while invisible
+          // Update state back to normal
+          preferenceOptions.setState('normal');
+
+          // Call parent callback
           if (onCardSelectionChange) {
             onCardSelectionChange(selected, card);
           }
-
-          // Then hide bar with animation
-          preferenceOptions.element.classList.add('hidden-by-scroll');
-
-          // Reset opacity after animation completes
-          setTimeout(() => {
-            if (bottomBar) {
-              bottomBar.style.opacity = '';
-            }
-          }, 300);
 
           // Adjust back-to-top button
           scrollToTopButton.element.style.bottom = '16px';
@@ -329,19 +331,30 @@ function createHome(options = {}) {
         }
       }
 
-      // Normal flow - update buttons
+      // Normal flow - update state based on selection
+      if (hasSelectedCards) {
+        // Switch to selection mode
+        preferenceOptions.setState('selection');
+        preferenceOptions.setMergeCount(selectedCount);
+        preferenceOptions.setMergeDisabled(selectedCount < 2); // Need at least 2 to merge
+      } else {
+        // Switch back to normal mode
+        preferenceOptions.setState('normal');
+      }
+
+      // Call parent callback
       if (onCardSelectionChange) {
         onCardSelectionChange(selected, card);
       }
 
-      // If cards are now selected, show preference-options
+      // Show bar if cards are selected
       if (hasSelectedCards && !hadSelectedCards && preferenceOptions) {
-        preferenceOptions.element.classList.remove('hidden-by-scroll');
+        preferenceOptions.show();
       }
 
       // Always adjust back-to-top button position based on selection state
       if (hasSelectedCards) {
-        scrollToTopButton.element.style.bottom = '88px'; // 72px (bottom bar) + 16px spacing
+        scrollToTopButton.element.style.bottom = '72px'; // Bottom bar height + 16px spacing
       } else {
         scrollToTopButton.element.style.bottom = '16px';
       }
@@ -352,8 +365,8 @@ function createHome(options = {}) {
       const userCollections = allCards.flatMap(c => c.getCollections());
       const currentCollections = card.getCollections();
       const predefinedCategories = aiHelper.getPredefinedCategories();
-      // Combine predefined, user-created, and current collections, remove duplicates
-      const existingTags = [...new Set([...predefinedCategories, ...userCollections, ...currentCollections])];
+      // Combine predefined, user-created, and current collections, remove duplicates, and sort alphabetically
+      const existingTags = [...new Set([...predefinedCategories, ...userCollections, ...currentCollections])].sort((a, b) => a.localeCompare(b));
 
       // Create and show modal when card is clicked
       const modal = createDataEditorModal({
@@ -467,7 +480,7 @@ function createHome(options = {}) {
 
   screenElement.appendChild(scrollToTopButton.element);
 
-  // Add scroll listener to hide preference options when scrolling
+  // Add scroll listener to hide quick input bar when scrolling
   let lastScrollTop = 0;
 
   scrollableContainer.addEventListener('scroll', () => {
@@ -475,28 +488,23 @@ function createHome(options = {}) {
 
     const currentScrollTop = scrollableContainer.scrollTop;
 
-      // Hide overlay if it's open
-      if (preferenceOptions.isOpen()) {
+    // Detect scroll direction
+    if (currentScrollTop > lastScrollTop) {
+      // Scrolling down - hide quick input bar (unless cards are selected), show scroll-to-top button
+      // Keep bar visible if cards are selected (so trash/merge buttons stay visible)
+      if (!hasSelectedCards) {
         preferenceOptions.hide();
       }
-
-      // Detect scroll direction
-      if (currentScrollTop > lastScrollTop) {
-        // Scrolling down - hide preference options (unless cards are selected), show scroll-to-top button
-        // Keep preference options visible if cards are selected (so trash/merge buttons stay visible)
-        if (!hasSelectedCards) {
-          preferenceOptions.element.classList.add('hidden-by-scroll');
-        }
-        scrollToTopButton.element.style.opacity = '1';
-        scrollToTopButton.element.style.transform = 'translateY(0)';
-        scrollToTopButton.element.style.pointerEvents = 'auto';
-      } else {
-        // Scrolling up - show preference options, hide scroll-to-top button
-        preferenceOptions.element.classList.remove('hidden-by-scroll');
-        scrollToTopButton.element.style.opacity = '0';
-        scrollToTopButton.element.style.transform = 'translateY(20px)';
-        scrollToTopButton.element.style.pointerEvents = 'none';
-      }
+      scrollToTopButton.element.style.opacity = '1';
+      scrollToTopButton.element.style.transform = 'translateY(0)';
+      scrollToTopButton.element.style.pointerEvents = 'auto';
+    } else {
+      // Scrolling up - show quick input bar, hide scroll-to-top button
+      preferenceOptions.show();
+      scrollToTopButton.element.style.opacity = '0';
+      scrollToTopButton.element.style.transform = 'translateY(20px)';
+      scrollToTopButton.element.style.pointerEvents = 'none';
+    }
 
     lastScrollTop = currentScrollTop;
   });
@@ -504,164 +512,84 @@ function createHome(options = {}) {
   // Initialize calibration with current card count
   updateCalibrationFromCards();
 
-  // Initialize Random Question System with JSON Templates
-  let currentQuestionData = null;
-
-  // Initialize templates and get first question
-  initializeRandomQuestions().then(async () => {
-    // Get a random question
-    currentQuestionData = await getRandomQuestion();
-
-    // Update preference options button
-    if (preferenceOptions && currentQuestionData) {
-      preferenceOptions.setRandomQuestionLabel(currentQuestionData.question);
-      preferenceOptions.setRandomQuestionDisabled(false);
-    } else if (preferenceOptions) {
-      preferenceOptions.setRandomQuestionLabel('All questions answered!');
-      preferenceOptions.setRandomQuestionDisabled(true);
-    }
-  }).catch(error => {
-    console.error('Failed to initialize random questions:', error);
-    // Use empty state as fallback (button will be disabled)
-    currentQuestionData = null;
-    if (preferenceOptions) {
-      preferenceOptions.setRandomQuestionLabel('Questions unavailable');
-      preferenceOptions.setRandomQuestionDisabled(true);
-    }
-  });
-
-  // Create Preference Options component
-  preferenceOptions = createPreferenceOptions({
-    randomQuestionLabel: 'Loading questions...',
-    randomQuestionDisabled: true,
-    onMergeClick: onMergeClick,
-    onDeleteClick: onDeleteSelected,
-    buttons: preferenceOptionsButtons.length > 0 ? preferenceOptionsButtons : [
-      {
-        label: 'Add new preference',
-        showModal: false, // Don't show the random question modal
-        onClick: () => {
-          // Empty - handled in onButtonClick
+  // Create Quick Input Bar component (handles random questions internally)
+  preferenceOptions = createQuickInputBar({
+    onQuickAdd: (text, topic, collections) => {
+      // Quick add from input field - save directly
+      if (text && text.trim()) {
+        if (onPreferenceAdd) {
+          // Pass collections from random question (if available)
+          onPreferenceAdd(text, 'default', collections || [], topic);
+          // Note: renderCurrentScreen() in app.js will rebuild the UI
         }
-      }
-    ],
-    onButtonClick: (label) => {
-      // Handle Add new preference separately
-      if (label === 'Add new preference') {
-        // Close the preference options overlay
-        preferenceOptions.hide();
-
-        // Get all existing tags from all cards (predefined + user-created)
-        const allCards = contentPreferences.getDataList().getCards();
-        const userCollections = allCards.flatMap(c => c.getCollections());
-        const predefinedCategories = aiHelper.getPredefinedCategories();
-        const existingTags = [...new Set([...predefinedCategories, ...userCollections])];
-
-        // Open empty Data Editor Modal
-        const modal = createDataEditorModal({
-            title: 'Add Preference',
-            preferenceTitle: 'Preference',
-            preferenceText: '',
-            preferenceHidden: false,
-            preferenceFavorited: false,
-            collections: [],
-            existingTags: existingTags,
-            autoCategorizeEnabled: getAutoCategorizeEnabled ? getAutoCategorizeEnabled() : true,
-            onSave: (data) => {
-              // Only add card if text is not empty
-              if (data.text && data.text.trim()) {
-                // Determine state based on flags
-                let state = 'default';
-                if (data.favorited) {
-                  state = 'favorited';
-                } else if (data.hidden) {
-                  state = 'hidden';
-                }
-
-                // Save to HSP protocol storage
-                console.log('[Home] Calling onPreferenceAdd with topic:', data.topic);
-                if (onPreferenceAdd) {
-                  onPreferenceAdd(data.text, state, data.collections, data.topic);
-                  // Note: renderCurrentScreen() in app.js will rebuild the UI
-                } else {
-                  // Fallback: Add to UI only (not persistent)
-                  const dataList = contentPreferences.getDataList();
-                  const newCard = dataList.addCard(data.text, state, data.collections);
-
-                  // Move card to the top
-                  dataList.element.insertBefore(newCard.element, dataList.element.firstChild);
-
-                  // Update tag counts
-                  contentPreferences.updateTagCounts();
-
-                  // Update calibration
-                  updateCalibrationFromCards();
-                }
-              }
-
-              modal.hide();
-            },
-            onDelete: () => {
-              modal.hide();
-            }
-          });
-          modal.show(screenElement);
       }
     },
-    onToggle: onPreferenceOptionsToggle,
-    onRandomQuestionClick: async () => {
-      // Check if there is a current question
-      if (!currentQuestionData) {
-        return; // Button should be disabled, but double-check
-      }
+    onPlusClick: () => {
+      // Open data editor modal for manual add with full options
+      // Get all existing tags from all cards (predefined + user-created)
+      const allCards = contentPreferences.getDataList().getCards();
+      const userCollections = allCards.flatMap(c => c.getCollections());
+      const predefinedCategories = aiHelper.getPredefinedCategories();
+      const existingTags = [...new Set([...predefinedCategories, ...userCollections])].sort((a, b) => a.localeCompare(b));
 
-      // Create and show Random Question Modal
-      const randomQuestionModal = createRandomQuestionModal({
-        question: currentQuestionData.question,
-        onAnswer: async (answer, question) => {
-          // When user sends an answer, save it as a gem
-          if (answer && answer.trim()) {
-            try {
-              // Save answer and update template
-              await saveAnswer(currentQuestionData, answer);
+      // Open empty Data Editor Modal
+      const modal = createDataEditorModal({
+        title: 'Add Preference',
+        preferenceTitle: 'Preference',
+        preferenceText: '',
+        preferenceHidden: false,
+        preferenceFavorited: false,
+        collections: [],
+        existingTags: existingTags,
+        autoCategorizeEnabled: getAutoCategorizeEnabled ? getAutoCategorizeEnabled() : true,
+        onSave: (data) => {
+          // Only add card if text is not empty
+          if (data.text && data.text.trim()) {
+            // Determine state based on flags
+            let state = 'default';
+            if (data.favorited) {
+              state = 'favorited';
+            } else if (data.hidden) {
+              state = 'hidden';
+            }
 
-              // Trigger re-render to show new gem
-              if (onPreferenceAdd) {
-                // Force a re-render by calling renderCurrentScreen
-                renderCurrentScreen();
-              }
+            // Save to HSP protocol storage
+            console.log('[Home] Calling onPreferenceAdd with topic:', data.topic);
+            if (onPreferenceAdd) {
+              onPreferenceAdd(data.text, state, data.collections, data.topic);
+              // Note: renderCurrentScreen() in app.js will rebuild the UI
+            } else {
+              // Fallback: Add to UI only (not persistent)
+              const dataList = contentPreferences.getDataList();
+              const newCard = dataList.addCard(data.text, state, data.collections);
 
-              // Get next question
-              currentQuestionData = await getRandomQuestion();
+              // Move card to the top
+              dataList.element.insertBefore(newCard.element, dataList.element.firstChild);
 
-              // Check if there are more questions
-              if (currentQuestionData) {
-                // Show next question in modal
-                randomQuestionModal.setQuestion(currentQuestionData.question);
-                // Update button label
-                preferenceOptions.setRandomQuestionLabel(currentQuestionData.question);
-              } else {
-                // All questions answered - close modal and disable button
-                randomQuestionModal.hide();
-                preferenceOptions.setRandomQuestionLabel('All questions answered!');
-                preferenceOptions.setRandomQuestionDisabled(true);
-              }
-            } catch (error) {
-              console.error('Error saving answer:', error);
-              alert('Failed to save answer. Please try again.');
+              // Update tag counts
+              contentPreferences.updateTagCounts();
+
+              // Update calibration
+              updateCalibrationFromCards();
             }
           }
+
+          modal.hide();
         },
-        onClose: () => {
-          // Modal closed - nothing to batch, answers are saved immediately
-          console.log('Random question modal closed');
+        onDelete: () => {
+          modal.hide();
         }
       });
-
-      // Append modal to screen
-      screenElement.appendChild(randomQuestionModal.element);
-      randomQuestionModal.show();
-    }
+      modal.show(screenElement);
+    },
+    onRandomQuestionClick: () => {
+      // Open full random question modal (for users who prefer that flow)
+      // This would be triggered by a separate button if we want to keep it
+      // For now, question tags in quick-input-bar handle this inline
+    },
+    onMergeClick: onMergeClick,
+    onDeleteClick: onDeleteSelected,
+    getAutoCategorizeEnabled: getAutoCategorizeEnabled
   });
 
   // Assemble screen
@@ -670,7 +598,10 @@ function createHome(options = {}) {
   screenElement.appendChild(contentWrapper);
   screenElement.appendChild(preferenceOptions.element);
 
-  // Initialize preference options state based on initial data
+  // Initialize quick input bar (loads questions asynchronously)
+  preferenceOptions.initialize();
+
+  // Initialize quick input bar state based on initial data
   updatePreferenceOptionsState();
 
   // Public API

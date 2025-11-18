@@ -254,6 +254,20 @@ class DataList {
   }
 
   /**
+   * Filter cards that have no collections assigned
+   */
+  filterByUnassigned() {
+    this.cards.forEach(card => {
+      const collections = card.getCollections();
+      const isUnassigned = !collections || collections.length === 0;
+      card.element.style.display = isUnassigned ? '' : 'none';
+    });
+
+    // Update empty state visibility
+    this.updateEmptyState();
+  }
+
+  /**
    * Filter cards by multiple collections (OR logic)
    * Only filters among currently visible cards (preserves other filters like search)
    * @param {Array<string>} collectionNames - Array of collection names to filter by
@@ -265,16 +279,29 @@ class DataList {
     }
 
     const lowerCaseNames = collectionNames.map(name => name.toLowerCase());
+    const includesUnassigned = lowerCaseNames.includes('unassigned');
 
     this.cards.forEach(card => {
       // Only process cards that are currently visible (not already hidden by search)
       if (card.element.style.display !== 'none') {
-        const collections = card.collections || [];
-        const hasAnyCollection = collections.some(c =>
-          lowerCaseNames.includes(c.toLowerCase())
-        );
-        // Hide card if it doesn't have any of the selected collections
-        if (!hasAnyCollection) {
+        const collections = card.getCollections() || [];
+        const isUnassigned = collections.length === 0;
+
+        // Check if card matches any selected collection or unassigned
+        let shouldShow = false;
+
+        if (isUnassigned && includesUnassigned) {
+          // Card has no collections and "Unassigned" is selected
+          shouldShow = true;
+        } else if (!isUnassigned) {
+          // Card has collections - check if any match
+          shouldShow = collections.some(c =>
+            lowerCaseNames.includes(c.toLowerCase())
+          );
+        }
+
+        // Hide card if it doesn't match any selected filter
+        if (!shouldShow) {
           card.element.style.display = 'none';
         }
       }
