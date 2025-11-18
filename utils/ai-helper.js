@@ -361,10 +361,16 @@ Requirements:
 2. The question should be conversational and natural
 3. Keep it under 100 characters
 4. Don't use complex or formal language
-5. Examples:
-   - Preference: "I like pizza" → Question: "What's your favorite food?"
-   - Preference: "I prefer dark mode" → Question: "Do you prefer light or dark mode?"
-   - Preference: "I wake up at 6am" → Question: "What time do you usually wake up?"
+5. IMPORTANT: Use open-ended phrasing that matches the preference:
+   - If preference says "I like X", ask "What X do you like?" NOT "What's your favorite X?"
+   - If preference says "I prefer X", ask "What do you prefer?" or "Do you prefer X or Y?"
+   - If preference mentions a specific thing, use plural in question when appropriate
+6. Examples:
+   - Preference: "I like pizza" → Question: "What foods do you like?"
+   - Preference: "I like popcorn" → Question: "What snacks do you like?"
+   - Preference: "I prefer dark mode" → Question: "What theme do you prefer?"
+   - Preference: "I wake up at 6am" → Question: "What time do you wake up?"
+   - Preference: "I love running" → Question: "What activities do you enjoy?"
 
 Respond with ONLY the question, no quotes, no explanation.`;
 
