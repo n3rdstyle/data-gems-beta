@@ -2395,8 +2395,10 @@ if (typeof module !== 'undefined' && module.exports) {
 console.log('[Context Selector] Initializing optimizePromptWithContext...');
 try {
   window.optimizePromptWithContext = optimizePromptWithContext;
+  window.analyzeQueryIntent = analyzeQueryIntent; // Export for category detection
   window.dataGemsShared = window.dataGemsShared || {};
   window.dataGemsShared.optimizePromptWithContext = optimizePromptWithContext;
+  window.dataGemsShared.analyzeQueryIntent = analyzeQueryIntent;
   console.log('[Context Selector] ✓ optimizePromptWithContext initialized successfully');
 
   // Create bridge for ISOLATED world scripts to call MAIN world functions

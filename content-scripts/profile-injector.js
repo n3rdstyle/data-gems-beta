@@ -766,11 +766,17 @@ function formatProfileAsJSON(hspProfile) {
     }
 
     filteredProfile.content.preferences = {
-      items: hspProfile.content.preferences.items.filter(pref => {
-        if (pref.state === 'hidden') return false;
-        if (!pref.value || pref.value.trim() === '') return false;
-        return true;
-      })
+      items: hspProfile.content.preferences.items
+        .filter(pref => {
+          if (pref.state === 'hidden') return false;
+          if (!pref.value || pref.value.trim() === '') return false;
+          return true;
+        })
+        .map(pref => {
+          // Remove internal fields that LLM doesn't need
+          const { vector, keywords, enrichmentTimestamp, enrichmentVersion, ...cleanPref } = pref;
+          return cleanPref;
+        })
     };
   }
 

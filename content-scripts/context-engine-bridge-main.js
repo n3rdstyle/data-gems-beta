@@ -118,6 +118,30 @@ window.ContextEngineAPI = {
   }
 };
 
+// Category Detection Handler for Profile Injection
+document.addEventListener('dataGems:detectCategory', async (event) => {
+  const { promptText, availableCategories, requestId } = event.detail;
+
+  try {
+    // Import analyzeQueryIntent from context-selector
+    // Since we're in MAIN world, we can access it directly if it's exported
+    if (typeof analyzeQueryIntent !== 'function') {
+      throw new Error('analyzeQueryIntent function not available');
+    }
+
+    const result = await analyzeQueryIntent(promptText, availableCategories);
+
+    document.dispatchEvent(new CustomEvent('dataGems:detectCategory:result', {
+      detail: { result, requestId }
+    }));
+  } catch (error) {
+    console.error('[ContextEngine Bridge] Category detection error:', error);
+    document.dispatchEvent(new CustomEvent('dataGems:detectCategory:error', {
+      detail: { error: error.message, requestId }
+    }));
+  }
+});
+
 // Auto-initialize with polling
 (async function() {
   try {
