@@ -1541,11 +1541,41 @@ async function renderCurrentScreen() {
             const usesRxDB = true;
 
             if (usesRxDB) {
+              // AI Auto-Categorization (if enabled and no collections provided)
+              let finalCollections = collections || [];
+              const autoCategorizeEnabled = AppState?.settings?.categorization?.auto_categorize ?? true;
+
+              if (autoCategorizeEnabled && finalCollections.length === 0 && typeof aiHelper !== 'undefined') {
+                try {
+                  // Get existing tags for AI context
+                  const existingTags = [...new Set([
+                    ...(AppState.collections || []),
+                    ...AppState.content.preferences.items.flatMap(p => p.collections || [])
+                  ])].sort((a, b) => a.localeCompare(b));
+
+                  // Use topic as primary context if available, otherwise use value
+                  const contextText = topic || value;
+
+                  console.log('[App] Running AI categorization for:', contextText);
+
+                  // Get AI suggestions
+                  const suggestions = await aiHelper.suggestCategories(contextText, existingTags);
+
+                  if (suggestions.length > 0) {
+                    console.log('[App] AI suggested categories:', suggestions);
+                    finalCollections = suggestions;
+                  }
+                } catch (error) {
+                  console.error('[App] AI categorization error (non-critical):', error);
+                  // Continue with empty collections if AI fails
+                }
+              }
+
               // Create optimistic gem object immediately
               const optimisticGem = {
                 id: generateId('pref'),
                 value,
-                collections: collections || [],
+                collections: finalCollections,
                 subCollections: [],
                 timestamp: Date.now(),
                 state: state || 'default',
@@ -1575,7 +1605,7 @@ async function renderCurrentScreen() {
                   id: optimisticGem.id,
                   value,
                   state,
-                  collections,
+                  collections: finalCollections,
                   topic
                 }, false); // autoEnrich = false for immediate save
 
@@ -1616,7 +1646,7 @@ async function renderCurrentScreen() {
                 AppState,
                 value,
                 state,
-                collections,
+                finalCollections,
                 [],  // subCollections
                 null,  // sourceUrl
                 null,  // mergedFrom
