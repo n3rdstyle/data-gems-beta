@@ -18,6 +18,7 @@ try {
 
 // Offscreen Document Management (for WASM embedding generation)
 let offscreenDocumentCreated = false;
+let offscreenDocumentPromise = null; // Prevent race conditions
 
 // Import Status (global state for background import)
 let importStatus = {
@@ -35,34 +36,54 @@ let importStatus = {
  * Offscreen documents support WASM unlike Service Workers
  */
 async function ensureOffscreenDocument() {
+  // If already created, return immediately
   if (offscreenDocumentCreated) {
     return;
   }
 
-  try {
-    // Check if offscreen document already exists
-    const existingContexts = await chrome.runtime.getContexts({
-      contextTypes: ['OFFSCREEN_DOCUMENT']
-    });
-
-    if (existingContexts.length > 0) {
-      offscreenDocumentCreated = true;
-      return;
-    }
-
-    // Create offscreen document
-    await chrome.offscreen.createDocument({
-      url: 'offscreen.html',
-      reasons: ['WORKERS'], // Using for ML model inference
-      justification: 'Generate text embeddings using Transformers.js for semantic search'
-    });
-
-    offscreenDocumentCreated = true;
-    console.log('[Background] ✓ Offscreen document created');
-  } catch (error) {
-    console.error('[Background] ✗ Failed to create offscreen document:', error);
-    throw error;
+  // If creation is in progress, wait for it
+  if (offscreenDocumentPromise) {
+    return offscreenDocumentPromise;
   }
+
+  // Start creation and cache the promise
+  offscreenDocumentPromise = (async () => {
+    try {
+      // Check if offscreen document already exists
+      const existingContexts = await chrome.runtime.getContexts({
+        contextTypes: ['OFFSCREEN_DOCUMENT']
+      });
+
+      if (existingContexts.length > 0) {
+        offscreenDocumentCreated = true;
+        console.log('[Background] ✓ Offscreen document already exists');
+        return;
+      }
+
+      // Create offscreen document
+      await chrome.offscreen.createDocument({
+        url: 'offscreen.html',
+        reasons: ['WORKERS'], // Using for ML model inference
+        justification: 'Generate text embeddings using Transformers.js for semantic search'
+      });
+
+      offscreenDocumentCreated = true;
+      console.log('[Background] ✓ Offscreen document created');
+    } catch (error) {
+      // Only log if it's not the "already exists" error
+      if (!error.message.includes('Only a single offscreen document')) {
+        console.error('[Background] ✗ Failed to create offscreen document:', error);
+      } else {
+        // Document exists, mark as created
+        offscreenDocumentCreated = true;
+        console.log('[Background] ✓ Offscreen document already exists (caught in creation)');
+      }
+    } finally {
+      offscreenDocumentPromise = null;
+    }
+  })();
+
+  return offscreenDocumentPromise;
 }
 
 /**
@@ -628,7 +649,7 @@ async function handleImportData(importedData) {
           isVirtual: false
         };
 
-        await window.ContextEngineAPI.addGem(gem, true); // true = generate embeddings
+        await self.ContextEngineAPI.addGem(gem, true); // true = generate embeddings
         importStatus.importedCount++;
 
         if (importStatus.importedCount % BATCH_SIZE === 0) {
@@ -655,7 +676,7 @@ async function handleImportData(importedData) {
             isVirtual: false
           };
 
-          await window.ContextEngineAPI.addGem(childGem, true);
+          await self.ContextEngineAPI.addGem(childGem, true);
           importStatus.importedCount++;
 
           if (importStatus.importedCount % BATCH_SIZE === 0) {
@@ -690,7 +711,7 @@ async function handleImportData(importedData) {
     await ensureOffscreenDocument();
 
     // Step 2: Now manually initialize Context Engine (safe to generate embeddings)
-    await window.ContextEngineAPI.initialize();
+    await self.ContextEngineAPI.initialize();
     console.log('[Background] ✓ Context Engine v2 fully initialized and ready!');
   } catch (error) {
     console.error('[Background] ✗ Context Engine initialization failed:', error);
