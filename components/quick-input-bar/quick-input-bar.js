@@ -88,21 +88,8 @@ function createQuickInputBar(options = {}) {
   sendButton.element.disabled = true;
   sendButton.element.classList.add('disabled');
 
-  const plusButton = createTertiaryButton({
-    icon: 'plus',
-    ariaLabel: 'More options',
-    size: 'default',
-    onClick: () => {
-      if (onPlusClick) {
-        onPlusClick();
-      }
-    }
-  });
-  plusButton.element.classList.add('quick-input-bar__plus');
-
   inputRow.appendChild(inputField.element);
   inputRow.appendChild(sendButton.element);
-  inputRow.appendChild(plusButton.element);
 
   normalContent.appendChild(tagsRow);
   normalContent.appendChild(inputRow);

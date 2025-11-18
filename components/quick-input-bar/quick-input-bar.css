@@ -124,8 +124,7 @@
   min-width: 0;
 }
 
-.quick-input-bar__send,
-.quick-input-bar__plus {
+.quick-input-bar__send {
   flex-shrink: 0;
 }
 
