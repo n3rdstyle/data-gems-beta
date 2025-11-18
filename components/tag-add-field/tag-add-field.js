@@ -35,18 +35,79 @@ function createTagAddField(options = {}) {
   // Declare tagListInstance reference that will be set later
   let tagListInstance = null;
 
+  // Track previously selected tags to detect removals
+  let previouslyTypedTags = [];
+
   // Input event handler
   input.addEventListener('input', () => {
     // Check if typed value matches an existing tag
     if (tagListInstance) {
       const typedValue = input.value.trim();
 
-      // Parse comma-separated tags to get the last one being typed
-      const tags = typedValue.split(',').map(t => t.trim()).filter(t => t);
-      const lastTypedTag = tags.length > 0 ? tags[tags.length - 1] : '';
+      // Parse comma-separated tags to get all currently typed tags
+      const currentTypedTags = typedValue.split(',').map(t => t.trim()).filter(t => t);
+      const lastTypedTag = currentTypedTags.length > 0 ? currentTypedTags[currentTypedTags.length - 1] : '';
 
-      console.log('[TagAddField] Typed:', lastTypedTag, 'Available tags:', tagListInstance.getTags().map(t => t.getLabel()));
+      console.log('[TagAddField] Current typed tags:', currentTypedTags);
+      console.log('[TagAddField] Previously typed tags:', previouslyTypedTags);
 
+      // Check if any previously typed tag was removed
+      const removedTags = previouslyTypedTags.filter(prevTag =>
+        !currentTypedTags.some(currTag => currTag.toLowerCase() === prevTag.toLowerCase())
+      );
+
+      if (removedTags.length > 0) {
+        console.log('[TagAddField] Removed tags:', removedTags);
+
+        // For each removed tag, find it in the tag list and deactivate it
+        removedTags.forEach(removedTag => {
+          const allTags = tagListInstance.getTags();
+          const tagToDeactivate = allTags.find(tag =>
+            tag.getLabel().toLowerCase() === removedTag.toLowerCase() &&
+            tag.getState() === 'active'
+          );
+
+          if (tagToDeactivate) {
+            const tagLabel = tagToDeactivate.getLabel();
+            console.log('[TagAddField] Deactivating tag:', tagLabel);
+
+            // Remove from current position
+            tagListInstance.removeTag(tagToDeactivate);
+
+            // Find correct alphabetical position
+            const remainingTags = tagListInstance.getTags();
+            const sortedPosition = remainingTags.findIndex(tag =>
+              tag.getLabel().toLowerCase() > tagLabel.toLowerCase()
+            );
+
+            const insertIndex = sortedPosition === -1 ? remainingTags.length : sortedPosition;
+
+            // Add back in alphabetical position with inactive state
+            tagListInstance.addTagAtIndex({
+              type: 'collection',
+              label: tagLabel,
+              count: 0,
+              state: 'inactive',
+              size: 'small'
+            }, insertIndex);
+
+            // Remove from selectedTags
+            selectedTags = selectedTags.filter(t => t.toLowerCase() !== tagLabel.toLowerCase());
+
+            console.log('[TagAddField] Tag deactivated and moved to alphabetical position:', tagLabel, 'at index', insertIndex);
+          }
+        });
+
+        // Update previously typed tags
+        previouslyTypedTags = [...currentTypedTags];
+
+        if (onInput) {
+          onInput(input.value);
+        }
+        return;
+      }
+
+      // Check if a new tag matches an existing one
       if (lastTypedTag) {
         // Find matching tag (case-insensitive)
         const allTags = tagListInstance.getTags();
@@ -56,7 +117,7 @@ function createTagAddField(options = {}) {
 
         console.log('[TagAddField] Matching tag found:', matchingTag ? matchingTag.getLabel() : 'none');
 
-        if (matchingTag) {
+        if (matchingTag && matchingTag.getState() !== 'active') {
           // Tag exists in the list - activate it and move to first position
           const tagLabel = matchingTag.getLabel();
 
@@ -80,7 +141,7 @@ function createTagAddField(options = {}) {
           console.log('[TagAddField] Tag activated and moved to first position:', tagLabel);
 
           // Update input field to show selected tags + any other manually typed tags
-          const otherTypedTags = tags.slice(0, -1); // All tags except the last one (which matched)
+          const otherTypedTags = currentTypedTags.slice(0, -1); // All tags except the last one (which matched)
           const manualTags = otherTypedTags.filter(t => !existingTags.includes(t));
 
           // Combine manual tags with selected tags
@@ -89,6 +150,9 @@ function createTagAddField(options = {}) {
           // Update input with comma-separated list
           input.value = allTagsList.join(', ');
 
+          // Update previously typed tags
+          previouslyTypedTags = allTagsList;
+
           // Trigger onInput callback with updated value
           if (onInput) {
             onInput(input.value);
@@ -96,6 +160,9 @@ function createTagAddField(options = {}) {
           return; // Skip the onInput call below
         }
       }
+
+      // Update previously typed tags
+      previouslyTypedTags = [...currentTypedTags];
     }
 
     if (onInput) {
@@ -196,6 +263,7 @@ function createTagAddField(options = {}) {
     clear() {
       input.value = '';
       selectedTags = [];
+      previouslyTypedTags = [];
 
       // Deactivate all tags
       if (tagListInstance) {
