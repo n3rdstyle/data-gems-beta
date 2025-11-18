@@ -206,23 +206,17 @@ function handleCardSelection(selected, card) {
 function updateMergeFAB() {
   const count = SelectedCards.size;
 
-  // Use preference options if available, otherwise fall back to FAB
+  // Use quick input bar if available
   if (currentPreferenceOptions) {
-    // Show/hide trash button based on selection (1+)
     if (count >= 1) {
-      currentPreferenceOptions.showTrashButton();
+      // Switch to selection state (shows merge + trash buttons)
+      currentPreferenceOptions.setState('selection');
+      currentPreferenceOptions.setMergeCount(count);
+      // Enable merge only if 2+ cards selected
+      currentPreferenceOptions.setMergeDisabled(count < 2);
     } else {
-      currentPreferenceOptions.hideTrashButton();
-    }
-
-    // Show/hide merge button based on selection (1+)
-    // Merge button appears at 1+ but is disabled until 2+
-    if (count >= 1) {
-      currentPreferenceOptions.showMergeButton(count);
-      // Enable only if 2+ cards selected
-      currentPreferenceOptions.setMergeButtonDisabled(count < 2);
-    } else {
-      currentPreferenceOptions.hideMergeButton();
+      // Switch back to normal state (shows input field + plus button)
+      currentPreferenceOptions.setState('normal');
     }
   } else {
     // Fallback to old FAB (for backwards compatibility)
@@ -368,17 +362,20 @@ async function handleDeleteSelected() {
   console.log(`[Delete] Deleting ${count} selected cards...`);
 
   try {
-    // Get selected card IDs
-    const items = AppState.content.preferences.items;
-    const selectedItems = items.filter(item => SelectedCards.has(item.id));
+    // Get selected card IDs as array
+    const selectedIds = Array.from(SelectedCards);
 
-    // Delete each card
-    selectedItems.forEach(item => {
-      AppState = deletePreference(AppState, item.id);
-    });
+    // Delete each card from RxDB
+    for (const id of selectedIds) {
+      await deletePreferenceFromRxDB(id);
+      console.log('[Delete] Deleted from RxDB:', id);
+    }
 
-    // Save data
-    await saveData();
+    // Update AppState cache - remove all deleted items at once
+    AppState.content.preferences.items = AppState.content.preferences.items.filter(
+      p => !selectedIds.includes(p.id)
+    );
+    AppState.metadata.total_preferences = AppState.content.preferences.items.length;
 
     // Clear selection
     clearSelection();
