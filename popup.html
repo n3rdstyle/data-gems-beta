@@ -5,64 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Data Gems</title>
 
-  <!-- Design System Foundations -->
-  <link rel="stylesheet" href="design-system/colors/colors.css">
-  <link rel="stylesheet" href="design-system/typography/typography.css">
-  <link rel="stylesheet" href="design-system/spacing/spacing.css">
-  <link rel="stylesheet" href="design-system/border-radius/border-radius.css">
-  <link rel="stylesheet" href="design-system/shadows/shadows.css">
+  <!-- Preconnect for faster Google Fonts loading -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-  <!-- Elements -->
-  <link rel="stylesheet" href="elements/tooltip/tooltip.css">
-  <link rel="stylesheet" href="components/overlay/overlay.css">
-  <link rel="stylesheet" href="components/input-field/input-field.css">
-  <link rel="stylesheet" href="components/divider/divider.css">
-  <link rel="stylesheet" href="components/toggle/toggle.css">
-  <link rel="stylesheet" href="components/dropdown/dropdown.css">
+  <!-- Bundled CSS (49 files combined) - Run 'node build-css.cjs' to rebuild -->
+  <link rel="stylesheet" href="popup.bundle.css">
 
-  <!-- Components -->
-  <link rel="stylesheet" href="components/data-card/data-card.css">
-  <link rel="stylesheet" href="components/data-list/data-list.css">
-  <link rel="stylesheet" href="components/tag/tag.css">
-  <link rel="stylesheet" href="components/tag-list/tag-list.css">
-  <link rel="stylesheet" href="components/search/search.css">
-  <link rel="stylesheet" href="components/button-primary/button-primary.css">
-  <link rel="stylesheet" href="components/button-secondary/button-secondary.css">
-  <link rel="stylesheet" href="components/button-tertiary/button-tertiary.css">
-  <link rel="stylesheet" href="components/headline/headline.css">
-  <link rel="stylesheet" href="components/data-search/data-search.css">
-  <link rel="stylesheet" href="components/content-preferences/content-preferences.css">
-  <link rel="stylesheet" href="components/top-menu/top-menu.css">
-  <link rel="stylesheet" href="components/profile-teaser/profile-teaser.css">
-  <link rel="stylesheet" href="components/header/header.css">
-  <link rel="stylesheet" href="components/calibration/calibration.css">
-  <link rel="stylesheet" href="components/preference-options/preference-options.css">
-  <link rel="stylesheet" href="components/text-edit-field/text-edit-field.css">
-  <link rel="stylesheet" href="components/collection-edit-field/collection-edit-field.css">
-  <link rel="stylesheet" href="components/data-editor-modal/data-editor-modal.css">
-  <link rel="stylesheet" href="components/tag-add-field/tag-add-field.css">
-  <link rel="stylesheet" href="components/tag-add-modal/tag-add-modal.css">
-  <link rel="stylesheet" href="components/collection-filter-modal/collection-filter-modal.css">
-  <link rel="stylesheet" href="components/search-modal/search-modal.css">
-  <link rel="stylesheet" href="components/random-question-modal/random-question-modal.css">
-  <link rel="stylesheet" href="components/quick-input-bar/quick-input-bar.css">
-  <link rel="stylesheet" href="components/collapsible-section/collapsible-section.css">
-  <link rel="stylesheet" href="components/action-button/action-button.css">
-  <link rel="stylesheet" href="components/messages-modal/messages-modal.css">
-  <link rel="stylesheet" href="components/backup-reminder-modal/backup-reminder-modal.css">
-  <link rel="stylesheet" href="components/beta-checkin-modal/beta-checkin-modal.css">
-  <link rel="stylesheet" href="components/duplicate-consolidation-modal/duplicate-consolidation-modal.css">
-  <link rel="stylesheet" href="components/merge-fab/merge-fab.css">
-  <link rel="stylesheet" href="components/app-footer/app-footer.css">
-  <link rel="stylesheet" href="components/import-progress-bar/import-progress-bar.css">
-
-  <!-- Screens -->
-  <link rel="stylesheet" href="screens/home/home.css">
-  <link rel="stylesheet" href="screens/profile/profile.css">
-  <link rel="stylesheet" href="screens/settings/settings.css">
-  <link rel="stylesheet" href="screens/third-party-data/third-party-data.css">
-
-  <!-- Google Fonts -->
+  <!-- Google Fonts with font-display: swap for instant text rendering -->
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 
   <style>
@@ -86,10 +36,42 @@
       height: 100%;
       position: relative;
     }
+
+    /* Loading state styles */
+    .app-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      background: #0A0E27;
+    }
+
+    .app-loading-spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid rgba(138, 133, 255, 0.2);
+      border-top-color: #8A85FF;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Hide loading state when app is ready */
+    #app:not(:empty) + .app-loading {
+      display: none;
+    }
   </style>
 </head>
 <body>
   <div id="app"></div>
+
+  <!-- Loading state (shown while scripts load) -->
+  <div class="app-loading">
+    <div class="app-loading-spinner"></div>
+  </div>
 
   <!-- Icon System -->
   <script src="design-system/icons/icons.js"></script>
