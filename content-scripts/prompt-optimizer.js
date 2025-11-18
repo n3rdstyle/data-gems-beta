@@ -248,9 +248,18 @@ function showOptimizeButton() {
     return;
   }
 
-  // Check if there's text in the prompt
-  const promptText = getPromptValue().trim();
-  if (!promptText) {
+  // Create button
+  optimizeButton = createOptimizeButton();
+
+  // Update button state based on Context Engine readiness and prompt text
+  updateOptimizeButtonState();
+
+  // Check if inject button's wrapper already exists
+  const existingInjectButton = document.getElementById('data-gems-inject-button');
+  if (existingInjectButton && existingInjectButton._wrapper) {
+    // Add optimize button to the left of inject button in the same wrapper
+    existingInjectButton._wrapper.insertBefore(optimizeButton, existingInjectButton);
+    optimizeButton._wrapper = existingInjectButton._wrapper;
     return;
   }
 
@@ -261,12 +270,7 @@ function showOptimizeButton() {
   wrapper.style.alignItems = 'center';
   wrapper.style.marginBottom = '8px';
   wrapper.style.width = '100%';
-
-  // Create button
-  optimizeButton = createOptimizeButton();
-
-  // Update button state based on Context Engine readiness
-  updateOptimizeButtonState();
+  wrapper.style.gap = '8px';
 
   // Add button to wrapper
   wrapper.appendChild(optimizeButton);
@@ -307,8 +311,18 @@ function showOptimizeButton() {
  */
 function hideOptimizeButton() {
   if (optimizeButton) {
+    // Check if wrapper is shared with other buttons
     if (optimizeButton._wrapper) {
-      optimizeButton._wrapper.remove();
+      const wrapper = optimizeButton._wrapper;
+      const buttonsInWrapper = wrapper.querySelectorAll('button');
+
+      // Only remove wrapper if this is the last button
+      if (buttonsInWrapper.length <= 1) {
+        wrapper.remove();
+      } else {
+        // Just remove this button, keep the wrapper for other buttons
+        optimizeButton.remove();
+      }
     } else {
       optimizeButton.remove();
     }
@@ -332,16 +346,23 @@ function setOptimizeButtonLoading(loading) {
 }
 
 /**
- * Update button state based on Context Engine readiness
+ * Update button state based on Context Engine readiness and prompt text
  */
 function updateOptimizeButtonState() {
   if (!optimizeButton) return;
+
+  const promptText = getPromptValue().trim();
+  const hasText = promptText.length > 0;
 
   if (!contextEngineReady) {
     optimizeButton.textContent = 'Initializing...';
     optimizeButton.disabled = true;
     optimizeButton.classList.add('initializing');
     optimizeButton.classList.remove('loading');
+  } else if (!hasText) {
+    optimizeButton.textContent = 'Optimize with Context';
+    optimizeButton.disabled = true;
+    optimizeButton.classList.remove('initializing', 'loading');
   } else {
     optimizeButton.textContent = 'Optimize with Context';
     optimizeButton.disabled = false;
@@ -585,10 +606,11 @@ function updateButtonVisibility() {
     return;
   }
 
-  const promptText = getPromptValue().trim();
-
-  if (promptText && hspProfile) {
+  // Always show the button if we have a profile
+  if (hspProfile) {
     showOptimizeButton();
+    // Update the enabled/disabled state based on prompt text
+    updateOptimizeButtonState();
   } else {
     hideOptimizeButton();
   }

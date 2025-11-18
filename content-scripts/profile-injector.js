@@ -214,7 +214,7 @@ function createInjectionButton() {
   const button = document.createElement('button');
   button.id = 'data-gems-inject-button';
   button.className = 'data-gems-inject-button';
-  button.textContent = 'Inject my profile';
+  button.textContent = 'Inject my Profile';
   button.setAttribute('aria-label', 'Inject Data Gems profile');
   button.setAttribute('type', 'button');
 
@@ -234,17 +234,26 @@ function showInjectionButton() {
 
   if (injectionButton || !promptElement) return;
 
-  // Create wrapper div for center alignment
+  // Create button
+  injectionButton = createInjectionButton();
+
+  // Check if optimize button's wrapper already exists
+  const existingOptimizeButton = document.getElementById('data-gems-optimize-button');
+  if (existingOptimizeButton && existingOptimizeButton._wrapper) {
+    // Add inject button to the right of optimize button in the same wrapper
+    existingOptimizeButton._wrapper.appendChild(injectionButton);
+    injectionButton._wrapper = existingOptimizeButton._wrapper;
+    return;
+  }
+
+  // Create wrapper div for right alignment (positioned next to optimize button)
   const wrapper = document.createElement('div');
   wrapper.style.display = 'flex';
-  wrapper.style.justifyContent = 'center';
+  wrapper.style.justifyContent = 'flex-end';
   wrapper.style.alignItems = 'center';
   wrapper.style.marginBottom = '16px';
   wrapper.style.width = '100%';
-  wrapper.style.textAlign = 'center';
-
-  // Create button
-  injectionButton = createInjectionButton();
+  wrapper.style.gap = '8px';
 
   // Add button to wrapper
   wrapper.appendChild(injectionButton);
@@ -296,9 +305,18 @@ function showInjectionButton() {
  */
 function hideInjectionButton() {
   if (injectionButton) {
-    // Remove wrapper if it exists
+    // Check if wrapper is shared with other buttons
     if (injectionButton._wrapper) {
-      injectionButton._wrapper.remove();
+      const wrapper = injectionButton._wrapper;
+      const buttonsInWrapper = wrapper.querySelectorAll('button');
+
+      // Only remove wrapper if this is the last button
+      if (buttonsInWrapper.length <= 1) {
+        wrapper.remove();
+      } else {
+        // Just remove this button, keep the wrapper for other buttons
+        injectionButton.remove();
+      }
     } else {
       injectionButton.remove();
     }
