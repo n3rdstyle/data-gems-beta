@@ -34,6 +34,63 @@ function createTagAddField(options = {}) {
 
   // Input event handler
   input.addEventListener('input', () => {
+    // Check if typed value matches an existing tag
+    if (tagListInstance) {
+      const typedValue = input.value.trim();
+
+      // Parse comma-separated tags to get the last one being typed
+      const tags = typedValue.split(',').map(t => t.trim()).filter(t => t);
+      const lastTypedTag = tags.length > 0 ? tags[tags.length - 1] : '';
+
+      if (lastTypedTag) {
+        // Find matching tag (case-insensitive)
+        const allTags = tagListInstance.getTags();
+        const matchingTag = allTags.find(tag =>
+          tag.getLabel().toLowerCase() === lastTypedTag.toLowerCase()
+        );
+
+        if (matchingTag) {
+          // Tag exists in the list - activate it and move to first position
+          const tagLabel = matchingTag.getLabel();
+          const tagConfig = {
+            type: matchingTag.getType(),
+            label: tagLabel,
+            count: matchingTag.getCount(),
+            state: 'active',
+            size: matchingTag.getSize(),
+            variant: matchingTag.getVariant()
+          };
+
+          // Remove the tag from its current position
+          tagListInstance.removeTag(matchingTag);
+
+          // Add it at the first position with active state
+          tagListInstance.addTagAtIndex(tagConfig, 0);
+
+          // Update selectedTags
+          if (!selectedTags.includes(tagLabel)) {
+            selectedTags.push(tagLabel);
+          }
+
+          // Update input field to show selected tags + any other manually typed tags
+          const otherTypedTags = tags.slice(0, -1); // All tags except the last one (which matched)
+          const manualTags = otherTypedTags.filter(t => !existingTags.includes(t));
+
+          // Combine manual tags with selected tags
+          const allTagsList = [...manualTags, ...selectedTags];
+
+          // Update input with comma-separated list
+          input.value = allTagsList.join(', ');
+
+          // Trigger onInput callback with updated value
+          if (onInput) {
+            onInput(input.value);
+          }
+          return; // Skip the onInput call below
+        }
+      }
+    }
+
     if (onInput) {
       onInput(input.value);
     }
