@@ -325,17 +325,345 @@ function hideInjectionButton() {
 }
 
 /**
- * Handle profile injection
+ * Detect category for current prompt using Context Engine
  */
-async function handleInjection() {
+async function detectCategoryForPrompt() {
+  const promptText = getPromptValue().trim();
+
+  if (!promptText || !window.ContextEngineAPI?.isReady) {
+    return null;
+  }
+
+  try {
+    // Get available categories from profile collections
+    const availableCategories = [...new Set(
+      hspProfile.content?.preferences?.items
+        ?.flatMap(pref => pref.collections || [])
+        .filter(Boolean) || []
+    )];
+
+    if (availableCategories.length === 0) {
+      return null;
+    }
+
+    // Use Context Engine's analyzeQueryIntent (from context-selector.js)
+    // This requires us to import or access the function from the MAIN world
+    const result = await new Promise((resolve, reject) => {
+      const requestId = `cat_${Date.now()}_${Math.random()}`;
+
+      const resultHandler = (event) => {
+        if (event.detail.requestId === requestId) {
+          document.removeEventListener('dataGems:detectCategory:result', resultHandler);
+          document.removeEventListener('dataGems:detectCategory:error', errorHandler);
+          resolve(event.detail.result);
+        }
+      };
+
+      const errorHandler = (event) => {
+        if (event.detail.requestId === requestId) {
+          document.removeEventListener('dataGems:detectCategory:result', resultHandler);
+          document.removeEventListener('dataGems:detectCategory:error', errorHandler);
+          reject(new Error(event.detail.error));
+        }
+      };
+
+      document.addEventListener('dataGems:detectCategory:result', resultHandler);
+      document.addEventListener('dataGems:detectCategory:error', errorHandler);
+
+      // Send request to MAIN world
+      document.dispatchEvent(new CustomEvent('dataGems:detectCategory', {
+        detail: { promptText, availableCategories, requestId }
+      }));
+
+      // Timeout after 10 seconds
+      setTimeout(() => {
+        document.removeEventListener('dataGems:detectCategory:result', resultHandler);
+        document.removeEventListener('dataGems:detectCategory:error', errorHandler);
+        reject(new Error('Category detection timeout'));
+      }, 10000);
+    });
+
+    return result?.domain || null;
+  } catch (error) {
+    console.error('[Data Gems] Category detection error:', error);
+    return null;
+  }
+}
+
+/**
+ * Show category selection dropdown
+ */
+function showCategoryDropdown(detectedCategory) {
+  // Get all available categories from profile
+  const allCategories = [...new Set(
+    hspProfile.content?.preferences?.items
+      ?.flatMap(pref => pref.collections || [])
+      .filter(Boolean) || []
+  )];
+
+  if (allCategories.length === 0) {
+    // No categories available, inject full profile
+    performInjection(null);
+    return;
+  }
+
+  // Create dropdown
+  const dropdown = document.createElement('div');
+  dropdown.className = 'profile-injection-dropdown';
+  dropdown.id = 'data-gems-injection-dropdown';
+
+  // Detected category section (if any)
+  if (detectedCategory && allCategories.includes(detectedCategory)) {
+    const detectedSection = document.createElement('div');
+    detectedSection.className = 'dropdown-section';
+
+    const detectedItem = document.createElement('div');
+    detectedItem.className = 'dropdown-item dropdown-item--detected';
+    detectedItem.dataset.category = detectedCategory;
+    detectedItem.innerHTML = `
+      <span class="checkmark">✓</span>
+      <span class="label">${detectedCategory}</span>
+      <span class="info-icon" data-tooltip="AI detected this category based on your prompt">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+        </svg>
+      </span>
+    `;
+    detectedItem.addEventListener('click', () => handleCategorySelection(detectedCategory));
+
+    detectedSection.appendChild(detectedItem);
+    dropdown.appendChild(detectedSection);
+
+    // Divider
+    const divider1 = document.createElement('div');
+    divider1.className = 'dropdown-divider';
+    dropdown.appendChild(divider1);
+  }
+
+  // Other categories section
+  const otherCategories = allCategories.filter(cat => cat !== detectedCategory);
+  if (otherCategories.length > 0) {
+    const otherSection = document.createElement('div');
+    otherSection.className = 'dropdown-section';
+
+    otherCategories.forEach(category => {
+      const item = document.createElement('div');
+      item.className = 'dropdown-item';
+      item.dataset.category = category;
+      item.textContent = category;
+      item.addEventListener('click', () => handleCategorySelection(category));
+      otherSection.appendChild(item);
+    });
+
+    dropdown.appendChild(otherSection);
+
+    // Divider
+    const divider2 = document.createElement('div');
+    divider2.className = 'dropdown-divider';
+    dropdown.appendChild(divider2);
+  }
+
+  // Full profile option
+  const fullSection = document.createElement('div');
+  fullSection.className = 'dropdown-section';
+
+  const fullItem = document.createElement('div');
+  fullItem.className = 'dropdown-item dropdown-item--full';
+  // No dataset.category means full profile (null)
+  fullItem.innerHTML = `
+    <span class="icon">📋</span>
+    <span class="label">Ganzes Profil</span>
+  `;
+  fullItem.addEventListener('click', () => handleCategorySelection(null));
+
+  fullSection.appendChild(fullItem);
+  dropdown.appendChild(fullSection);
+
+  // Add to button
+  injectionButton.appendChild(dropdown);
+
+  // Show dropdown with animation
+  setTimeout(() => dropdown.classList.add('open'), 10);
+
+  // Keyboard navigation
+  let selectedIndex = 0; // Start with detected (if exists) or first item
+  const allItems = dropdown.querySelectorAll('.dropdown-item');
+
+  // Set initial selection
+  if (allItems.length > 0) {
+    allItems[selectedIndex].classList.add('selected');
+  }
+
+  const handleKeyboard = (e) => {
+    if (!dropdown.classList.contains('open')) return;
+
+    switch (e.key) {
+      case 'Escape':
+        e.preventDefault();
+        dropdown.classList.remove('open');
+        setTimeout(() => dropdown.remove(), 200);
+        document.removeEventListener('keydown', handleKeyboard);
+        break;
+
+      case 'ArrowDown':
+        e.preventDefault();
+        allItems[selectedIndex]?.classList.remove('selected');
+        selectedIndex = (selectedIndex + 1) % allItems.length;
+        allItems[selectedIndex]?.classList.add('selected');
+        allItems[selectedIndex]?.scrollIntoView({ block: 'nearest' });
+        break;
+
+      case 'ArrowUp':
+        e.preventDefault();
+        allItems[selectedIndex]?.classList.remove('selected');
+        selectedIndex = (selectedIndex - 1 + allItems.length) % allItems.length;
+        allItems[selectedIndex]?.classList.add('selected');
+        allItems[selectedIndex]?.scrollIntoView({ block: 'nearest' });
+        break;
+
+      case 'Enter':
+        e.preventDefault();
+        const selectedItem = allItems[selectedIndex];
+        if (selectedItem) {
+          // Get category from dataset or null for "full profile"
+          const category = selectedItem.dataset.category || null;
+          handleCategorySelection(category);
+        }
+        document.removeEventListener('keydown', handleKeyboard);
+        break;
+    }
+  };
+
+  document.addEventListener('keydown', handleKeyboard);
+
+  // Close on outside click
+  const closeDropdown = (e) => {
+    // Check if button still exists (might be removed after injection)
+    if (!injectionButton || !injectionButton.contains(e.target)) {
+      dropdown.classList.remove('open');
+      setTimeout(() => dropdown.remove(), 200);
+      document.removeEventListener('click', closeDropdown);
+      document.removeEventListener('keydown', handleKeyboard);
+    }
+  };
+  setTimeout(() => document.addEventListener('click', closeDropdown), 100);
+}
+
+/**
+ * Handle category selection from dropdown
+ */
+function handleCategorySelection(selectedCategory) {
+  // Close dropdown
+  const dropdown = document.getElementById('data-gems-injection-dropdown');
+  if (dropdown) {
+    dropdown.classList.remove('open');
+    setTimeout(() => dropdown.remove(), 200);
+  }
+
+  // Perform injection with selected category
+  performInjection(selectedCategory);
+}
+
+/**
+ * Filter profile by collections
+ */
+function filterProfileByCollections(profile, collectionNames) {
+  if (!collectionNames || collectionNames.length === 0) {
+    console.log('[Profile Injector] No collection filter - returning full profile');
+    return profile;
+  }
+
+  console.log('[Profile Injector] Filtering profile by collections:', collectionNames);
+
+  // Filter preferences by collections (case-insensitive)
+  const allPreferences = profile.content?.preferences?.items || [];
+  console.log('[Profile Injector] Total preferences:', allPreferences.length);
+
+  // DEBUG: Show all preferences with their collections
+  console.log('[Profile Injector] All preferences and their collections:');
+  allPreferences.forEach((pref, index) => {
+    console.log(`  ${index + 1}. "${pref.value?.substring(0, 60)}..." → Collections:`, pref.collections || []);
+  });
+
+  const filteredPreferences = allPreferences.filter(pref => {
+    const prefCollections = pref.collections || [];
+    const matches = prefCollections.some(col =>
+      collectionNames.some(filterCol =>
+        col.toLowerCase() === filterCol.toLowerCase()
+      )
+    );
+
+    if (matches) {
+      console.log('[Profile Injector] ✓ Matched preference:', {
+        value: pref.value?.substring(0, 50) + '...',
+        collections: prefCollections
+      });
+    }
+
+    return matches;
+  });
+
+  console.log('[Profile Injector] Filtered preferences:', filteredPreferences.length);
+
+  // Filter identity fields by collections (case-insensitive)
+  const filteredIdentity = {};
+  const identity = profile.content?.basic?.identity || {};
+
+  Object.entries(identity).forEach(([key, field]) => {
+    // Always include base identity fields (name, etc.) regardless of collections
+    const baseFields = ['name', 'firstName', 'lastName', 'email'];
+    if (baseFields.includes(key)) {
+      filteredIdentity[key] = field;
+      return;
+    }
+
+    // Filter other identity fields by collections
+    const fieldCollections = field.collections || [];
+    const matches = fieldCollections.some(col =>
+      collectionNames.some(filterCol =>
+        col.toLowerCase() === filterCol.toLowerCase()
+      )
+    );
+
+    if (matches) {
+      console.log('[Profile Injector] ✓ Matched identity field:', key, {
+        collections: fieldCollections
+      });
+      filteredIdentity[key] = field;
+    }
+  });
+
+  return {
+    ...profile,
+    content: {
+      ...profile.content,
+      basic: {
+        identity: filteredIdentity
+      },
+      preferences: {
+        items: filteredPreferences
+      }
+    }
+  };
+}
+
+/**
+ * Perform the actual profile injection
+ */
+async function performInjection(selectedCategory) {
   if (!hspProfile) {
     return;
   }
 
+  // Filter profile if category selected
+  const profileToInject = selectedCategory
+    ? filterProfileByCollections(hspProfile, [selectedCategory])
+    : hspProfile;
+
   // Check injection method for current platform
   if (currentPlatform.injectionMethod === 'file') {
     // Try file attachment method first (ChatGPT, Gemini, Claude)
-    const profileData = formatProfileAsJSON(hspProfile);
+    const profileData = formatProfileAsJSON(profileToInject);
     const blob = new Blob([profileData], { type: 'application/json' });
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
     const fileName = `data-gems-profile-${timestamp}.json`;
@@ -351,7 +679,7 @@ async function handleInjection() {
   }
 
   // Text injection method (used for Grok, or as fallback if file fails)
-  const profileText = formatProfileForInjection(hspProfile, {
+  const profileText = formatProfileForInjection(profileToInject, {
     includeHidden: false,
     includeMetadata: false,
     prettify: true
@@ -360,6 +688,47 @@ async function handleInjection() {
   setPromptValue(profileText);
   hasInjectedInCurrentChat = true; // Mark as injected
   hideInjectionButton();
+}
+
+/**
+ * Handle injection button click - show dropdown with category selection
+ */
+async function handleInjection(event) {
+  if (!hspProfile) {
+    return;
+  }
+
+  // Prevent event bubbling
+  if (event) {
+    event.stopPropagation();
+  }
+
+  // Show loading state
+  const originalText = injectionButton.textContent;
+  injectionButton.textContent = 'Detecting...';
+  injectionButton.disabled = true;
+
+  try {
+    // Detect category from prompt
+    const detectedCategory = await detectCategoryForPrompt();
+
+    // Reset button state
+    injectionButton.textContent = originalText;
+    injectionButton.disabled = false;
+
+    // Show dropdown with detected category
+    showCategoryDropdown(detectedCategory);
+
+  } catch (error) {
+    console.error('[Data Gems] Error during category detection:', error);
+
+    // Reset button state
+    injectionButton.textContent = originalText;
+    injectionButton.disabled = false;
+
+    // Show dropdown without detected category
+    showCategoryDropdown(null);
+  }
 }
 
 /**
