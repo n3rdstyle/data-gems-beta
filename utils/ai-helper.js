@@ -329,6 +329,80 @@ DO NOT add any explanation, markdown, or extra text. ONLY the JSON array.`
   getPredefinedCategories() {
     return [...PREDEFINED_CATEGORIES];
   }
+
+  /**
+   * Generate a topic (question) for given preference text
+   * @param {string} text - Preference text
+   * @param {number} timeout - Timeout in milliseconds (default: 15000)
+   * @returns {Promise<string>} - Generated topic/question
+   */
+  async generateTopic(text, timeout = 15000) {
+    try {
+      if (!text || text.trim().length === 0) {
+        return '';
+      }
+
+      // Initialize if not already done
+      if (!this.session) {
+        const initialized = await this.initialize();
+        if (!initialized) {
+          console.log('[AI Helper] AI not available, skipping topic generation');
+          return '';
+        }
+      }
+
+      // Build prompt for topic generation
+      const prompt = `Given this user preference, generate a relevant question that this preference answers.
+
+User preference: "${text}"
+
+Requirements:
+1. Generate a clear, simple question
+2. The question should be conversational and natural
+3. Keep it under 100 characters
+4. Don't use complex or formal language
+5. Examples:
+   - Preference: "I like pizza" → Question: "What's your favorite food?"
+   - Preference: "I prefer dark mode" → Question: "Do you prefer light or dark mode?"
+   - Preference: "I wake up at 6am" → Question: "What time do you usually wake up?"
+
+Respond with ONLY the question, no quotes, no explanation.`;
+
+      console.log('[AI Helper] Generating topic for:', text);
+
+      // Create timeout promise
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('AI request timeout')), timeout);
+      });
+
+      // Race between AI response and timeout
+      const response = await Promise.race([
+        this.session.prompt(prompt),
+        timeoutPromise
+      ]);
+
+      console.log('[AI Helper] Generated topic:', response);
+
+      // Clean response (remove quotes if present)
+      let topic = response.trim();
+      topic = topic.replace(/^["']|["']$/g, ''); // Remove leading/trailing quotes
+
+      // Limit length
+      if (topic.length > 200) {
+        topic = topic.substring(0, 200);
+      }
+
+      return topic;
+
+    } catch (error) {
+      if (error.message === 'AI request timeout') {
+        console.warn('[AI Helper] Topic generation timed out after', timeout, 'ms');
+      } else {
+        console.error('[AI Helper] Error generating topic:', error);
+      }
+      return '';
+    }
+  }
 }
 
 // Create singleton instance and expose globally for content scripts

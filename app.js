@@ -1541,9 +1541,26 @@ async function renderCurrentScreen() {
             const usesRxDB = true;
 
             if (usesRxDB) {
+              // AI Auto-Topic Generation (if no topic provided and AI enabled)
+              let finalTopic = topic || '';
+              const autoCategorizeEnabled = AppState?.settings?.categorization?.auto_categorize ?? true;
+
+              if (autoCategorizeEnabled && !finalTopic && typeof aiHelper !== 'undefined') {
+                try {
+                  console.log('[App] Generating topic for:', value);
+                  const generatedTopic = await aiHelper.generateTopic(value);
+                  if (generatedTopic) {
+                    console.log('[App] AI generated topic:', generatedTopic);
+                    finalTopic = generatedTopic;
+                  }
+                } catch (error) {
+                  console.error('[App] Topic generation error (non-critical):', error);
+                  // Continue without topic if AI fails
+                }
+              }
+
               // AI Auto-Categorization (if enabled and no collections provided)
               let finalCollections = collections || [];
-              const autoCategorizeEnabled = AppState?.settings?.categorization?.auto_categorize ?? true;
 
               if (autoCategorizeEnabled && finalCollections.length === 0 && typeof aiHelper !== 'undefined') {
                 try {
@@ -1554,7 +1571,7 @@ async function renderCurrentScreen() {
                   ])].sort((a, b) => a.localeCompare(b));
 
                   // Use topic as primary context if available, otherwise use value
-                  const contextText = topic || value;
+                  const contextText = finalTopic || value;
 
                   console.log('[App] Running AI categorization for:', contextText);
 
@@ -1585,7 +1602,7 @@ async function renderCurrentScreen() {
                 mergedFrom: null,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
-                topic: topic || '',
+                topic: finalTopic || '',
                 isPrimary: true,
                 parentGem: '',
                 childGems: [],
@@ -1606,7 +1623,7 @@ async function renderCurrentScreen() {
                   value,
                   state,
                   collections: finalCollections,
-                  topic
+                  topic: finalTopic
                 }, false); // autoEnrich = false for immediate save
 
                 console.log('[App] Preference saved to RxDB (without embeddings):', optimisticGem.id);
@@ -1650,7 +1667,7 @@ async function renderCurrentScreen() {
                 [],  // subCollections
                 null,  // sourceUrl
                 null,  // mergedFrom
-                topic
+                finalTopic
               );
 
               await saveData();
