@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Build outputs (regenerate with npm run build)
+# Uncomment if you want to exclude bundles from git:
+# *.bundle.js
+# *.bundle.css
+
+# Development/debug files
+console-*.js
+test-*.js
+debug-*.js
+check-*.js
+check-*.html
+fix-*.js
+migrate-*.js
+*.py
+*.sh
+
+# Temporary data files
+complete-questions-1000.csv
+expanded-questions-with-subcategories.csv
+random-questions-current.csv
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
