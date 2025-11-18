@@ -1541,58 +1541,11 @@ async function renderCurrentScreen() {
             const usesRxDB = true;
 
             if (usesRxDB) {
-              // AI Auto-Topic Generation (if no topic provided and AI enabled)
-              let finalTopic = topic || '';
-              const autoCategorizeEnabled = AppState?.settings?.categorization?.auto_categorize ?? true;
-
-              if (autoCategorizeEnabled && !finalTopic && typeof aiHelper !== 'undefined') {
-                try {
-                  console.log('[App] Generating topic for:', value);
-                  const generatedTopic = await aiHelper.generateTopic(value);
-                  if (generatedTopic) {
-                    console.log('[App] AI generated topic:', generatedTopic);
-                    finalTopic = generatedTopic;
-                  }
-                } catch (error) {
-                  console.error('[App] Topic generation error (non-critical):', error);
-                  // Continue without topic if AI fails
-                }
-              }
-
-              // AI Auto-Categorization (if enabled and no collections provided)
-              let finalCollections = collections || [];
-
-              if (autoCategorizeEnabled && finalCollections.length === 0 && typeof aiHelper !== 'undefined') {
-                try {
-                  // Get existing tags for AI context
-                  const existingTags = [...new Set([
-                    ...(AppState.collections || []),
-                    ...AppState.content.preferences.items.flatMap(p => p.collections || [])
-                  ])].sort((a, b) => a.localeCompare(b));
-
-                  // Use topic as primary context if available, otherwise use value
-                  const contextText = finalTopic || value;
-
-                  console.log('[App] Running AI categorization for:', contextText);
-
-                  // Get AI suggestions
-                  const suggestions = await aiHelper.suggestCategories(contextText, existingTags);
-
-                  if (suggestions.length > 0) {
-                    console.log('[App] AI suggested categories:', suggestions);
-                    finalCollections = suggestions;
-                  }
-                } catch (error) {
-                  console.error('[App] AI categorization error (non-critical):', error);
-                  // Continue with empty collections if AI fails
-                }
-              }
-
-              // Create optimistic gem object immediately
+              // Create optimistic gem object IMMEDIATELY with provided data
               const optimisticGem = {
                 id: generateId('pref'),
                 value,
-                collections: finalCollections,
+                collections: collections || [],
                 subCollections: [],
                 timestamp: Date.now(),
                 state: state || 'default',
@@ -1602,7 +1555,7 @@ async function renderCurrentScreen() {
                 mergedFrom: null,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
-                topic: finalTopic || '',
+                topic: topic || '',
                 isPrimary: true,
                 parentGem: '',
                 childGems: [],
@@ -1613,8 +1566,82 @@ async function renderCurrentScreen() {
               AppState.content.preferences.items.unshift(optimisticGem);
               AppState.metadata.total_preferences = AppState.content.preferences.items.length;
 
-              // Render UI immediately (shows item right away)
+              // Render UI immediately (shows item right away - OPTIMISTIC UPDATE)
               renderCurrentScreen();
+
+              // Run AI enhancements in background (non-blocking)
+              const autoCategorizeEnabled = AppState?.settings?.categorization?.auto_categorize ?? true;
+              const needsAI = autoCategorizeEnabled &&
+                              typeof aiHelper !== 'undefined' &&
+                              (!topic || collections.length === 0);
+
+              if (needsAI) {
+                setTimeout(async () => {
+                  try {
+                    let aiTopic = topic || '';
+                    let aiCollections = collections || [];
+
+                    // Generate topic if not provided
+                    if (!aiTopic) {
+                      console.log('[App] Generating topic in background for:', value);
+                      const generatedTopic = await aiHelper.generateTopic(value);
+                      if (generatedTopic) {
+                        console.log('[App] AI generated topic:', generatedTopic);
+                        aiTopic = generatedTopic;
+                      }
+                    }
+
+                    // Generate categories if not provided
+                    if (aiCollections.length === 0) {
+                      // Get existing tags for AI context
+                      const existingTags = [...new Set([
+                        ...(AppState.collections || []),
+                        ...AppState.content.preferences.items.flatMap(p => p.collections || [])
+                      ])].sort((a, b) => a.localeCompare(b));
+
+                      // Use topic as primary context if available, otherwise use value
+                      const contextText = aiTopic || value;
+
+                      console.log('[App] Running AI categorization in background for:', contextText);
+
+                      // Get AI suggestions
+                      const suggestions = await aiHelper.suggestCategories(contextText, existingTags);
+
+                      if (suggestions.length > 0) {
+                        console.log('[App] AI suggested categories:', suggestions);
+                        aiCollections = suggestions;
+                      }
+                    }
+
+                    // Update gem with AI enhancements
+                    if (aiTopic || aiCollections.length > 0) {
+                      optimisticGem.topic = aiTopic;
+                      optimisticGem.collections = aiCollections;
+
+                      // Update in AppState
+                      const gemIndex = AppState.content.preferences.items.findIndex(p => p.id === optimisticGem.id);
+                      if (gemIndex !== -1) {
+                        AppState.content.preferences.items[gemIndex] = optimisticGem;
+                      }
+
+                      // Re-render to show AI enhancements
+                      renderCurrentScreen();
+
+                      // Update in RxDB
+                      const engine = await ensureContextEngine();
+                      await engine.updateGem(optimisticGem.id, {
+                        topic: aiTopic,
+                        collections: aiCollections
+                      }, false);
+
+                      console.log('[App] AI enhancements applied and saved:', optimisticGem.id);
+                    }
+                  } catch (error) {
+                    console.error('[App] AI enhancement error (non-critical):', error);
+                    // Item already saved and displayed, so this is not critical
+                  }
+                }, 0);
+              }
 
               // Save to RxDB immediately WITHOUT embeddings (fast, ensures data persists)
               try {
@@ -1622,8 +1649,8 @@ async function renderCurrentScreen() {
                   id: optimisticGem.id,
                   value,
                   state,
-                  collections: finalCollections,
-                  topic: finalTopic
+                  collections: collections || [],
+                  topic: topic || ''
                 }, false); // autoEnrich = false for immediate save
 
                 console.log('[App] Preference saved to RxDB (without embeddings):', optimisticGem.id);
@@ -1663,11 +1690,11 @@ async function renderCurrentScreen() {
                 AppState,
                 value,
                 state,
-                finalCollections,
+                collections || [],
                 [],  // subCollections
                 null,  // sourceUrl
                 null,  // mergedFrom
-                finalTopic
+                topic || ''
               );
 
               await saveData();
