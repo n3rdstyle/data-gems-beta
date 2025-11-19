@@ -1,5 +1,5 @@
 /* Data Gems - Bundled CSS */
-/* Generated: 2025-11-19T13:08:23.132Z */
+/* Generated: 2025-11-19T13:23:26.476Z */
 
 
 /* ========================================
@@ -3801,6 +3801,21 @@
   opacity: 1;
 }
 
+.collection-filter-modal__item.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Divider */
+.collection-filter-modal__divider {
+  height: 1px;
+  background-color: var(--color-neutral-30);
+  margin: var(--spacing-md) 0;
+  width: 100%;
+  flex-shrink: 0;
+}
+
 /* Footer */
 .collection-filter-modal__footer {
   display: flex;
@@ -4116,6 +4131,11 @@
   background-origin: padding-box !important;
   color: var(--color-neutral-10) !important;
   border: 1px solid rgba(0, 0, 0, 0);
+}
+
+/* Refresh and open tab buttons with tooltips */
+.quick-input-bar__tags-row .tooltip-container {
+  flex-shrink: 0;
 }
 
 .quick-input-bar__refresh,

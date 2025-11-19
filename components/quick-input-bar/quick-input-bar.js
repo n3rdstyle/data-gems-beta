@@ -41,6 +41,7 @@ function createQuickInputBar(options = {}) {
     size: 'small'
   });
   refreshButton.element.classList.add('quick-input-bar__refresh');
+  refreshButton.element.title = 'For different questions, just refresh here.';
 
   const openTabButton = createTertiaryButton({
     icon: 'arrowUpRight',
@@ -52,6 +53,7 @@ function createQuickInputBar(options = {}) {
     }
   });
   openTabButton.element.classList.add('quick-input-bar__open-tab');
+  openTabButton.element.title = 'Answer random questions in full-screen mode';
 
   tagsRow.appendChild(tagsContainer);
   tagsRow.appendChild(refreshButton.element);

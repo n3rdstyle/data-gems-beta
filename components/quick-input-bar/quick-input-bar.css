@@ -102,6 +102,11 @@
   border: 1px solid rgba(0, 0, 0, 0);
 }
 
+/* Refresh and open tab buttons with tooltips */
+.quick-input-bar__tags-row .tooltip-container {
+  flex-shrink: 0;
+}
+
 .quick-input-bar__refresh,
 .quick-input-bar__open-tab {
   flex-shrink: 0;
