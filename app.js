@@ -1629,7 +1629,7 @@ async function renderCurrentScreen() {
 
         screenComponent = createHome({
           profileName: userData.name,
-          profileSubtitle: userData.subtitle || '',
+          profileSubtitle: homeIsBetaUser ? 'Beta User' : (userData.subtitle || ''),
           profileDescription: userData.description,
           avatarImage: userData.avatarImage,
           email: userData.email,
