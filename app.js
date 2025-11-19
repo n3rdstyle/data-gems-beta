@@ -1251,11 +1251,23 @@ function importData() {
         // Import to RxDB
         console.log('[Import] Importing to Context Engine (RxDB)...');
 
-        // Update profile identity in Chrome Storage
-        AppState.content.basic.identity = importedData.content.basic.identity;
-        AppState.collections = importedData.collections || [];
-        AppState.subCategoryRegistry = importedData.subCategoryRegistry || {};
-        AppState.settings = importedData.settings || {};
+        // Preserve existing identity data - DO NOT overwrite from import
+        // Identity is user-specific and should not be replaced during import
+        console.log('[Import] Preserving existing identity data');
+
+        // Merge collections and subcategories (add new ones, keep existing)
+        const existingCollections = AppState.collections || [];
+        const importedCollections = importedData.collections || [];
+        AppState.collections = [...new Set([...existingCollections, ...importedCollections])];
+
+        // Merge subcategory registry
+        const existingRegistry = AppState.subCategoryRegistry || {};
+        const importedRegistry = importedData.subCategoryRegistry || {};
+        AppState.subCategoryRegistry = { ...existingRegistry, ...importedRegistry };
+
+        // Merge settings (imported settings take precedence)
+        AppState.settings = { ...(AppState.settings || {}), ...(importedData.settings || {}) };
+
         await saveData();
 
         // Import preferences to RxDB
