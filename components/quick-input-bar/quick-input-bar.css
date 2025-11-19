@@ -53,8 +53,6 @@
   flex-shrink: 0;
   cursor: pointer;
   transition: all 0.2s ease;
-  max-width: 240px; /* Maximum width, but shrinks to fit content */
-  overflow: hidden;
   height: 24px; /* Fixed height */
   font-size: 12px; /* Smaller font */
   line-height: 1.33; /* Adjusted for exact 24px height */
@@ -70,12 +68,9 @@
   background-clip: padding-box, border-box !important;
 }
 
-/* Truncate long question text with ellipsis */
+/* Question text scales to content width */
 .quick-input-bar__tag .tag__label {
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 100%;
   font-size: 12px; /* Match tag font size */
   line-height: 1.33; /* Match tag line-height */
   color: inherit; /* Inherit dark color from parent */

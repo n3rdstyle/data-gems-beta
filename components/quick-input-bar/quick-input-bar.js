@@ -86,8 +86,8 @@ function createQuickInputBar(options = {}) {
   inputField.element.classList.add('quick-input-bar__input');
 
   const sendButton = createTertiaryButton({
-    icon: 'send',
-    ariaLabel: 'Send',
+    icon: 'plus',
+    ariaLabel: 'Add',
     size: 'default',
     onClick: () => {
       const value = inputField.getValue().trim();

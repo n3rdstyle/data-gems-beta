@@ -654,25 +654,27 @@ async function saveMergedCard(data, mergedFrom, selectedItems) {
     }
 
     // Create new merged preference
-    AppState = addPreference(
-      AppState,
-      data.text,
-      newState,
-      data.collections,
-      [],  // subCollections
-      null,  // sourceUrl
-      mergedFrom,  // mergedFrom
-      data.topic || null  // topic (NEW)
-    );
-
-    // Note: mergedFrom is now passed directly to addPreference
-
-    // Delete original selected items
-    selectedItems.forEach(item => {
-      AppState = deletePreference(AppState, item.id);
+    await addPreferenceToRxDB({
+      value: data.text,
+      state: newState,
+      collections: data.collections || [],
+      subCollections: [],
+      source_url: null,
+      mergedFrom: mergedFrom || [],
+      topic: data.topic || ''
     });
 
-    // Save changes
+    // Delete original selected items
+    for (const item of selectedItems) {
+      await deletePreferenceFromRxDB(item.id);
+    }
+
+    // Reload preferences from RxDB to update AppState
+    const preferencesFromRxDB = await getPreferencesFromRxDB();
+    AppState.content.preferences.items = preferencesFromRxDB;
+    AppState.metadata.total_preferences = preferencesFromRxDB.length;
+
+    // Save updated state to Chrome Storage
     await saveData();
 
     // Clear selection
@@ -1610,7 +1612,8 @@ async function renderCurrentScreen() {
         state: item.state || 'default',
         collections: item.collections || [],
         topic: item.topic,
-        source: item.source_url
+        source: item.source_url,
+        mergedFrom: item.mergedFrom
       }));
     } catch (error) {
       console.error('[App] Failed to load from AppState:', error);
