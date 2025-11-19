@@ -118,6 +118,21 @@
   opacity: 1;
 }
 
+.collection-filter-modal__item.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Divider */
+.collection-filter-modal__divider {
+  height: 1px;
+  background-color: var(--color-neutral-30);
+  margin: var(--spacing-md) 0;
+  width: 100%;
+  flex-shrink: 0;
+}
+
 /* Footer */
 .collection-filter-modal__footer {
   display: flex;

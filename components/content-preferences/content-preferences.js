@@ -131,6 +131,9 @@ function createContentPreferences(options = {}) {
   const openCollectionFilterModal = () => {
     // If search is active, calculate collections only from visible (searched) cards
     let availableCollections = collectionTags;
+    let favoritesCount = 0;
+    let hiddenCount = 0;
+
     if (activeSearchTerm) {
       // Temporarily show all search results (remove collection filter)
       // to calculate all available collections from search results
@@ -147,6 +150,10 @@ function createContentPreferences(options = {}) {
       let unassignedCount = 0;
 
       searchResults.forEach(card => {
+        const state = card.getState();
+        if (state === 'favorited') favoritesCount++;
+        if (state === 'hidden') hiddenCount++;
+
         const collections = card.getCollections();
         if (collections && Array.isArray(collections) && collections.length > 0) {
           collections.forEach(collection => {
@@ -175,48 +182,106 @@ function createContentPreferences(options = {}) {
           state: 'inactive'
         });
       }
+    } else {
+      // No search active, calculate from all cards
+      const allCards = dataList.getCards();
+      allCards.forEach(card => {
+        const state = card.getState();
+        if (state === 'favorited') favoritesCount++;
+        if (state === 'hidden') hiddenCount++;
+      });
+    }
+
+    // Determine selected collections based on active filter
+    let selectedCollections = [];
+    if (activeFilter) {
+      if (activeFilter.type === 'collections') {
+        selectedCollections = activeFilter.value;
+      } else if (activeFilter.type === 'state') {
+        // Map state filter to special filter name
+        selectedCollections = [activeFilter.value === 'favorited' ? 'Favorites' : 'Hidden'];
+      }
     }
 
     // Create and show collection filter modal
     const modal = createCollectionFilterModal({
       collections: availableCollections,
-      selectedCollections: activeFilter && activeFilter.type === 'collections' ? activeFilter.value : [],
+      selectedCollections: selectedCollections,
+      favoritesCount: favoritesCount,
+      hiddenCount: hiddenCount,
       onApply: (selectedCollections) => {
         if (selectedCollections.length > 0) {
-          // Filter by selected collections
-          activeFilter = { type: 'collections', value: selectedCollections };
+          // Separate special filters from regular collections
+          const specialFilters = selectedCollections.filter(c => c === 'Favorites' || c === 'Hidden');
+          const regularCollections = selectedCollections.filter(c => c !== 'Favorites' && c !== 'Hidden');
 
-          // If search is active, first reapply search to show all search results
-          // then apply collection filter on top of that
-          if (activeSearchTerm) {
-            dataList.filter(activeSearchTerm);
-          }
+          // Determine filter type
+          if (specialFilters.length > 0 && regularCollections.length === 0) {
+            // Only special filters selected
+            const filterType = specialFilters[0]; // Favorites or Hidden
+            activeFilter = {
+              type: 'state',
+              value: filterType === 'Favorites' ? 'favorited' : 'hidden'
+            };
 
-          // Filter by collections (this now preserves search filter automatically)
-          dataList.filterByCollections(selectedCollections);
-
-          // Count visible cards
-          const visibleCards = dataList.getCards().filter(card =>
-            card.element.style.display !== 'none'
-          );
-          const visibleCount = visibleCards.length;
-
-          // Update headline tag button label
-          if (selectedCollections.length === 1) {
-            headline.setTagButtonLabel(selectedCollections[0], visibleCount);
-          } else {
-            headline.setTagButtonLabel('Multiple Tags', visibleCount);
-          }
-
-          // Update "All" tag in tag list
-          const allTag = tagList.getTags().find(t => t.getLabel() === 'All' || t.showIcon);
-          if (allTag) {
-            if (selectedCollections.length === 1) {
-              allTag.setLabel(selectedCollections[0]);
-            } else {
-              allTag.setLabel('Multiple Tags');
+            // If search is active, first reapply search to show all search results
+            if (activeSearchTerm) {
+              dataList.filter(activeSearchTerm);
             }
-            allTag.setCount(visibleCount);
+
+            // Filter by state
+            dataList.filterByState(activeFilter.value);
+
+            // Count visible cards
+            const visibleCards = dataList.getCards().filter(card =>
+              card.element.style.display !== 'none'
+            );
+
+            // Update headline tag button label
+            headline.setTagButtonLabel(filterType, visibleCards.length);
+
+            // Update "All" tag in tag list
+            const allTag = tagList.getTags().find(t => t.getLabel() === 'All' || t.showIcon);
+            if (allTag) {
+              allTag.setLabel(filterType);
+              allTag.setCount(visibleCards.length);
+            }
+          } else {
+            // Regular collections (possibly with special filters - mixed mode)
+            activeFilter = { type: 'collections', value: regularCollections };
+
+            // If search is active, first reapply search to show all search results
+            // then apply collection filter on top of that
+            if (activeSearchTerm) {
+              dataList.filter(activeSearchTerm);
+            }
+
+            // Filter by collections (this now preserves search filter automatically)
+            dataList.filterByCollections(regularCollections);
+
+            // Count visible cards
+            const visibleCards = dataList.getCards().filter(card =>
+              card.element.style.display !== 'none'
+            );
+            const visibleCount = visibleCards.length;
+
+            // Update headline tag button label
+            if (regularCollections.length === 1) {
+              headline.setTagButtonLabel(regularCollections[0], visibleCount);
+            } else {
+              headline.setTagButtonLabel('Multiple Tags', visibleCount);
+            }
+
+            // Update "All" tag in tag list
+            const allTag = tagList.getTags().find(t => t.getLabel() === 'All' || t.showIcon);
+            if (allTag) {
+              if (regularCollections.length === 1) {
+                allTag.setLabel(regularCollections[0]);
+              } else {
+                allTag.setLabel('Multiple Tags');
+              }
+              allTag.setCount(visibleCount);
+            }
           }
         } else {
           // No collections selected
@@ -524,30 +589,79 @@ function createContentPreferences(options = {}) {
         // Prevent default toggle behavior - keep it active
         tag.setState('active');
 
+        // Calculate favorites and hidden counts
+        let favoritesCount = 0;
+        let hiddenCount = 0;
+        const allCards = dataList.getCards();
+        allCards.forEach(card => {
+          const state = card.getState();
+          if (state === 'favorited') favoritesCount++;
+          if (state === 'hidden') hiddenCount++;
+        });
+
+        // Determine selected collections based on active filter
+        let selectedCollections = [];
+        if (activeFilter) {
+          if (activeFilter.type === 'collections') {
+            selectedCollections = activeFilter.value;
+          } else if (activeFilter.type === 'state') {
+            // Map state filter to special filter name
+            selectedCollections = [activeFilter.value === 'favorited' ? 'Favorites' : 'Hidden'];
+          }
+        }
+
         // Create and show collection filter modal
         const modal = createCollectionFilterModal({
           collections: collectionTags,
-          selectedCollections: activeFilter && activeFilter.type === 'collections' ? activeFilter.value : [],
+          selectedCollections: selectedCollections,
+          favoritesCount: favoritesCount,
+          hiddenCount: hiddenCount,
           onApply: (selectedCollections) => {
             if (selectedCollections.length > 0) {
-              // Filter by selected collections
-              activeFilter = { type: 'collections', value: selectedCollections };
-              dataList.filterByCollections(selectedCollections);
+              // Separate special filters from regular collections
+              const specialFilters = selectedCollections.filter(c => c === 'Favorites' || c === 'Hidden');
+              const regularCollections = selectedCollections.filter(c => c !== 'Favorites' && c !== 'Hidden');
 
-              // Update "All" tag label and count
-              const visibleCards = dataList.getCards().filter(card =>
-                card.element.style.display !== 'none'
-              );
-              const newCount = visibleCards.length;
+              // Determine filter type
+              if (specialFilters.length > 0 && regularCollections.length === 0) {
+                // Only special filters selected
+                const filterType = specialFilters[0]; // Favorites or Hidden
+                activeFilter = {
+                  type: 'state',
+                  value: filterType === 'Favorites' ? 'favorited' : 'hidden'
+                };
 
-              if (selectedCollections.length === 1) {
-                // Single collection: show collection name
-                tag.setLabel(selectedCollections[0]);
+                // Filter by state
+                dataList.filterByState(activeFilter.value);
+
+                // Count visible cards
+                const visibleCards = dataList.getCards().filter(card =>
+                  card.element.style.display !== 'none'
+                );
+
+                // Update "All" tag label and count
+                tag.setLabel(filterType);
+                tag.setCount(visibleCards.length);
               } else {
-                // Multiple collections: show "Multiple Tags"
-                tag.setLabel('Multiple Tags');
+                // Regular collections
+                activeFilter = { type: 'collections', value: regularCollections };
+                dataList.filterByCollections(regularCollections);
+
+                // Update "All" tag label and count
+                const visibleCards = dataList.getCards().filter(card =>
+                  card.element.style.display !== 'none'
+                );
+                const newCount = visibleCards.length;
+
+                if (regularCollections.length === 1) {
+                  // Single collection: show collection name
+                  tag.setLabel(regularCollections[0]);
+                } else {
+                  // Multiple collections: show "Multiple Tags"
+                  tag.setLabel('Multiple Tags');
+                }
+                tag.setCount(newCount);
               }
-              tag.setCount(newCount);
             } else {
               // No collections selected, show all
               activeFilter = null;

@@ -7,6 +7,8 @@ function createCollectionFilterModal(options = {}) {
   const {
     collections = [],
     selectedCollections = [],
+    favoritesCount = 0,
+    hiddenCount = 0,
     onApply = null,
     onClose = null
   } = options;
@@ -68,52 +70,81 @@ function createCollectionFilterModal(options = {}) {
     }
   };
 
+  // Helper function to create filter item
+  const createFilterItem = (label, count, isSpecialFilter = false, isDisabled = false) => {
+    const item = document.createElement('div');
+    item.className = 'collection-filter-modal__item';
+    if (selected.includes(label)) {
+      item.classList.add('active');
+    }
+    if (isDisabled) {
+      item.classList.add('disabled');
+    }
+
+    const content = document.createElement('div');
+    content.className = 'collection-filter-modal__item-content';
+
+    const labelEl = document.createElement('span');
+    labelEl.className = 'collection-filter-modal__item-label';
+    labelEl.textContent = label;
+
+    const countEl = document.createElement('span');
+    countEl.className = 'collection-filter-modal__item-count';
+    countEl.textContent = `(${count})`;
+
+    content.appendChild(labelEl);
+    content.appendChild(countEl);
+
+    const check = document.createElement('div');
+    check.className = 'collection-filter-modal__item-check';
+
+    item.appendChild(content);
+    item.appendChild(check);
+
+    // Toggle selection on click (only if not disabled)
+    if (!isDisabled) {
+      item.addEventListener('click', () => {
+        if (selected.includes(label)) {
+          selected = selected.filter(s => s !== label);
+          item.classList.remove('active');
+        } else {
+          selected.push(label);
+          item.classList.add('active');
+        }
+        updateButtonState(); // Update apply button state
+      });
+    }
+
+    return item;
+  };
+
+  // Create special filters (Favorites and Hidden)
+  if (favoritesCount > 0) {
+    const favoritesItem = createFilterItem('Favorites', favoritesCount, true, false);
+    list.appendChild(favoritesItem);
+  }
+
+  if (hiddenCount > 0) {
+    const hiddenItem = createFilterItem('Hidden', hiddenCount, true, false);
+    list.appendChild(hiddenItem);
+  }
+
+  // Add divider if there are special filters and collections
+  if ((favoritesCount > 0 || hiddenCount > 0) && collections.length > 0) {
+    const divider = document.createElement('div');
+    divider.className = 'collection-filter-modal__divider';
+    list.appendChild(divider);
+  }
+
   // Create collection items
-  if (collections.length === 0) {
+  if (collections.length === 0 && favoritesCount === 0 && hiddenCount === 0) {
     const empty = document.createElement('div');
     empty.className = 'collection-filter-modal__empty';
     empty.textContent = 'No collections available';
     list.appendChild(empty);
   } else {
     collections.forEach(collection => {
-      const item = document.createElement('div');
-      item.className = 'collection-filter-modal__item';
-      if (selected.includes(collection.label)) {
-        item.classList.add('active');
-      }
-
-      const content = document.createElement('div');
-      content.className = 'collection-filter-modal__item-content';
-
-      const label = document.createElement('span');
-      label.className = 'collection-filter-modal__item-label';
-      label.textContent = collection.label;
-
-      const count = document.createElement('span');
-      count.className = 'collection-filter-modal__item-count';
-      count.textContent = `(${collection.count})`;
-
-      content.appendChild(label);
-      content.appendChild(count);
-
-      const check = document.createElement('div');
-      check.className = 'collection-filter-modal__item-check';
-
-      item.appendChild(content);
-      item.appendChild(check);
-
-      // Toggle selection on click
-      item.addEventListener('click', () => {
-        if (selected.includes(collection.label)) {
-          selected = selected.filter(s => s !== collection.label);
-          item.classList.remove('active');
-        } else {
-          selected.push(collection.label);
-          item.classList.add('active');
-        }
-        updateButtonState(); // Update apply button state
-      });
-
+      const item = createFilterItem(collection.label, collection.count, false, false);
       list.appendChild(item);
     });
   }
