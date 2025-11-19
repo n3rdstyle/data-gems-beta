@@ -65,7 +65,7 @@ function createCalibration(options = {}) {
     // Tooltip text - detailed explanation
     let tooltipText = '';
     if (remaining > 0) {
-      tooltipText = `Add ${remainingCards} more data card${remainingCards !== 1 ? 's' : ''} to complete your profile calibration and unlock personalized AI recommendations.`;
+      tooltipText = `Add ${remainingCards} more cards and enjoy a personalized AI experience.`;
     } else {
       tooltipText = 'Profile calibration complete! Your AI experience is now fully personalized.';
     }
