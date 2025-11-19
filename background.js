@@ -564,18 +564,17 @@ async function handleBetaRevoke() {
   });
 }
 
-// Send beta user data to Supabase
+// Send beta user data to Supabase Edge Function (with rate limiting)
 async function sendToSupabase(betaId, email, joinDate, consentGiven) {
   const SUPABASE_URL = 'https://shijwijxomocxqycjvud.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNoaWp3aWp4b21vY3hxeWNqdnVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyNTE5OTYsImV4cCI6MjA2MTgyNzk5Nn0.ept6h6lUhX57ELTWTuy1wBoRJB2QKIsJ6iBL1OEIpmk';
 
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/beta_users`, {
+  // Use Edge Function endpoint instead of direct database access
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/beta-signup`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      'Prefer': 'return=minimal'
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
     },
     body: JSON.stringify({
       beta_id: betaId,
@@ -585,31 +584,82 @@ async function sendToSupabase(betaId, email, joinDate, consentGiven) {
     })
   });
 
+  const result = await response.json();
+
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Supabase error: ${error}`);
+    // Handle specific error cases
+    if (response.status === 429) {
+      // Rate limit exceeded
+      throw new Error('Too many signup attempts. Please try again later.');
+    } else if (response.status === 409) {
+      // Duplicate email/beta_id
+      throw new Error('This email is already registered.');
+    } else if (response.status === 400) {
+      // Validation error
+      throw new Error(result.message || 'Invalid signup data.');
+    } else {
+      throw new Error(`Signup failed: ${result.message || 'Unknown error'}`);
+    }
   }
+
+  console.log(`[Background] Beta signup successful. Rate limit: ${result.rateLimit?.remaining || 'unknown'} remaining`);
+  return result;
 }
 
-// Delete beta user data from Supabase
+// Delete beta user data from Supabase with verification token
 async function deleteFromSupabase(betaId) {
   const SUPABASE_URL = 'https://shijwijxomocxqycjvud.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNoaWp3aWp4b21vY3hxeWNqdnVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyNTE5OTYsImV4cCI6MjA2MTgyNzk5Nn0.ept6h6lUhX57ELTWTuy1wBoRJB2QKIsJ6iBL1OEIpmk';
 
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/beta_users?beta_id=eq.${betaId}`, {
-    method: 'DELETE',
+  // Step 1: Request deletion token from Edge Function
+  const tokenResponse = await fetch(`${SUPABASE_URL}/functions/v1/beta-delete/request-token`, {
+    method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      'Prefer': 'return=minimal'
-    }
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+    },
+    body: JSON.stringify({ beta_id: betaId })
   });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Supabase error: ${error}`);
+  if (!tokenResponse.ok) {
+    const error = await tokenResponse.json();
+    throw new Error(`Failed to request deletion token: ${error.message}`);
   }
+
+  const { token } = await tokenResponse.json();
+  console.log('[Background] Deletion token received, valid for 5 minutes');
+
+  // Step 2: Use token to delete
+  const deleteResponse = await fetch(`${SUPABASE_URL}/functions/v1/beta-delete`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+    },
+    body: JSON.stringify({
+      beta_id: betaId,
+      verification_token: token
+    })
+  });
+
+  const result = await deleteResponse.json();
+
+  // Debug logging
+  console.log('[Background] Delete response status:', deleteResponse.status);
+  console.log('[Background] Delete response body:', result);
+
+  if (!deleteResponse.ok) {
+    if (deleteResponse.status === 401) {
+      throw new Error('Deletion verification failed. Please try again.');
+    } else if (deleteResponse.status === 404) {
+      throw new Error('Beta user not found.');
+    } else {
+      throw new Error(`Deletion failed: ${result.message || 'Unknown error'}`);
+    }
+  }
+
+  console.log('[Background] Beta user deleted successfully');
+  return result;
 }
 
 // Generate UUID
