@@ -176,10 +176,15 @@ export class ContextEngine {
       throw new Error(`[ContextEngine] Gem not found: ${id}`);
     }
 
-    // If value changed, re-enrich
+    // If value changed OR reEnrich requested, re-enrich
     let finalUpdates = updates;
-    if (reEnrich && updates.value && updates.value !== currentGem.value) {
-      console.log(`[ContextEngine] Value changed, re-enriching: ${id}`);
+    const shouldEnrich = reEnrich && (
+      (updates.value && updates.value !== currentGem.value) || // Value changed
+      (!currentGem.vector || currentGem.vector.length === 0)    // No embedding yet
+    );
+
+    if (shouldEnrich) {
+      console.log(`[ContextEngine] Re-enriching gem: ${id}`);
       const tempGem = { ...currentGem, ...updates };
       finalUpdates = await this.enrichment.enrichGem(tempGem);
     }

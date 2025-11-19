@@ -24513,6 +24513,23 @@ var ContextEngineBridge = (() => {
                   source_url: oldDoc.source_url || void 0,
                   mergedFrom: oldDoc.mergedFrom || void 0
                 };
+              },
+              // Migration from v2 to v3: Update vector dimensions (384 -> 768) and remove invalid vectors
+              3: function(oldDoc) {
+                console.log("[Database] Migrating gem from v2 to v3 (768-dim vectors):", oldDoc.id);
+                const newDoc = { ...oldDoc };
+                if (oldDoc.vector) {
+                  if (oldDoc.vector.length === 384) {
+                    console.log(`  \u2192 Removing 384-dim vector for ${oldDoc.id} (needs re-enrichment)`);
+                    delete newDoc.vector;
+                  } else if (oldDoc.vector.length === 768) {
+                    console.log(`  \u2192 Keeping existing 768-dim vector for ${oldDoc.id}`);
+                  } else {
+                    console.warn(`  \u2192 Invalid vector dimension ${oldDoc.vector.length} for ${oldDoc.id}, removing`);
+                    delete newDoc.vector;
+                  }
+                }
+                return newDoc;
               }
             }
             // Note: Vector search plugin will be added separately
@@ -24588,8 +24605,8 @@ var ContextEngineBridge = (() => {
       addRxPlugin(RxDBUpdatePlugin);
       addRxPlugin(RxDBMigrationSchemaPlugin);
       gemSchema = {
-        version: 2,
-        // UPDATED: v1 -> v2 for HSP fields (state, assurance, reliability, source_url, mergedFrom, created_at, updated_at)
+        version: 3,
+        // UPDATED: v2 -> v3 for 768-dim vector support (BGE-base-en-v1.5)
         primaryKey: "id",
         type: "object",
         properties: {
@@ -24680,14 +24697,14 @@ var ContextEngineBridge = (() => {
             type: "string",
             maxLength: 50
           },
-          // Vector Embeddings (384-dim from Gemini Nano)
+          // Vector Embeddings (768-dim from BGE-base-en-v1.5)
           vector: {
             type: "array",
             items: {
               type: "number"
             },
-            minItems: 384,
-            maxItems: 384
+            minItems: 768,
+            maxItems: 768
           },
           // Keywords for BM25 sparse search
           keywords: {
@@ -25317,12 +25334,28 @@ var ContextEngineBridge = (() => {
      * @returns {boolean} True if data has changed
      */
     _hasGemChanged(existingDoc, updates) {
-      const fieldsToCompare = ["value", "collections", "state", "topic", "isPrimary", "parentGem"];
+      const fieldsToCompare = ["value", "collections", "state", "topic", "isPrimary", "parentGem", "vector"];
       for (const field of fieldsToCompare) {
         const existingValue = existingDoc[field];
         const newValue = updates[field];
         if (!(field in updates)) continue;
         if (Array.isArray(existingValue) && Array.isArray(newValue)) {
+          if (field === "vector") {
+            if (!existingValue || existingValue.length === 0) {
+              if (newValue && newValue.length > 0) return true;
+            } else if (!newValue || newValue.length === 0) {
+              return true;
+            } else if (existingValue.length !== newValue.length) {
+              return true;
+            } else {
+              for (let i = 0; i < existingValue.length; i++) {
+                if (Math.abs(existingValue[i] - newValue[i]) > 1e-4) {
+                  return true;
+                }
+              }
+            }
+            continue;
+          }
           if (existingValue.length !== newValue.length) return true;
           const sortedExisting = [...existingValue].sort();
           const sortedNew = [...newValue].sort();
@@ -26696,8 +26729,10 @@ IMPORTANT:
         throw new Error(`[ContextEngine] Gem not found: ${id}`);
       }
       let finalUpdates = updates;
-      if (reEnrich && updates.value && updates.value !== currentGem.value) {
-        console.log(`[ContextEngine] Value changed, re-enriching: ${id}`);
+      const shouldEnrich = reEnrich && (updates.value && updates.value !== currentGem.value || // Value changed
+      (!currentGem.vector || currentGem.vector.length === 0));
+      if (shouldEnrich) {
+        console.log(`[ContextEngine] Re-enriching gem: ${id}`);
         const tempGem = { ...currentGem, ...updates };
         finalUpdates = await this.enrichment.enrichGem(tempGem);
       }

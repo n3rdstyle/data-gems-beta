@@ -247,8 +247,8 @@ export class VectorStore {
    * @returns {boolean} True if data has changed
    */
   _hasGemChanged(existingDoc, updates) {
-    // Compare important fields (ignore timestamp, vector might change slightly due to re-embedding)
-    const fieldsToCompare = ['value', 'collections', 'state', 'topic', 'isPrimary', 'parentGem'];
+    // Compare important fields (including vector for re-enrichment detection)
+    const fieldsToCompare = ['value', 'collections', 'state', 'topic', 'isPrimary', 'parentGem', 'vector'];
 
     for (const field of fieldsToCompare) {
       const existingValue = existingDoc[field];
@@ -257,8 +257,35 @@ export class VectorStore {
       // Skip if field not in updates
       if (!(field in updates)) continue;
 
-      // Handle arrays (collections)
+      // Handle arrays (collections, vector)
       if (Array.isArray(existingValue) && Array.isArray(newValue)) {
+        // For vectors, check if one exists and the other doesn't
+        if (field === 'vector') {
+          // If existing has no vector but new does, that's a change
+          if (!existingValue || existingValue.length === 0) {
+            if (newValue && newValue.length > 0) return true;
+          }
+          // If existing has vector but new doesn't, that's a change
+          else if (!newValue || newValue.length === 0) {
+            return true;
+          }
+          // If both have vectors, check if dimensions differ (384 -> 768 migration)
+          else if (existingValue.length !== newValue.length) {
+            return true;
+          }
+          // If same dimension, check if values differ significantly
+          // (use threshold to avoid detecting tiny floating point differences)
+          else {
+            for (let i = 0; i < existingValue.length; i++) {
+              if (Math.abs(existingValue[i] - newValue[i]) > 0.0001) {
+                return true;
+              }
+            }
+          }
+          continue;
+        }
+
+        // For other arrays (collections)
         if (existingValue.length !== newValue.length) return true;
         const sortedExisting = [...existingValue].sort();
         const sortedNew = [...newValue].sort();

@@ -24,7 +24,7 @@ addRxPlugin(RxDBMigrationSchemaPlugin);
  * This is now the single source of truth for preference data
  */
 const gemSchema = {
-  version: 2,  // UPDATED: v1 -> v2 for HSP fields (state, assurance, reliability, source_url, mergedFrom, created_at, updated_at)
+  version: 3,  // UPDATED: v2 -> v3 for 768-dim vector support (BGE-base-en-v1.5)
   primaryKey: 'id',
   type: 'object',
   properties: {
@@ -118,14 +118,14 @@ const gemSchema = {
       maxLength: 50
     },
 
-    // Vector Embeddings (384-dim from Gemini Nano)
+    // Vector Embeddings (768-dim from BGE-base-en-v1.5)
     vector: {
       type: 'array',
       items: {
         type: 'number'
       },
-      minItems: 384,
-      maxItems: 384
+      minItems: 768,
+      maxItems: 768
     },
 
     // Keywords for BM25 sparse search
@@ -267,6 +267,29 @@ export async function initDatabase() {
               source_url: oldDoc.source_url || undefined,
               mergedFrom: oldDoc.mergedFrom || undefined
             };
+          },
+          // Migration from v2 to v3: Update vector dimensions (384 -> 768) and remove invalid vectors
+          3: function(oldDoc) {
+            console.log('[Database] Migrating gem from v2 to v3 (768-dim vectors):', oldDoc.id);
+
+            // Remove vector if it's 384-dim (will be re-enriched with 768-dim)
+            // Keep vector if already 768-dim (shouldn't happen, but just in case)
+            const newDoc = { ...oldDoc };
+
+            if (oldDoc.vector) {
+              if (oldDoc.vector.length === 384) {
+                console.log(`  → Removing 384-dim vector for ${oldDoc.id} (needs re-enrichment)`);
+                delete newDoc.vector;
+              } else if (oldDoc.vector.length === 768) {
+                console.log(`  → Keeping existing 768-dim vector for ${oldDoc.id}`);
+                // Keep as is
+              } else {
+                console.warn(`  → Invalid vector dimension ${oldDoc.vector.length} for ${oldDoc.id}, removing`);
+                delete newDoc.vector;
+              }
+            }
+
+            return newDoc;
           }
         }
         // Note: Vector search plugin will be added separately
