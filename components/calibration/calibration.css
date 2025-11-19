@@ -3,6 +3,12 @@
  * Progress bar showing calibration status with hover tooltip
  */
 
+.tooltip-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .calibration {
   width: 400px;
   height: 2px;
@@ -41,7 +47,17 @@
   text-align: center;
 }
 
+/* Status label above calibration bar */
+.calibration__label {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-neutral-60);
+  margin-bottom: 8px;
+  text-align: center;
+  max-width: 400px;
+}
+
 /* Variant: with percentage display */
 .calibration--with-label {
-  margin-bottom: 8px;
+  margin-top: 0;
 }

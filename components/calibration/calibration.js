@@ -9,16 +9,24 @@ function createCalibration(options = {}) {
     width = 400,
     animated = true,
     onChange = null,
-    showTooltip = true // Option to show/hide tooltip
+    showTooltip = true, // Option to show/hide tooltip
+    showLabel = false // Option to show permanent status text above bar
   } = options;
 
   // Create tooltip container that wraps the calibration
   const tooltipContainer = document.createElement('div');
   tooltipContainer.className = 'tooltip-container';
 
+  // Create status label if enabled
+  let statusLabel = null;
+  if (showLabel) {
+    statusLabel = document.createElement('div');
+    statusLabel.className = 'calibration__label';
+  }
+
   // Create calibration container
   const calibrationElement = document.createElement('div');
-  calibrationElement.className = 'calibration';
+  calibrationElement.className = showLabel ? 'calibration calibration--with-label' : 'calibration';
   calibrationElement.style.width = `${width}px`;
 
   // Create progress bar
@@ -39,23 +47,40 @@ function createCalibration(options = {}) {
     tooltipElement.className = 'tooltip tooltip--top tooltip--calibration';
   }
 
-  // Assemble: tooltip container wraps calibration + tooltip
+  // Assemble: tooltip container wraps label + calibration + tooltip
+  if (statusLabel) {
+    tooltipContainer.appendChild(statusLabel);
+  }
   tooltipContainer.appendChild(calibrationElement);
   if (tooltipElement) {
     tooltipContainer.appendChild(tooltipElement);
   }
 
-  // Helper function to update tooltip text (if exists)
+  // Helper function to update tooltip and label text
   const updateTooltipText = (currentProgress) => {
-    if (tooltipElement) {
-      const remaining = 100 - currentProgress;
-      const remainingCards = Math.max(0, remaining);
+    const remaining = 100 - currentProgress;
+    const remainingCards = Math.max(0, remaining);
+    const currentCards = Math.round(currentProgress);
 
-      if (remaining > 0) {
-        tooltipElement.textContent = `Add ${remainingCards} more data card${remainingCards !== 1 ? 's' : ''} to complete your profile calibration and unlock personalized AI recommendations.`;
-      } else {
-        tooltipElement.textContent = 'Profile calibration complete! Your AI experience is now fully personalized.';
-      }
+    // Tooltip text - detailed explanation
+    let tooltipText = '';
+    if (remaining > 0) {
+      tooltipText = `Add ${remainingCards} more data card${remainingCards !== 1 ? 's' : ''} to complete your profile calibration and unlock personalized AI recommendations.`;
+    } else {
+      tooltipText = 'Profile calibration complete! Your AI experience is now fully personalized.';
+    }
+
+    // Label text - simple progress format
+    const labelText = `${currentCards}/100 %`;
+
+    // Update tooltip if exists
+    if (tooltipElement) {
+      tooltipElement.textContent = tooltipText;
+    }
+
+    // Update label if exists
+    if (statusLabel) {
+      statusLabel.textContent = labelText;
     }
   };
 

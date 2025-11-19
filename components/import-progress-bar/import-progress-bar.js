@@ -8,6 +8,10 @@ function createImportProgressBar(options = {}) {
     total = 100
   } = options;
 
+  // Create tooltip container wrapper
+  const tooltipContainer = document.createElement('div');
+  tooltipContainer.className = 'tooltip-container';
+
   // Create container
   const container = document.createElement('div');
   container.className = 'import-progress-bar';
@@ -17,15 +21,19 @@ function createImportProgressBar(options = {}) {
   fill.className = 'import-progress-bar__fill';
   container.appendChild(fill);
 
-  // Create label
-  const label = document.createElement('div');
-  label.className = 'import-progress-bar__label';
-  label.textContent = 'Importing data...';
+  // Create tooltip instead of permanent label
+  const tooltip = document.createElement('div');
+  tooltip.className = 'tooltip tooltip--bottom tooltip--import';
+  tooltip.textContent = 'Importing data...';
+
+  // Assemble: tooltip container wraps progress bar + tooltip
+  tooltipContainer.appendChild(container);
+  tooltipContainer.appendChild(tooltip);
 
   // Public API
   return {
-    element: container,
-    labelElement: label,
+    element: tooltipContainer,
+    labelElement: tooltip, // Keep same name for backward compatibility
 
     /**
      * Update progress
@@ -35,14 +43,14 @@ function createImportProgressBar(options = {}) {
     setProgress(current, total) {
       const percentage = Math.min(100, Math.round((current / total) * 100));
       fill.style.width = `${percentage}%`;
-      label.textContent = `Importing ${current} of ${total} items...`;
+      tooltip.textContent = `Importing ${current} of ${total} items...`;
     },
 
     /**
      * Set custom label
      */
     setLabel(text) {
-      label.textContent = text;
+      tooltip.textContent = text;
     },
 
     /**
@@ -51,19 +59,16 @@ function createImportProgressBar(options = {}) {
     complete() {
       fill.style.width = '100%';
       container.classList.add('import-progress-bar--complete');
-      label.textContent = '✓ Import complete!';
+      tooltip.textContent = '✓ Import complete!';
 
       // Fade out after 1 second
       setTimeout(() => {
-        container.style.transition = 'opacity 0.5s ease-out';
-        label.style.transition = 'opacity 0.5s ease-out';
-        container.style.opacity = '0';
-        label.style.opacity = '0';
+        tooltipContainer.style.transition = 'opacity 0.5s ease-out';
+        tooltipContainer.style.opacity = '0';
 
         // Remove from DOM after fade
         setTimeout(() => {
-          container.remove();
-          label.remove();
+          tooltipContainer.remove();
         }, 500);
       }, 1000);
     },
@@ -72,16 +77,14 @@ function createImportProgressBar(options = {}) {
      * Show progress bar
      */
     show() {
-      document.body.appendChild(container);
-      document.body.appendChild(label);
+      document.body.appendChild(tooltipContainer);
     },
 
     /**
      * Remove progress bar
      */
     remove() {
-      container.remove();
-      label.remove();
+      tooltipContainer.remove();
     }
   };
 }

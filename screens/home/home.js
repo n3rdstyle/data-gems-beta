@@ -221,7 +221,7 @@ function createHome(options = {}) {
   // Create calibration
   const calibrationWrapper = document.createElement('div');
   calibrationWrapper.className = 'home__calibration';
-  const calibration = createCalibration({ progress: 0 });
+  const calibration = createCalibration({ progress: 0, showLabel: true });
   calibrationWrapper.appendChild(calibration.element);
 
   // Function to update calibration based on card count
