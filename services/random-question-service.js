@@ -157,7 +157,7 @@ async function saveAnswer(questionData, answer) {
         chrome.runtime.sendMessage({
           action: 'contextEngine.addGem',
           gem: gemForAPI,
-          autoEnrich: false // Don't auto-enrich random questions
+          autoEnrich: true // Auto-enrich with embeddings for semantic search
         }, (response) => {
           if (chrome.runtime.lastError) {
             reject(chrome.runtime.lastError);

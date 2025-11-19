@@ -33,7 +33,6 @@ function createHome(options = {}) {
     onBackupData = null,
     onUpdateData = null,
     onClearData = null,
-    onThirdPartyData = null,
     onDescriptionToggle = null,
     onPersonalInfoToggle = null,
     getAutoBackupEnabled = null, // Changed to getter function
@@ -180,7 +179,6 @@ function createHome(options = {}) {
       onBackupData: onBackupData,
       onUpdateData: onUpdateData,
       onClearData: onClearData,
-      onThirdPartyData: onThirdPartyData,
       autoBackupEnabled: getAutoBackupEnabled ? getAutoBackupEnabled() : false,
       onAutoBackupToggle: onAutoBackupToggle,
       autoCategorizeEnabled: getAutoCategorizeEnabled ? getAutoCategorizeEnabled() : true,

@@ -54,7 +54,6 @@
   <link rel="stylesheet" href="screens/home/home.css">
   <link rel="stylesheet" href="screens/profile/profile.css">
   <link rel="stylesheet" href="screens/settings/settings.css">
-  <link rel="stylesheet" href="screens/third-party-data/third-party-data.css">
 
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -436,7 +435,6 @@
           <a class="nav-item" data-section="home">Home</a>
           <a class="nav-item" data-section="profile">Profile</a>
           <a class="nav-item" data-section="settings">Settings</a>
-          <a class="nav-item" data-section="third-party-data">Third Party Data</a>
         </div>
         <div class="nav-section">
           <div class="nav-section-title" data-tooltip="Basic building blocks like colors and icons">Foundations</div>
@@ -1387,16 +1385,6 @@
         </div>
       </section>
 
-      <!-- Third Party Data Section -->
-      <section id="section-third-party-data" class="demo-section hidden">
-        <h2>Third Party Data</h2>
-        <p class="description">Screen for importing data from Google Sheets. Features URL input field, import button, and list of imported sheets.</p>
-
-        <div class="demo-example" style="display: flex; justify-content: center; background-color: var(--color-neutral-10); padding: 0;">
-          <div id="third-party-data-demo"></div>
-        </div>
-      </section>
-
       <!-- Headline Section -->
       <section id="section-headline" class="demo-section hidden">
         <h2>Headline</h2>
@@ -2234,7 +2222,6 @@
   <script src="screens/home/home.js"></script>
   <script src="screens/profile/profile.js"></script>
   <script src="screens/settings/settings.js"></script>
-  <script src="screens/third-party-data/third-party-data.js"></script>
   <script>
     // Navigation functionality
     const navItems = document.querySelectorAll('.nav-item');
@@ -3226,27 +3213,6 @@
       container.appendChild(settings.element);
     }
 
-    function initThirdPartyDataDemo() {
-      const container = document.getElementById('third-party-data-demo');
-      const thirdPartyData = createThirdPartyData({
-        onClose: () => console.log('Third Party Data closed'),
-        onImport: async (url) => {
-          console.log('Importing from URL:', url);
-          // Simulate import delay
-          await new Promise(resolve => setTimeout(resolve, 1500));
-          alert(`Successfully imported data from: ${url}`);
-        },
-        importedSheets: [
-          {
-            url: 'https://docs.google.com/spreadsheets/d/abc123/edit',
-            title: 'My Preferences Backup',
-            data: []
-          }
-        ]
-      });
-      container.appendChild(thirdPartyData.element);
-    }
-
     function initDividerDemo() {
       const container = document.getElementById('divider-demo');
       const divider = createDivider();
@@ -3660,7 +3626,6 @@
       initCardCountButtons();
       initProfileDemo();
       initSettingsDemo();
-      initThirdPartyDataDemo();
       initPrimaryButtonDemo();
       initSecondaryButtonDemo();
       initButtonDemo();

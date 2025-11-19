@@ -1546,76 +1546,6 @@ async function clearAllData() {
   }
 }
 
-function importThirdPartyData() {
-  AppState.metadata.currentScreen = 'third-party-data';
-  renderCurrentScreen();
-}
-
-async function handleGoogleSheetsImport(url) {
-  try {
-    // Import the sheet data
-    const preferenceData = await importGoogleSheet(url);
-
-    // Check if this sheet has already been imported (by URL)
-    const existingPrefs = AppState.content.preferences.items || [];
-    const alreadyImported = existingPrefs.find(p => p.source_url === preferenceData.sourceUrl);
-
-    if (alreadyImported) {
-      // Update existing preference
-      const prefIndex = existingPrefs.findIndex(p => p.source_url === preferenceData.sourceUrl);
-      AppState.content.preferences.items[prefIndex] = {
-        ...alreadyImported,
-        value: preferenceData.value,
-        state: preferenceData.state,
-        collections: preferenceData.collections,
-        source_url: preferenceData.sourceUrl,
-        updated_at: getTimestamp()
-      };
-    } else {
-      // Add as new preference
-      AppState = addPreference(
-        AppState,
-        preferenceData.value,
-        preferenceData.state,
-        preferenceData.collections,
-        [],  // subCollections
-        preferenceData.sourceUrl,
-        null,  // mergedFrom
-        null  // topic (imported data has no topic)
-      );
-    }
-
-    await saveData();
-
-    // Refresh the screen to show updated list
-    renderCurrentScreen();
-
-    // Check if beta check-in modal should be shown
-    await checkBetaCheckinModal();
-    // Check if backup reminder should be shown
-    await checkBackupReminder();
-
-    alert('✅ Google Sheet imported successfully!');
-  } catch (error) {
-    throw error;
-  }
-}
-
-function getImportedSheets() {
-  const preferences = AppState.content.preferences.items || [];
-  return preferences
-    .filter(p => p.source_url && p.source_url.includes('docs.google.com/spreadsheets'))
-    .map(p => {
-      // Extract title from the value (first line)
-      const title = p.value.split('\n')[0] || 'Untitled Sheet';
-      return {
-        url: p.source_url,
-        title: title,
-        id: p.id
-      };
-    });
-}
-
 // Render current screen
 async function renderCurrentScreen() {
   const appContainer = document.getElementById('app');
@@ -1830,7 +1760,7 @@ async function renderCurrentScreen() {
                 }, 0);
               }
 
-              // Save to RxDB immediately WITHOUT embeddings (fast, ensures data persists)
+              // Save to RxDB WITH embeddings (ensures semantic search works)
               try {
                 await addPreferenceToRxDB({
                   id: optimisticGem.id,
@@ -1838,25 +1768,9 @@ async function renderCurrentScreen() {
                   state,
                   collections: collections || [],
                   topic: topic || ''
-                }, false); // autoEnrich = false for immediate save
+                }, true); // autoEnrich = true (generate embeddings immediately)
 
-                console.log('[App] Preference saved to RxDB (without embeddings):', optimisticGem.id);
-
-                // Generate embeddings in background (non-blocking)
-                // This can take time, but data is already persisted
-                setTimeout(async () => {
-                  try {
-                    const engine = await ensureContextEngine();
-                    const savedGem = await engine.vectorStore.findById(optimisticGem.id);
-                    if (savedGem) {
-                      // Re-enrich the gem with embeddings
-                      await engine.updateGem(optimisticGem.id, {}, true);
-                      console.log('[App] Embeddings generated for:', optimisticGem.id);
-                    }
-                  } catch (error) {
-                    console.error('[App] Failed to generate embeddings (non-critical):', error);
-                  }
-                }, 0);
+                console.log('[App] Preference saved to RxDB with embeddings:', optimisticGem.id);
 
                 // Check modals after save completes
                 await checkBetaCheckinModal();
@@ -1971,10 +1885,6 @@ async function renderCurrentScreen() {
           onClearData: () => {
             console.log('🟢 HOME: onClearData called');
             clearAllData();
-          },
-          onThirdPartyData: () => {
-            console.log('🟢 HOME: onThirdPartyData called');
-            importThirdPartyData();
           },
           onDescriptionToggle: async (state) => {
             AppState = updateUserIdentityState(AppState, 'description', state);
@@ -2204,7 +2114,6 @@ async function renderCurrentScreen() {
             console.log('🔵 onClearData called');
             clearAllData();
           },
-          onThirdPartyData: () => importThirdPartyData(),
           autoBackupEnabled: BackupState.autoBackupEnabled,
           onAutoBackupToggle: async (isEnabled) => {
             BackupState.autoBackupEnabled = isEnabled;
@@ -2326,19 +2235,6 @@ async function renderCurrentScreen() {
         };
 
         screenComponent = createSettings(settingsOptions);
-        break;
-
-      case 'third-party-data':
-        screenComponent = createThirdPartyData({
-          onClose: () => {
-            AppState.metadata.currentScreen = 'settings';
-            renderCurrentScreen();
-          },
-          onImport: async (url) => {
-            await handleGoogleSheetsImport(url);
-          },
-          importedSheets: getImportedSheets()
-        });
         break;
 
       default:

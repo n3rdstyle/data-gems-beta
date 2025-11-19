@@ -12,7 +12,6 @@ function createSettings(options = {}) {
     onBackupData = null,
     onUpdateData = null,
     onClearData = null,
-    onThirdPartyData = null,
     onPrivacyStatement = null,
     onTerms = null,
     onImprint = null,
@@ -162,13 +161,6 @@ function createSettings(options = {}) {
     onClick: onClearData || (() => {})
   });
   dataCenterSection.appendChild(clearData.element);
-
-  const thirdPartyData = createActionButton({
-    label: 'Third Party Data',
-    variant: 'navigation',
-    onClick: onThirdPartyData || (() => {})
-  });
-  dataCenterSection.appendChild(thirdPartyData.element);
 
   const dataCenterDivider = createDivider();
   dataCenterSection.appendChild(dataCenterDivider.element);
