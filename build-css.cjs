@@ -64,8 +64,7 @@ const cssFiles = [
   // Screens
   'screens/home/home.css',
   'screens/profile/profile.css',
-  'screens/settings/settings.css',
-  'screens/third-party-data/third-party-data.css',
+  'screens/settings/settings.css'
 ];
 
 const baseDir = __dirname;
