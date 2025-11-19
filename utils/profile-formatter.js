@@ -83,8 +83,8 @@ function formatProfileForInjection(hspProfile, options = {}) {
           return true;
         })
         .map(pref => {
-          // Remove internal fields that LLM doesn't need
-          const { vector, keywords, enrichmentTimestamp, enrichmentVersion, ...cleanPref } = pref;
+          // Remove internal fields that LLM doesn't need (including _childGemsToInsert)
+          const { vector, keywords, enrichmentTimestamp, enrichmentVersion, _childGemsToInsert, ...cleanPref } = pref;
           return cleanPref;
         })
     };
