@@ -15,7 +15,7 @@ const TEMPLATE_FILES = [
   { file: 'habits_context_profile_template.json', category: 'Habits', key: 'habits' },
   { file: 'health_context_profile_template.json', category: 'Health', key: 'health' },
   { file: 'housing_lifestyle_context_profile_template.json', category: 'Housing & Lifestyle', key: 'housing_lifestyle' },
-  { file: 'identity_context_profile_template.json', category: 'Identity', key: 'identity' },
+  { file: 'personal_context_profile_template.json', category: 'Personal', key: 'personal' },
   { file: 'learning_context_profile_template.json', category: 'Learning', key: 'learning' },
   { file: 'memory_context_profile_template.json', category: 'Memory', key: 'memory' },
   { file: 'nutrition_context_profile_template.json', category: 'Nutrition', key: 'nutrition' },

@@ -61,8 +61,12 @@ async function getPreferencesFromRxDB() {
     // Use the proper API method to get all primary gems
     const gems = await api.getAllGems({ isPrimary: true });
 
+    // Filter out virtual gems (identity fields and child gems)
+    // Virtual gems are hidden from UI but searchable via Context Engine
+    const visibleGems = gems.filter(gem => !gem.isVirtual);
+
     // Sort by created_at descending (newest first)
-    const sorted = gems.sort((a, b) => {
+    const sorted = visibleGems.sort((a, b) => {
       const dateA = new Date(a.created_at || 0);
       const dateB = new Date(b.created_at || 0);
       return dateB - dateA;
@@ -151,6 +155,169 @@ async function deletePreferenceFromRxDB(id) {
   } catch (error) {
     console.error('[App] Failed to delete preference from RxDB:', error);
     throw error;
+  }
+}
+
+/**
+ * Sync Identity fields to RxDB for vector search
+ * Converts Identity fields (name, email, age, etc.) to gems with embeddings
+ */
+async function syncIdentityToRxDB() {
+  try {
+    console.log('[App] Syncing Identity fields to RxDB...');
+    const engine = await ensureContextEngine();
+
+    const identity = AppState?.content?.basic?.identity;
+    if (!identity) {
+      console.warn('[App] No identity data to sync');
+      return;
+    }
+
+    // Define which identity fields to sync (exclude avatarImage)
+    const identityFieldsToSync = [
+      { key: 'name', label: 'Name' },
+      { key: 'email', label: 'Email' },
+      { key: 'age', label: 'Age' },
+      { key: 'gender', label: 'Gender' },
+      { key: 'location', label: 'Location' },
+      { key: 'description', label: 'Personal Description' }
+    ];
+
+    // Sync each identity field as a separate gem
+    for (const field of identityFieldsToSync) {
+      const fieldData = identity[field.key];
+
+      // Skip if field has no value or is hidden
+      if (!fieldData || !fieldData.value || fieldData.value === '' || fieldData.state === 'hidden') {
+        // Delete existing identity gem if it exists (field was cleared or hidden)
+        try {
+          await engine.deleteGem(`identity_${field.key}`);
+          console.log(`[App] Deleted identity gem: ${field.key}`);
+        } catch (error) {
+          // Gem doesn't exist, that's fine
+        }
+        continue;
+      }
+
+      // Create gem for this identity field
+      const gemValue = typeof fieldData.value === 'object'
+        ? JSON.stringify(fieldData.value)
+        : String(fieldData.value);
+
+      const gem = {
+        id: `identity_${field.key}`,
+        value: `${field.label}: ${gemValue}`,
+        collections: ['Identity'],
+        subCollections: [],
+        timestamp: Date.now(),
+
+        // HSP fields
+        state: fieldData.state || 'default',
+        assurance: fieldData.assurance || 'self_declared',
+        reliability: fieldData.reliability || 'authoritative',
+        source_url: '',
+        mergedFrom: [],
+        created_at: fieldData.created_at || new Date().toISOString(),
+        updated_at: fieldData.updated_at || new Date().toISOString(),
+        topic: '',
+
+        // Mark as identity gem
+        attribute: field.key,
+        attributeValue: gemValue,
+
+        // Primary gem fields
+        isPrimary: true,
+        parentGem: '',
+        childGems: [],
+        isVirtual: true  // ← Hide from UI (only for semantic search)
+      };
+
+      // Check if gem already exists
+      const existingGem = await engine.getGem(gem.id);
+
+      if (existingGem) {
+        // Update if value changed
+        if (existingGem.value !== gem.value || existingGem.state !== gem.state) {
+          await engine.updateGem(gem.id, {
+            value: gem.value,
+            state: gem.state,
+            updated_at: gem.updated_at,
+            attributeValue: gem.attributeValue
+          }, true); // Re-enrich to update embedding
+          console.log(`[App] Updated identity gem: ${field.key}`);
+        }
+      } else {
+        // Insert new gem with auto-enrichment (generates embedding)
+        await engine.addGem(gem, true);
+        console.log(`[App] Added identity gem: ${field.key}`);
+      }
+    }
+
+    // Handle languages separately (array field)
+    const languagesField = identity.languages;
+    if (languagesField && Array.isArray(languagesField.value) && languagesField.value.length > 0 && languagesField.state !== 'hidden') {
+      // Create one gem for all languages combined
+      const languagesText = languagesField.value
+        .map(lang => `${lang.language} (${lang.level})`)
+        .join(', ');
+
+      const languageGem = {
+        id: 'identity_languages',
+        value: `Languages: ${languagesText}`,
+        collections: ['Identity'],
+        subCollections: [],
+        timestamp: Date.now(),
+
+        // HSP fields
+        state: languagesField.state || 'default',
+        assurance: languagesField.assurance || 'self_declared',
+        reliability: languagesField.reliability || 'authoritative',
+        source_url: '',
+        mergedFrom: [],
+        created_at: languagesField.created_at || new Date().toISOString(),
+        updated_at: languagesField.updated_at || new Date().toISOString(),
+        topic: '',
+
+        // Mark as identity gem
+        attribute: 'languages',
+        attributeValue: languagesText,
+
+        // Primary gem fields
+        isPrimary: true,
+        parentGem: '',
+        childGems: [],
+        isVirtual: true  // ← Hide from UI (only for semantic search)
+      };
+
+      const existingLangGem = await engine.getGem(languageGem.id);
+
+      if (existingLangGem) {
+        if (existingLangGem.value !== languageGem.value || existingLangGem.state !== languageGem.state) {
+          await engine.updateGem(languageGem.id, {
+            value: languageGem.value,
+            state: languageGem.state,
+            updated_at: languageGem.updated_at,
+            attributeValue: languageGem.attributeValue
+          }, true);
+          console.log('[App] Updated identity gem: languages');
+        }
+      } else {
+        await engine.addGem(languageGem, true);
+        console.log('[App] Added identity gem: languages');
+      }
+    } else {
+      // Delete languages gem if languages were cleared
+      try {
+        await engine.deleteGem('identity_languages');
+        console.log('[App] Deleted identity gem: languages');
+      } catch (error) {
+        // Gem doesn't exist, that's fine
+      }
+    }
+
+    console.log('[App] ✓ Identity fields synced to RxDB successfully');
+  } catch (error) {
+    console.error('[App] Failed to sync identity to RxDB:', error);
   }
 }
 
@@ -600,6 +767,9 @@ async function loadData() {
         // IMPORTANT: Save to Chrome Storage so content scripts get the updated data
         await saveData();
         console.log('[App] ✓ Synced RxDB data to Chrome Storage for content scripts');
+
+        // Sync Identity fields to RxDB for semantic search
+        await syncIdentityToRxDB();
       } catch (error) {
         console.error('[App] Failed to load preferences from RxDB:', error);
         console.log('[App] Using Chrome Storage fallback');
@@ -632,6 +802,12 @@ async function saveData() {
     // Preferences are stored in RxDB after migration
     await chrome.storage.local.set({
       hspProfile: AppState
+    });
+
+    // Sync Identity fields to RxDB for semantic search
+    // Run in background (non-blocking)
+    syncIdentityToRxDB().catch(error => {
+      console.error('[App] Failed to sync identity to RxDB:', error);
     });
   } catch (error) {
     // Silent error handling
