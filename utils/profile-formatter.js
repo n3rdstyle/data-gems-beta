@@ -57,7 +57,9 @@ function formatProfileForInjection(hspProfile, options = {}) {
         return;
       }
 
-      filteredProfile.content.basic.identity[key] = field;
+      // Remove internal fields that LLM doesn't need
+      const { embedding, vector, keywords, enrichmentTimestamp, enrichmentVersion, ...cleanField } = field;
+      filteredProfile.content.basic.identity[key] = cleanField;
     });
   }
 
@@ -68,17 +70,23 @@ function formatProfileForInjection(hspProfile, options = {}) {
     }
 
     filteredProfile.content.preferences = {
-      items: hspProfile.content.preferences.items.filter(pref => {
-        // Skip hidden preferences unless includeHidden is true
-        if (!includeHidden && pref.state === 'hidden') {
-          return false;
-        }
-        // Skip empty preferences
-        if (!pref.value || pref.value.trim() === '') {
-          return false;
-        }
-        return true;
-      })
+      items: hspProfile.content.preferences.items
+        .filter(pref => {
+          // Skip hidden preferences unless includeHidden is true
+          if (!includeHidden && pref.state === 'hidden') {
+            return false;
+          }
+          // Skip empty preferences
+          if (!pref.value || pref.value.trim() === '') {
+            return false;
+          }
+          return true;
+        })
+        .map(pref => {
+          // Remove internal fields that LLM doesn't need
+          const { vector, keywords, enrichmentTimestamp, enrichmentVersion, ...cleanPref } = pref;
+          return cleanPref;
+        })
     };
   }
 

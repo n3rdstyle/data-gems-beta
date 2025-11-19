@@ -8,29 +8,29 @@
 /**
  * Predefined categories for consistent auto-categorization
  * AI will prefer these categories but can create new ones if needed
+ * These categories match the 20 Random Question templates
  */
 const PREDEFINED_CATEGORIES = [
-  // Technology & Digital
-  'Technology', 'Privacy', 'Security', 'Software', 'Hardware',
-  'Internet', 'Social Media', 'AI', 'Development', 'Design',
-
-  // Content & Media
-  'Entertainment', 'Music', 'Movies', 'Gaming', 'Books',
-  'Podcasts', 'News', 'Blog', 'Video',
-
-  // Lifestyle
-  'Food', 'Cooking', 'Travel', 'Health', 'Fitness',
-  'Fashion', 'Home', 'Garden', 'Pets',
-
-  // Professional & Education
-  'Work', 'Productivity', 'Education', 'Career', 'Finance',
-  'Business', 'Marketing', 'Research',
-
-  // Shopping & Services
-  'Shopping', 'E-commerce', 'Services', 'Subscriptions',
-
-  // Personal
-  'Personal', 'Family', 'Friends', 'Hobbies', 'Sports'
+  'Arts & Creativity',
+  'Emotions',
+  'Environment',
+  'Family',
+  'Future',
+  'Habits',
+  'Health',
+  'Housing & Lifestyle',
+  'Learning',
+  'Memory',
+  'Nutrition',
+  'Personal',
+  'Philosophy',
+  'Politics',
+  'Relationships',
+  'Shopping',
+  'Sports & Hobbies',
+  'Technology',
+  'Travel',
+  'Work'
 ];
 
 class AIHelper {
@@ -112,19 +112,19 @@ Category Selection Rules:
 2. If no existing category fits well, create a new one in the same style
 3. New categories must follow these rules:
    - Concise (1-2 words maximum)
-   - Capitalized (e.g., "Technology", "Food")
+   - Capitalized (e.g., "Technology", "Nutrition")
    - Clear and specific
 4. Maximum 1-2 categories per item (only add second if HIGHLY relevant)
 5. CRITICAL: Only add categories that are CLEARLY and DIRECTLY relevant
    - If uncertain, prefer fewer categories
    - 1 perfect match is better than 2 approximate matches
-   - NEVER add vague categories like "Hobbies", "Personal", "Other", "Lifestyle"
+   - NEVER add vague categories like "Other", "Miscellaneous", "General"
    - Second category must be AS SPECIFIC as the first, not loosely related
-   - Example: "My go-to drink: Spezi" → ["Food"] NOT ["Food", "Hobbies"]
+   - Example: "My go-to drink: Spezi" → ["Nutrition"] NOT ["Nutrition", "Personal"]
    - When in doubt, use ONLY 1 category
 
 Example valid response: ["Technology"]
-Example valid response: ["Food", "Italian"]
+Example valid response: ["Nutrition", "Italian"]
 
 DO NOT add any explanation, markdown, or extra text. ONLY the JSON array.`
         });
@@ -173,12 +173,12 @@ DO NOT add any explanation, markdown, or extra text. ONLY the JSON array.`
         prompt += `RULES:\n`;
         prompt += `1. If ANY existing category matches, use it (even if not perfect)\n`;
         prompt += `2. Only create a NEW category if NONE of the existing ones fit at all\n`;
-        prompt += `3. New categories must be concise (1-2 words) and capitalized\n`;
-        prompt += `4. For food/drink preferences, use "Food" if it exists\n`;
-        prompt += `5. For sports/exercise, use "Sports" or "Fitness" if they exist\n\n`;
+        prompt += `3. New categories must be concise (1-3 words) and follow existing naming style\n`;
+        prompt += `4. For food/drink preferences, use "Nutrition" if it exists\n`;
+        prompt += `5. For sports/exercise, use "Sports & Hobbies" if it exists\n\n`;
       }
 
-      prompt += `Respond with ONLY a JSON array containing exactly 1 category name. Examples: ["Food"] or ["Technology"]`;
+      prompt += `Respond with ONLY a JSON array containing exactly 1 category name. Examples: ["Nutrition"] or ["Technology"]`;
 
       console.log('[AI Helper] Prompt:', prompt);
       console.log('[AI Helper] Existing categories:', existingCategories);

@@ -76,7 +76,6 @@ let promptElement = null;
 let hspProfile = null;
 let observerActive = false;
 let autoInjectEnabled = false;
-let hasInjectedInCurrentChat = false; // Track if we've injected in current chat
 
 // Session storage key for tracking injection per tab
 const SESSION_INJECTION_KEY = 'data_gems_has_auto_injected';
@@ -109,7 +108,7 @@ function markAutoInjectedInSession() {
 function detectPlatform() {
   const hostname = window.location.hostname;
 
-  for (const [key, platform] of Object.entries(PLATFORMS)) {
+  for (const [, platform] of Object.entries(PLATFORMS)) {
     if (platform.hostPatterns.some(pattern => hostname.includes(pattern))) {
       return platform;
     }
@@ -479,8 +478,19 @@ function showCategoryDropdown(detectedCategory) {
   fullSection.appendChild(fullItem);
   dropdown.appendChild(fullSection);
 
-  // Add to button
-  injectionButton.appendChild(dropdown);
+  // Add dropdown next to button in wrapper (not as child of button)
+  const wrapper = injectionButton._wrapper || injectionButton.parentElement;
+  if (wrapper) {
+    // Position dropdown relative to button
+    dropdown.style.position = 'absolute';
+    dropdown.style.bottom = 'calc(100% + 8px)';
+    dropdown.style.right = '0';
+    wrapper.style.position = 'relative'; // Ensure wrapper is positioned
+    wrapper.appendChild(dropdown);
+  } else {
+    // Fallback: add to button
+    injectionButton.appendChild(dropdown);
+  }
 
   // Show dropdown with animation
   setTimeout(() => dropdown.classList.add('open'), 10);
@@ -538,8 +548,10 @@ function showCategoryDropdown(detectedCategory) {
 
   // Close on outside click
   const closeDropdown = (e) => {
-    // Check if button still exists (might be removed after injection)
-    if (!injectionButton || !injectionButton.contains(e.target)) {
+    // Check if click is outside both button and dropdown
+    if (!injectionButton || !dropdown) return;
+
+    if (!injectionButton.contains(e.target) && !dropdown.contains(e.target)) {
       dropdown.classList.remove('open');
       setTimeout(() => dropdown.remove(), 200);
       document.removeEventListener('click', closeDropdown);
@@ -672,8 +684,7 @@ async function performInjection(selectedCategory) {
     const success = await attachFileToChat(file);
 
     if (success) {
-      hasInjectedInCurrentChat = true; // Mark as injected
-      hideInjectionButton();
+      // Keep button visible for multiple injections
       return;
     }
   }
@@ -686,8 +697,7 @@ async function performInjection(selectedCategory) {
   });
 
   setPromptValue(profileText);
-  hasInjectedInCurrentChat = true; // Mark as injected
-  hideInjectionButton();
+  // Keep button visible for multiple injections
 }
 
 /**
@@ -703,28 +713,15 @@ async function handleInjection(event) {
     event.stopPropagation();
   }
 
-  // Show loading state
-  const originalText = injectionButton.textContent;
-  injectionButton.textContent = 'Detecting...';
-  injectionButton.disabled = true;
-
   try {
-    // Detect category from prompt
+    // Detect category from prompt (in background, don't show loading state)
     const detectedCategory = await detectCategoryForPrompt();
-
-    // Reset button state
-    injectionButton.textContent = originalText;
-    injectionButton.disabled = false;
 
     // Show dropdown with detected category
     showCategoryDropdown(detectedCategory);
 
   } catch (error) {
     console.error('[Data Gems] Error during category detection:', error);
-
-    // Reset button state
-    injectionButton.textContent = originalText;
-    injectionButton.disabled = false;
 
     // Show dropdown without detected category
     showCategoryDropdown(null);
@@ -756,7 +753,9 @@ function formatProfileAsJSON(hspProfile) {
           (Array.isArray(field.value) && field.value.length === 0)) return;
       if (key === 'avatarImage') return;
 
-      filteredProfile.content.basic.identity[key] = field;
+      // Remove internal fields that LLM doesn't need
+      const { embedding, vector, keywords, enrichmentTimestamp, enrichmentVersion, ...cleanField } = field;
+      filteredProfile.content.basic.identity[key] = cleanField;
     });
   }
 
@@ -1101,14 +1100,8 @@ function updateButtonVisibility() {
 
   const hasData = hasInjectableData(hspProfile);
 
-  // Don't show button if we've already injected in this chat
-  if (hasInjectedInCurrentChat) {
-    hideInjectionButton();
-    return;
-  }
-
   // Show button if we have data to inject
-  // Button stays visible even if user starts typing
+  // Button stays visible for multiple injections
   if (hasData) {
     showInjectionButton();
   } else {
@@ -1214,7 +1207,6 @@ function setupInputMonitoring() {
       hideInjectionButton();
       promptElement = null;
       observerActive = false;
-      hasInjectedInCurrentChat = false; // Reset injection flag for new chat
 
       // Reinitialize after a short delay
       setTimeout(() => {
@@ -1270,7 +1262,9 @@ function formatProfileForInjection(hspProfile, options = {}) {
         return;
       }
 
-      filteredProfile.content.basic.identity[key] = field;
+      // Remove internal fields that LLM doesn't need
+      const { embedding, vector, keywords, enrichmentTimestamp, enrichmentVersion, ...cleanField } = field;
+      filteredProfile.content.basic.identity[key] = cleanField;
     });
   }
 
@@ -1280,15 +1274,21 @@ function formatProfileForInjection(hspProfile, options = {}) {
     }
 
     filteredProfile.content.preferences = {
-      items: hspProfile.content.preferences.items.filter(pref => {
-        if (!includeHidden && pref.state === 'hidden') {
-          return false;
-        }
-        if (!pref.value || pref.value.trim() === '') {
-          return false;
-        }
-        return true;
-      })
+      items: hspProfile.content.preferences.items
+        .filter(pref => {
+          if (!includeHidden && pref.state === 'hidden') {
+            return false;
+          }
+          if (!pref.value || pref.value.trim() === '') {
+            return false;
+          }
+          return true;
+        })
+        .map(pref => {
+          // Remove internal fields that LLM doesn't need
+          const { vector, keywords, enrichmentTimestamp, enrichmentVersion, ...cleanPref } = pref;
+          return cleanPref;
+        })
     };
   }
 

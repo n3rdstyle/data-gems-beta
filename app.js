@@ -892,27 +892,54 @@ async function exportData() {
     preferences = AppState.content.preferences;
   }
 
+  // Clean internal fields from preferences and child gems
+  const cleanPreferences = preferences.items.map(pref => {
+    const { vector, keywords, enrichmentTimestamp, enrichmentVersion, _childGemsToInsert, ...cleanPref } = pref;
+
+    // If there were child gems to insert, clean them too
+    if (_childGemsToInsert && _childGemsToInsert.length > 0) {
+      cleanPref._childGemsToInsert = _childGemsToInsert.map(child => {
+        const { vector: childVector, keywords: childKeywords, enrichmentTimestamp: childET, enrichmentVersion: childEV, ...cleanChild } = child;
+        return cleanChild;
+      });
+    }
+
+    return cleanPref;
+  });
+
+  // Clean child gems
+  const cleanChildGems = childGems.map(child => {
+    const { vector, keywords, enrichmentTimestamp, enrichmentVersion, ...cleanChild } = child;
+    return cleanChild;
+  });
+
   // Clean metadata - remove internal fields
   const cleanMetadata = {
     schema_version: AppState.metadata.schema_version,
     extension_version: AppState.metadata.extension_version,
-    total_preferences: preferences.items.length,
-    total_child_gems: childGems.length,  // NEW: Track child gems count
+    total_preferences: cleanPreferences.length,
+    total_child_gems: cleanChildGems.length,  // NEW: Track child gems count
     last_backup: AppState.metadata.last_backup
   };
 
-  // Rebuild content.basic.identity in correct field order
+  // Rebuild content.basic.identity in correct field order and clean internal fields
+  const cleanIdentityField = (field) => {
+    if (!field) return field;
+    const { embedding, vector, keywords, enrichmentTimestamp, enrichmentVersion, ...cleanField } = field;
+    return cleanField;
+  };
+
   const identity = {};
   const source = AppState.content.basic.identity;
-  identity.name = source.name;
-  identity.subtitle = source.subtitle;
-  identity.avatarImage = source.avatarImage;
-  identity.email = source.email;
-  identity.age = source.age;
-  identity.gender = source.gender;
-  identity.location = source.location;
-  identity.description = source.description;
-  identity.languages = source.languages;
+  identity.name = cleanIdentityField(source.name);
+  identity.subtitle = cleanIdentityField(source.subtitle);
+  identity.avatarImage = cleanIdentityField(source.avatarImage);
+  identity.email = cleanIdentityField(source.email);
+  identity.age = cleanIdentityField(source.age);
+  identity.gender = cleanIdentityField(source.gender);
+  identity.location = cleanIdentityField(source.location);
+  identity.description = cleanIdentityField(source.description);
+  identity.languages = cleanIdentityField(source.languages);
 
   // Build data in correct HSP v0.1 field order
   const data = {
@@ -928,8 +955,8 @@ async function exportData() {
       basic: {
         identity: identity
       },
-      preferences: preferences,  // Primary gems from RxDB
-      childGems: childGems  // NEW: Child gems for semantic search
+      preferences: { items: cleanPreferences },  // Primary gems from RxDB (cleaned)
+      childGems: cleanChildGems  // NEW: Child gems for semantic search (cleaned)
     },
 
     // Collections
