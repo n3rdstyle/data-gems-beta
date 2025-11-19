@@ -248,10 +248,12 @@ function getUserIdentity(profile) {
     description: identity.description?.value || '',
     descriptionState: identity.description?.state || 'default',
     languages: identity.languages?.value || [],
+    nameState: identity.name?.state || 'default',
     emailState: identity.email?.state || 'default',
     ageState: identity.age?.state || 'default',
     genderState: identity.gender?.state || 'default',
-    locationState: identity.location?.state || 'default'
+    locationState: identity.location?.state || 'default',
+    languagesState: identity.languages?.state || 'default'
   };
 }
 

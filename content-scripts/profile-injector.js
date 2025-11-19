@@ -390,6 +390,36 @@ async function detectCategoryForPrompt() {
 }
 
 /**
+ * Check if Personal Description is visible
+ */
+function hasVisibleDescription(profile) {
+  const identity = profile?.content?.basic?.identity || {};
+  const field = identity.description;
+
+  return field &&
+         field.value &&
+         field.value !== '' &&
+         field.state !== 'hidden';
+}
+
+/**
+ * Check if any Private Information fields are visible
+ */
+function hasVisibleProfileInfo(profile) {
+  const identity = profile?.content?.basic?.identity || {};
+  const profileInfoFields = ['name', 'email', 'age', 'gender', 'location', 'languages'];
+
+  return profileInfoFields.some(fieldName => {
+    const field = identity[fieldName];
+    return field &&
+           field.value &&
+           field.value !== '' &&
+           (!Array.isArray(field.value) || field.value.length > 0) &&
+           field.state !== 'hidden';
+  });
+}
+
+/**
  * Show category selection dropdown
  */
 function showCategoryDropdown(detectedCategory) {
@@ -405,6 +435,10 @@ function showCategoryDropdown(detectedCategory) {
     performInjection(null);
     return;
   }
+
+  // Check which identity sections are visible
+  const showDescriptionOption = hasVisibleDescription(hspProfile);
+  const showProfileInfoOption = hasVisibleProfileInfo(hspProfile);
 
   // Create dropdown
   const dropdown = document.createElement('div');
@@ -470,13 +504,58 @@ function showCategoryDropdown(detectedCategory) {
   fullItem.className = 'dropdown-item dropdown-item--full';
   // No dataset.category means full profile (null)
   fullItem.innerHTML = `
-    <span class="icon">📋</span>
-    <span class="label">Ganzes Profil</span>
+    <span class="label">Full Profile</span>
   `;
   fullItem.addEventListener('click', () => handleCategorySelection(null));
 
   fullSection.appendChild(fullItem);
   dropdown.appendChild(fullSection);
+
+  // Personal Description option (only show if description is visible)
+  if (showDescriptionOption) {
+    // Divider
+    const divider3 = document.createElement('div');
+    divider3.className = 'dropdown-divider';
+    dropdown.appendChild(divider3);
+
+    const descriptionSection = document.createElement('div');
+    descriptionSection.className = 'dropdown-section';
+
+    const descriptionItem = document.createElement('div');
+    descriptionItem.className = 'dropdown-item dropdown-item--description';
+    descriptionItem.dataset.category = 'PERSONAL_DESCRIPTION';
+    descriptionItem.innerHTML = `
+      <span class="label">Personal Description</span>
+    `;
+    descriptionItem.addEventListener('click', () => handleCategorySelection('PERSONAL_DESCRIPTION'));
+
+    descriptionSection.appendChild(descriptionItem);
+    dropdown.appendChild(descriptionSection);
+  }
+
+  // Private Information option (only show if any profile info fields are visible)
+  if (showProfileInfoOption) {
+    // Divider (only if no description shown above)
+    if (!showDescriptionOption) {
+      const divider3 = document.createElement('div');
+      divider3.className = 'dropdown-divider';
+      dropdown.appendChild(divider3);
+    }
+
+    const profileInfoSection = document.createElement('div');
+    profileInfoSection.className = 'dropdown-section';
+
+    const profileInfoItem = document.createElement('div');
+    profileInfoItem.className = 'dropdown-item dropdown-item--profile-info';
+    profileInfoItem.dataset.category = 'PROFILE_INFORMATION';
+    profileInfoItem.innerHTML = `
+      <span class="label">Private Information</span>
+    `;
+    profileInfoItem.addEventListener('click', () => handleCategorySelection('PROFILE_INFORMATION'));
+
+    profileInfoSection.appendChild(profileInfoItem);
+    dropdown.appendChild(profileInfoSection);
+  }
 
   // Add dropdown next to button in wrapper (not as child of button)
   const wrapper = injectionButton._wrapper || injectionButton.parentElement;
@@ -660,6 +739,55 @@ function filterProfileByCollections(profile, collectionNames) {
 }
 
 /**
+ * Filter profile to only include Personal Description
+ */
+function filterProfileForDescriptionOnly(profile) {
+  const identity = profile.content?.basic?.identity || {};
+  const descriptionOnly = {};
+
+  if (identity.description) {
+    descriptionOnly.description = identity.description;
+  }
+
+  return {
+    hsp: profile.hsp,
+    type: profile.type,
+    content: {
+      basic: {
+        identity: descriptionOnly
+      }
+    },
+    collections: profile.collections || []
+  };
+}
+
+/**
+ * Filter profile to only include Private Information fields (no description)
+ */
+function filterProfileForProfileInfoOnly(profile) {
+  const identity = profile.content?.basic?.identity || {};
+  const profileInfoOnly = {};
+  const profileInfoFields = ['name', 'email', 'age', 'gender', 'location', 'languages'];
+
+  profileInfoFields.forEach(field => {
+    if (identity[field]) {
+      profileInfoOnly[field] = identity[field];
+    }
+  });
+
+  return {
+    hsp: profile.hsp,
+    type: profile.type,
+    content: {
+      basic: {
+        identity: profileInfoOnly
+      }
+    },
+    collections: profile.collections || []
+  };
+}
+
+/**
  * Perform the actual profile injection
  */
 async function performInjection(selectedCategory) {
@@ -667,10 +795,17 @@ async function performInjection(selectedCategory) {
     return;
   }
 
-  // Filter profile if category selected
-  const profileToInject = selectedCategory
-    ? filterProfileByCollections(hspProfile, [selectedCategory])
-    : hspProfile;
+  // Filter profile based on selection
+  let profileToInject;
+  if (selectedCategory === 'PERSONAL_DESCRIPTION') {
+    profileToInject = filterProfileForDescriptionOnly(hspProfile);
+  } else if (selectedCategory === 'PROFILE_INFORMATION') {
+    profileToInject = filterProfileForProfileInfoOnly(hspProfile);
+  } else if (selectedCategory) {
+    profileToInject = filterProfileByCollections(hspProfile, [selectedCategory]);
+  } else {
+    profileToInject = hspProfile;
+  }
 
   // Check injection method for current platform
   if (currentPlatform.injectionMethod === 'file') {

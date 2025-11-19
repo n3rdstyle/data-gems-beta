@@ -1933,11 +1933,13 @@ async function renderCurrentScreen() {
             await saveData();
           },
           onPersonalInfoToggle: async (state) => {
-            // Update all personal info fields to the same state
+            // Update all private info fields to the same state
+            AppState = updateUserIdentityState(AppState, 'name', state);
             AppState = updateUserIdentityState(AppState, 'email', state);
             AppState = updateUserIdentityState(AppState, 'age', state);
             AppState = updateUserIdentityState(AppState, 'gender', state);
             AppState = updateUserIdentityState(AppState, 'location', state);
+            AppState = updateUserIdentityState(AppState, 'languages', state);
             await saveData();
           },
           getAutoBackupEnabled: () => BackupState.autoBackupEnabled,
@@ -2105,7 +2107,7 @@ async function renderCurrentScreen() {
           gender: userData.gender,
           location: userData.location,
           languages: userData.languages,
-          personalInfoState: (userData.emailState === 'hidden' && userData.ageState === 'hidden' && userData.genderState === 'hidden' && userData.locationState === 'hidden') ? 'hidden' : 'default',
+          personalInfoState: (userData.nameState === 'hidden' && userData.emailState === 'hidden' && userData.ageState === 'hidden' && userData.genderState === 'hidden' && userData.locationState === 'hidden' && userData.languagesState === 'hidden') ? 'hidden' : 'default',
           onClose: () => {
             AppState.metadata.currentScreen = 'home';
             renderCurrentScreen();
@@ -2116,11 +2118,13 @@ async function renderCurrentScreen() {
             await saveData();
           },
           onPersonalInfoToggle: async (state) => {
-            // Update all personal info fields to the same state
+            // Update all private info fields to the same state
+            AppState = updateUserIdentityState(AppState, 'name', state);
             AppState = updateUserIdentityState(AppState, 'email', state);
             AppState = updateUserIdentityState(AppState, 'age', state);
             AppState = updateUserIdentityState(AppState, 'gender', state);
             AppState = updateUserIdentityState(AppState, 'location', state);
+            AppState = updateUserIdentityState(AppState, 'languages', state);
             await saveData();
           }
         });

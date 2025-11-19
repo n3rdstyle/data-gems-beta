@@ -15,8 +15,44 @@ function enrichGemsWithBasicInfo(profile) {
 
   const basicGems = [];
 
+  // Name (basic identity)
+  if (basicInfo.name?.value && basicInfo.name?.state !== 'hidden') {
+    basicGems.push({
+      id: 'basic_name',
+      value: `Name: ${basicInfo.name.value}`,
+      collections: ['Identity'],
+      subCollections: ['identity_basic'],
+      semanticType: 'characteristic',
+      attribute: 'name',
+      attributeValue: basicInfo.name.value,
+      assurance: 'self_declared',
+      reliability: 'authoritative',
+      state: basicInfo.name.state || 'default',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+  }
+
+  // Description (personal background)
+  if (basicInfo.description?.value && basicInfo.description?.state !== 'hidden') {
+    basicGems.push({
+      id: 'basic_description',
+      value: `About me: ${basicInfo.description.value}`,
+      collections: ['Identity'],
+      subCollections: ['identity_description'],
+      semanticType: 'characteristic',
+      attribute: 'description',
+      attributeValue: basicInfo.description.value,
+      assurance: 'self_declared',
+      reliability: 'authoritative',
+      state: basicInfo.description.state || 'default',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+  }
+
   // Location (critical for restaurants, travel, local services)
-  if (basicInfo.location?.value) {
+  if (basicInfo.location?.value && basicInfo.location?.state !== 'hidden') {
     basicGems.push({
       id: 'basic_location',
       value: `Lives in: ${basicInfo.location.value}`,
@@ -27,14 +63,14 @@ function enrichGemsWithBasicInfo(profile) {
       attributeValue: basicInfo.location.value,
       assurance: 'self_declared',
       reliability: 'authoritative',
-      state: 'default',
+      state: basicInfo.location.state || 'default',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     });
   }
 
   // Age (affects recommendations)
-  if (basicInfo.age?.value) {
+  if (basicInfo.age?.value && basicInfo.age?.state !== 'hidden') {
     basicGems.push({
       id: 'basic_age',
       value: `Age: ${basicInfo.age.value}`,
@@ -45,14 +81,50 @@ function enrichGemsWithBasicInfo(profile) {
       attributeValue: basicInfo.age.value.toString(),
       assurance: 'self_declared',
       reliability: 'authoritative',
-      state: 'default',
+      state: basicInfo.age.state || 'default',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+  }
+
+  // Gender (affects recommendations)
+  if (basicInfo.gender?.value && basicInfo.gender?.state !== 'hidden') {
+    basicGems.push({
+      id: 'basic_gender',
+      value: `Gender: ${basicInfo.gender.value}`,
+      collections: ['Identity'],
+      subCollections: ['identity_basic'],
+      semanticType: 'characteristic',
+      attribute: 'gender',
+      attributeValue: basicInfo.gender.value,
+      assurance: 'self_declared',
+      reliability: 'authoritative',
+      state: basicInfo.gender.state || 'default',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+  }
+
+  // Email (contact information)
+  if (basicInfo.email?.value && basicInfo.email?.state !== 'hidden') {
+    basicGems.push({
+      id: 'basic_email',
+      value: `Email: ${basicInfo.email.value}`,
+      collections: ['Identity'],
+      subCollections: ['identity_contact'],
+      semanticType: 'characteristic',
+      attribute: 'email',
+      attributeValue: basicInfo.email.value,
+      assurance: 'self_declared',
+      reliability: 'authoritative',
+      state: basicInfo.email.state || 'default',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     });
   }
 
   // Languages (keyboard, content, regional preferences)
-  if (basicInfo.languages?.value) {
+  if (basicInfo.languages?.value && basicInfo.languages?.state !== 'hidden') {
     const langs = Array.isArray(basicInfo.languages.value)
       ? basicInfo.languages.value.join(', ')
       : basicInfo.languages.value;
@@ -66,25 +138,7 @@ function enrichGemsWithBasicInfo(profile) {
       attributeValue: langs,
       assurance: 'self_declared',
       reliability: 'authoritative',
-      state: 'default',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    });
-  }
-
-  // Gender (affects recommendations)
-  if (basicInfo.gender?.value) {
-    basicGems.push({
-      id: 'basic_gender',
-      value: `Gender: ${basicInfo.gender.value}`,
-      collections: ['Identity'],
-      subCollections: ['identity_basic'],
-      semanticType: 'characteristic',
-      attribute: 'gender',
-      attributeValue: basicInfo.gender.value,
-      assurance: 'self_declared',
-      reliability: 'authoritative',
-      state: 'default',
+      state: basicInfo.languages.state || 'default',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     });

@@ -461,12 +461,12 @@ function createProfile(options = {}) {
   const divider1 = createDivider();
   personalDescSection.appendChild(divider1.element);
 
-  // Profile Information Section
+  // Private Information Section
   const profileInfoSection = document.createElement('div');
   profileInfoSection.className = 'profile__section';
 
   const profileInfoCollapsible = createCollapsibleSection({
-    title: 'Profile Information',
+    title: 'Private Information',
     collapsed: personalInfoState === 'hidden',
     onToggle: (isHidden) => {
       if (onPersonalInfoToggle) {
