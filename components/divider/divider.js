@@ -1,8 +1,8 @@
 /**
  * Divider Component
  * Simple horizontal divider line
+ * @returns {{ element: HTMLHRElement }} Component instance with element reference
  */
-
 function createDivider() {
   const divider = document.createElement('hr');
   divider.className = 'divider';
