@@ -3,8 +3,29 @@
 ## Git und Deployment
 
 - **GitHub Push Policy**: Führe `git push` **NUR** aus, wenn ich explizit darauf hinweise
-- Git commits sind erlaubt und sollten nach Fertigstellung von Features erfolgen
 - Verwende aussagekräftige Commit-Nachrichten im konventionellen Format
+
+### Atomic Commits pro Response
+
+**WICHTIG**: Committe nach **jeder Response**, die Dateien verändert:
+
+1. Änderungen durchführen
+2. Sofort committen mit `[wip]` Prefix
+3. User reviewed → weiter oder `git reset HEAD~1`
+
+```
+[wip] Add feature X
+[wip] Fix bug in component Y
+```
+
+**Kein Commit** bei:
+- Nur Lesen/Erkunden von Dateien
+- Diskussion ohne Code-Änderungen
+
+**Vorteile**:
+- Einfaches Rollback pro AI-Response
+- Klarer Audit-Trail
+- Sichere Iteration
 
 ## Projekt-Struktur
 
